@@ -1,0 +1,16 @@
+query GetUser {
+  user {
+    ... on User {
+      id
+      email
+    }
+
+    ... on UserNotFoundError {
+      message
+    }
+  }
+}
+
+query updateMyPassword {
+  updateMyPassword
+}

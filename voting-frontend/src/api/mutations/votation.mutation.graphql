@@ -1,0 +1,101 @@
+mutation CreateVotations($meetingId: String!, $votations: [CreateVotationInput!]!) {
+  createVotations(meetingId: $meetingId, votations: $votations) {
+    id
+    meetingId
+    title
+    description
+    index
+    blankVotes
+    status
+    hiddenVotes
+    type
+    numberOfWinners
+    majorityThreshold
+    alternatives {
+      id
+      text
+      index
+    }
+  }
+}
+
+mutation UpdateVotationIndexes($votations: [UpdateVotationIndexInput!]!, $meetingId: String!) {
+  updateVotationIndexes(votations: $votations, meetingId: $meetingId) {
+    id
+    index
+  }
+}
+
+mutation StartNextVotation($meetingId: String!) {
+  startNextVotation(meetingId: $meetingId) {
+    __typename
+    ... on MaxOneOpenVotationError {
+      message
+    }
+    ... on NoUpcomingVotations {
+      message
+    }
+    ... on VotationHasNoAlternatives {
+      message
+    }
+    ... on OpenedVotation {
+      votationId
+      title
+    }
+  }
+}
+
+mutation UpdateVotations($votations: [UpdateVotationInput!]!, $meetingId: String!) {
+  updateVotations(votations: $votations, meetingId: $meetingId) {
+    id
+    title
+    description
+    blankVotes
+    index
+    hiddenVotes
+    type
+    numberOfWinners
+    majorityThreshold
+    status
+    alternatives {
+      id
+      text
+      index
+    }
+  }
+}
+
+mutation DeleteVotation($votationId: String!) {
+  deleteVotation(votationId: $votationId)
+}
+
+mutation DeleteAlternatives($ids: [String!]!) {
+  deleteAlternatives(ids: $ids)
+}
+
+mutation CastVote($alternativeId: String!) {
+  castVote(alternativeId: $alternativeId) {
+    alternative {
+      text
+    }
+  }
+}
+
+mutation CastBlankVote($votationId: String!) {
+  castBlankVote(votationId: $votationId)
+}
+
+mutation CastStvVote($votationId: String!, $alternatives: [StvVoteAlternativeInput!]!) {
+  castStvVote(votationId: $votationId, alternatives: $alternatives)
+}
+
+mutation UpdateVotationStatus($votationId: String!, $status: VotationStatus!) {
+  updateVotationStatus(votationId: $votationId, status: $status) {
+    title
+    status
+  }
+}
+
+mutation CastVotationReview($votationId: String!, $approved: Boolean!) {
+  reviewVotation(votationId: $votationId, approved: $approved)
+}

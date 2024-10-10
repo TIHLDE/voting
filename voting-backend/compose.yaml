@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  votingdb:
+    image: postgres
+    container_name: votingdb
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: votingsecret
+      POSTGRES_DB: votingdb
+    volumes:
+      - votingdb_data:/var/lib/postgresql/data
+    restart: always
+
+  redis:
+    image: redis
+    container_name: redis
+    ports:
+      - "6379:6379"  # Redis default port is 6379, mapped to 6380 on the host
+    environment:
+      REDIS_PASSWORD: redissecret  # Set the Redis password here
+    volumes:
+      - redis_data:/data
+    command: ["redis-server", "--requirepass", "redissecret"]  # Ensure Redis requires a password
+    restart: always
+  web:
+    build:
+      context: .
+    ports:
+      - "80:80"
+    volumes:
+      - ./voting-app:/app
+    restart: always
+
+volumes:
+  votingdb_data:
+  redis_data:

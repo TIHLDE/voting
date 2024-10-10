@@ -1,0 +1,49 @@
+subscription VotationStatusUpdated($id: String!) {
+  votationStatusUpdated(id: $id) {
+    votationId
+    votationStatus
+  }
+}
+
+subscription NewVoteRegistered($votationId: String!) {
+  newVoteRegistered(votationId: $votationId) {
+    votationId
+    voteCount
+    votingEligibleCount
+  }
+}
+
+subscription VotationOpenedForMeeting($meetingId: String!) {
+  votationOpenedForMeeting(meetingId: $meetingId)
+}
+
+subscription ReviewAdded($votationId: String!) {
+  reviewAdded(votationId: $votationId) {
+    approved
+    disapproved
+  }
+}
+
+subscription VotationsUpdated($meetingId: String!) {
+  votationsUpdated(meetingId: $meetingId) {
+    id
+    title
+    description
+    index
+    status
+    blankVotes
+    hiddenVotes
+    type
+    numberOfWinners
+    majorityThreshold
+    alternatives {
+      id
+      text
+      index
+    }
+  }
+}
+
+subscription VotationDeleted($meetingId: String!) {
+  votationDeleted(meetingId: $meetingId)
+}

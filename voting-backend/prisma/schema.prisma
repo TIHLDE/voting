@@ -1,0 +1,199 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  PARTICIPANT
+  COUNTER
+}
+
+enum VotationType {
+  QUALIFIED
+  SIMPLE
+  STV
+}
+
+enum MeetingStatus {
+  UPCOMING
+  ONGOING
+  ENDED
+}
+
+enum VotationStatus {
+  UPCOMING
+  OPEN
+  CHECKING_RESULT
+  PUBLISHED_RESULT
+  INVALID
+}
+
+model User {
+  id            String        @id @default(cuid()) 
+  email         String        @unique @db.VarChar(255)
+  emailVerified Boolean       @default(false)
+  password      String
+  meetings      Meeting[]
+  participantAt Participant[]
+  HasVoted      HasVoted[]
+}
+
+model Meeting {
+  id           String        @id @default(cuid()) 
+  organization String
+  title        String        @db.VarChar(255)
+  startTime    DateTime
+  description  String?
+  owner        User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId      String        
+  votations    Votation[]
+  status       MeetingStatus @default(UPCOMING)
+  allowSelfRegistration Boolean @default(false)
+  participants Participant[]
+  Invite       Invite[]
+}
+
+model Participant {
+  id               String  @id @default(cuid())
+  role             Role
+  userId           String  
+  meetingId        String  
+  isVotingEligible Boolean @default(true)
+  user             User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  meeting          Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  reviewedVotation VotationResultReview[]
+
+  @@unique([userId, meetingId])
+}
+
+model VotationResultReview {
+  votationId String 
+  votation Votation @relation(fields: [votationId], references: [id], onDelete: Cascade)
+  participantId String 
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  approved Boolean
+
+  @@id([votationId, participantId])
+}
+
+model Invite {
+  email            String
+  role             Role
+  isVotingEligible Boolean
+  meetingId        String  
+  meeting          Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([email, meetingId])
+}
+
+model Votation {
+  id                String         @id @default(cuid()) 
+  title             String         @db.VarChar(255)
+  description       String?
+  status            VotationStatus @default(UPCOMING)
+  blankVotes        Boolean
+  blankVoteCount    Int            @default(0)
+  hiddenVotes       Boolean
+  type              VotationType   @default(SIMPLE)
+  numberOfWinners   Int            @default(1)
+  majorityThreshold Int
+  index             Int
+  meetingId         String         
+  meeting           Meeting        @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  stvVotes          StvVote[]
+  alternatives      Alternative[]
+  hasVoted          HasVoted[]
+  result            VotationResult?
+  stvResults        StvResult?
+  resultReview      VotationResultReview[]
+}
+
+model HasVoted {
+  votationId String   
+  userId     String   
+  createdAt  DateTime @default(now())
+  votation   Votation @relation(fields: [votationId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, votationId])
+}
+
+model Alternative {
+  id         String   @id @default(cuid()) 
+  text       String   @db.VarChar(120)
+  index      Int      @default(0)
+  votationId String   
+  votation   Votation @relation(fields: [votationId], references: [id], onDelete: Cascade)
+  isWinner   Boolean  @default(false)
+  votes      Vote[]
+  roundVoteCount AlternativeRoundVoteCount[]
+  winnerOfStvRoundId String? 
+  winnerOfStvRound StvRoundResult? @relation(name: "winnerOfStvRound", fields: [winnerOfStvRoundId], references: [id])
+  loserOfStvRoundId String? 
+  loserOfStvRound StvRoundResult? @relation(name: "loserOfStvRound", fields: [loserOfStvRoundId], references: [id])
+}
+
+model StvVote {
+  id String @id @default(cuid()) 
+  votationId String 
+  votation Votation @relation(fields: [votationId], references: [id], onDelete: Cascade)
+  votes Vote[]
+}
+
+model AlternativeRoundVoteCount {
+  alterantiveId    String 
+  alternative      Alternative @relation(fields: [alterantiveId], references: [id], onDelete: Cascade)
+  voteCount        Float
+  stvRoundResultId String 
+  stvRoundResult   StvRoundResult @relation(fields: [stvRoundResultId], references: [id], onDelete: Cascade)
+
+  @@id([alterantiveId, stvRoundResultId])
+}
+
+model StvRoundResult {
+  id String @id @default(cuid()) 
+  index Int 
+  stvResultId String? 
+  stvResult StvResult? @relation(fields: [stvResultId], references: [votationId], onDelete: Cascade)
+  resultId String? 
+  result VotationResult? @relation(fields: [resultId], references: [votationId], onDelete: Cascade)
+  winners Alternative[] @relation(name: "winnerOfStvRound")
+  losers Alternative[] @relation(name: "loserOfStvRound")
+  alternativesWithRoundVoteCount AlternativeRoundVoteCount[]
+  @@unique([index, stvResultId])
+}
+
+// DEPRECATED 
+model StvResult {
+  votationId String  @id
+  votation Votation @relation(fields: [votationId], references: [id], onDelete: Cascade)
+  quota Int
+  stvRoundResult StvRoundResult[]
+}
+
+model VotationResult {
+  votationId String  @id
+  votation Votation @relation(fields: [votationId], references: [id], onDelete: Cascade)
+  votingEligibleCount Int
+  voteCount Int
+  blankVoteCount Int?
+  quota Float?
+  stvRoundResult StvRoundResult[] 
+}
+
+model Vote {
+  id            String      @id @default(cuid()) 
+  alternative   Alternative @relation(fields: [alternativeId], references: [id], onDelete: Cascade)
+  alternativeId String      
+  ranking       Int         @default(1) 
+  stvVoteId     String?      
+  stvVote       StvVote?    @relation(fields: [stvVoteId], references: [id], onDelete: Cascade)
+}

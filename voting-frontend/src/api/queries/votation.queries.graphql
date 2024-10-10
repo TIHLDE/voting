@@ -1,0 +1,179 @@
+fragment StvRoundResultFields on StvRoundResult {
+  index
+  winners {
+    votationId
+    id
+    index
+    text
+  }
+  losers {
+    text
+    id
+    index
+  }
+  alternativesWithRoundVoteCount {
+    alternative {
+      id
+      index
+      text
+    }
+    voteCount
+  }
+}
+
+fragment AlternativeResultFields on AlternativeResult {
+  id
+  text
+  index
+  isWinner
+  votes
+}
+
+query GetVotationById($votationId: String!) {
+  votationById(votationId: $votationId) {
+    id
+    title
+    description
+    index
+    hasVoted
+    alternatives {
+      id
+      text
+      index
+      votationId
+    }
+    status
+    blankVotes
+    hiddenVotes
+    type
+    numberOfWinners
+    majorityThreshold
+    meetingId
+  }
+
+  getVoteCount(votationId: $votationId) {
+    votingEligibleCount
+    voteCount
+  }
+}
+
+query GetMeetingForLobby($meetingId: String!) {
+  meetingById(meetingId: $meetingId) {
+    id
+    title
+    allowSelfRegistration
+    owner {
+      email
+    }
+  }
+
+  getOpenVotation(meetingId: $meetingId)
+
+  numberOfUpcomingVotations(meetingId: $meetingId)
+}
+
+query VotationsByMeetingId($meetingId: String!) {
+  meetingById(meetingId: $meetingId) {
+    id
+    title
+    owner {
+      email
+    }
+    votations {
+      id
+      title
+      status
+      description
+      blankVotes
+      hiddenVotes
+      type
+      numberOfWinners
+      majorityThreshold
+      index
+      alternatives {
+        id
+        text
+        index
+      }
+    }
+  }
+
+  resultsOfPublishedVotations(meetingId: $meetingId) {
+    id
+    alternatives {
+      id
+      text
+      index
+      isWinner
+    }
+  }
+}
+
+query GetVoteCount($votationId: String!) {
+  getVoteCount(votationId: $votationId) {
+    votingEligibleCount
+    voteCount
+  }
+}
+
+query GetVotationResults($votationId: String!) {
+  getVotationResults(votationId: $votationId) {
+    id
+    voteCount
+    votingEligibleCount
+    alternatives {
+      ...AlternativeResultFields
+    }
+    blankVoteCount
+  }
+
+  getStvResult(votationId: $votationId) {
+    votationId
+    voteCount
+    votingEligibleCount
+    alternatives {
+      ...AlternativeResultFields
+    }
+    quota
+    stvRoundResults {
+      ...StvRoundResultFields
+    }
+  }
+
+  result(votationId: $votationId) {
+    votationId
+    voteCount
+    votingEligibleCount
+    alternatives {
+      ...AlternativeResultFields
+    }
+    blankVoteCount
+    quota
+    stvRoundResults {
+      ...StvRoundResultFields
+    }
+  }
+}
+
+query GetWinnerOfVotation($votationId: String!) {
+  getWinnerOfVotation(votationId: $votationId) {
+    id
+    text
+    votationId
+  }
+}
+
+query GetReviews($votationId: String!) {
+  getReviews(votationId: $votationId) {
+    approved
+    disapproved
+  }
+  getMyReview(votationId: $votationId) {
+    ... on VotationReview {
+      approved
+    }
+    ... on NoReview {
+      message
+    }
+  }
+}

@@ -1,0 +1,52 @@
+mutation CreateMeeting($meeting: CreateMeetingInput!) {
+  createMeeting(meeting: $meeting) {
+    id
+    title
+    organization
+    startTime
+    description
+    status
+    allowSelfRegistration
+  }
+}
+
+mutation UpdateMeeting($meeting: UpdateMeetingInput!) {
+  updateMeeting(meeting: $meeting) {
+    id
+    title
+    organization
+    startTime
+    description
+    status
+    allowSelfRegistration
+  }
+}
+
+mutation AddParticipants($meetingId: String!, $participants: [ParticipantInput!]!) {
+  addParticipants(meetingId: $meetingId, participants: $participants)
+}
+
+mutation UpdateParticipant($meetingId: String!, $participant: ParticipantInput!) {
+  updateParticipant(meetingId: $meetingId, participant: $participant) {
+    email
+    role
+    isVotingEligible
+  }
+}
+
+mutation DeleteParticipants($meetingId: String!, $emails: [String!]!) {
+  deleteParticipants(meetingId: $meetingId, emails: $emails)
+}
+
+mutation DeleteMeeting($id: String!) {
+  deleteMeeting(id: $id) {
+    id
+  }
+}
+
+mutation RegisterAsParticipant($meetingId: String!) {
+  registerAsParticipant(meetingId: $meetingId) {
+    role
+    isVotingEligible
+  }
+}
