@@ -2,14 +2,14 @@
 
 import { PrismaClient } from '@prisma/client';
 import { ApolloServer } from 'apollo-server-express';
-import express from 'express';
-import simpleMock from './lib/mocks/mock';
-import { protectedSchema } from './schema';
+import cors from 'cors';
 import 'dotenv/config';
+import express from 'express';
 import { Context } from './context';
 import { checkJwt, DecodedToken } from './lib/auth/verifyToken';
+import simpleMock from './lib/mocks/mock';
+import { protectedSchema } from './schema';
 import { saveAuth0UserIfNotExist } from './utils/save_user_locally';
-import cors from 'cors';
 
 export const createApollo = (prisma: PrismaClient) => {
     const server = new ApolloServer({
@@ -31,15 +31,20 @@ export const createApollo = (prisma: PrismaClient) => {
     return server;
 };
 
+const corsOptions = {
+    origin: process.env.FRONTEND_URL ?? '',
+    credentials: true
+}
+
+
 export const createGraphqlServer = async (server: ApolloServer, prisma: PrismaClient) => {
     const app = express();
     app.use(checkJwt);
-    app.use(cors());
+    app.use(cors(corsOptions));
     if (process.env.MOCKING != 'true') await prisma.$connect();
     // Connect to database
     if (process.env.NODE_ENV != 'development') await prisma.$connect();
-    // We need to turn the express app into an httpserver to use websockets.
-    // We also overwrite  Apollo Server's inbult cors, we set CORS on Azure
-    server.applyMiddleware({ app, path: '/graphql', cors: false });
+
+    server.applyMiddleware({ app, path: '/graphql', cors: corsOptions });
     return app;
 };

@@ -44,6 +44,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build:start": "react-scripts build && serve -s build",
     "test": "cypress run",
     "lint": "eslint 'src/**/*.{js,ts,tsx}'",
     "lint-fix": "eslint --fix 'src/**/*.{js,ts,tsx}'",
