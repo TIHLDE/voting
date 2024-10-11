@@ -1,17 +1,15 @@
-import React, { useEffect } from 'react';
-import { Center, Text, useToast, VStack } from '@chakra-ui/react';
-import { useNavigate, useParams } from 'react-router-dom';
-import Loading from '../components/common/Loading';
-import { useRegisterAsParticipantMutation } from '../__generated__/graphql-types';
 import { useAuth0 } from '@auth0/auth0-react';
-import { useLocation } from 'react-router';
+import { Center, Text, useToast, VStack } from '@chakra-ui/react';
+import React, { useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useRegisterAsParticipantMutation } from '../__generated__/graphql-types';
+import Loading from '../components/common/Loading';
 
 const RegisterForMeeting: React.FC = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const [registerAsParticipant, { data, loading, error }] = useRegisterAsParticipantMutation();
   const { isAuthenticated, loginWithRedirect } = useAuth0();
-  const location = useLocation();
 
   const { meetingId } = useParams<{ meetingId: string }>();
 
@@ -41,7 +39,10 @@ const RegisterForMeeting: React.FC = () => {
         () =>
           loginWithRedirect({
             appState: {
-              returnTo: location.pathname,
+              returnTo: process.env.REACT_APP_REDIRECT_URI,
+            },
+            authorizationParams: {
+              redirect_uri: process.env.REACT_APP_REDIRECT_URI,
             },
           }),
         500

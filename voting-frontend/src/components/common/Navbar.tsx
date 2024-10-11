@@ -1,13 +1,12 @@
-import React from 'react';
-import { Box, Flex, HStack, IconButton, useDisclosure, Stack, Image, Button, Divider } from '@chakra-ui/react';
-import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons';
-import { hamburgerIconColor,navBar, offwhite, pageBackground} from '../styles/colors';
-import { NavLink } from 'react-router-dom';
-import { useNavigate } from 'react-router';
-import Logo from '../../static/blue_logo.svg';
-import UserMenu from './UserMenu';
 import { useAuth0 } from '@auth0/auth0-react';
-import { useLocation } from 'react-router';
+import { CloseIcon, HamburgerIcon } from '@chakra-ui/icons';
+import { Box, Button, Divider, Flex, HStack, IconButton, Image, Stack, useDisclosure } from '@chakra-ui/react';
+import React from 'react';
+import { useLocation, useNavigate } from 'react-router';
+import { NavLink } from 'react-router-dom';
+import Logo from '../../static/blue_logo.svg';
+import { hamburgerIconColor, navBar, offwhite, pageBackground } from '../styles/colors';
+import UserMenu from './UserMenu';
 
 const Navbar: React.FC = () => {
   const { isAuthenticated } = useAuth0();

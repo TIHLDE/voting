@@ -1,12 +1,12 @@
-import { Heading, Text, VStack, Link, HStack, Image, Box } from '@chakra-ui/react';
+import { Box, Heading, HStack, Image, Link, Text, VStack } from '@chakra-ui/react';
 import React from 'react';
 import LogoGrid from '../components/common/LogoGrid';
-import DownloadFileLink from '../components/common/links/DownloadFileLink';
 import PageContainer from '../components/common/layout/PageContainer';
-import blue_hand from '../static/blue_hand.png';
-import orange_hand from '../static/orange_hand.png';
+import DownloadFileLink from '../components/common/links/DownloadFileLink';
 import { textBlue, textOrange } from '../components/styles/colors';
 import useScreenWidth from '../hooks/ScreenWidth';
+import blue_hand from '../static/blue_hand.png';
+import orange_hand from '../static/orange_hand.png';
 
 const FrontPage: React.FC = () => {
   const mobileWidth = 600;
@@ -34,9 +34,7 @@ const FrontPage: React.FC = () => {
           </Heading>
           <Text variant='bodyHeader'>
             Vedtatt.no er et digitalt stemmesystem utviklet av Organisasjonskollegiet og Junior Consulting 
-            med støtte fra Velferdstinget i Gjøvik, Ålesund og Trondheim. 
-            Målet er at frivillige organisasjoner skal kunne gjennomføre effektive og
-            gode demokratiske prosesser. 
+            med støtte fra Velferdstinget i Gjøvik, Ålesund og Trondheim. Fikset av INDEX. 
           </Text>
           <Text fontSize={"22px"} color={textBlue} fontWeight="normal">
             Vil du hjelpe oss med å bli bedre? Klikk <Link

@@ -1,6 +1,6 @@
 FROM node:22-alpine
 
-WORKDIR /src
+WORKDIR /app
 
 COPY package.json yarn.lock ./
 
@@ -10,3 +10,5 @@ COPY . .
 
 EXPOSE 3000
 
+RUN yarn run build
+CMD ["yarn", "serve", "-s", "build"]

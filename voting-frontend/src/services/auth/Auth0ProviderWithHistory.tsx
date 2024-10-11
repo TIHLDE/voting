@@ -1,30 +1,23 @@
+import { Auth0Provider } from '@auth0/auth0-react';
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { AppState, Auth0Provider } from '@auth0/auth0-react';
+import { useNavigate } from 'react-router-dom';
 
 const Auth0WithHistoryProvider: React.FC = ({ children }) => {
   const domain = process.env.REACT_APP_AUTH0_DOMAIN ?? '';
   const clientId = process.env.REACT_APP_AUTH0_CLIENT_ID ?? '';
-  // Changes the callback url to the previewed deployment
-  const buildCtx = process.env.REACT_APP_CONTEXT;
-  const callbackUrl =
-    buildCtx === 'deploy-preview' || buildCtx === 'branch-deploy'
-      ? process.env.REACT_APP_DEPLOY_URL
-      : process.env.REACT_APP_AUTH0_CALLBACK_URL;
+  const callbackUrl = process.env.REACT_APP_REDIRECT_URI;
   const audience = process.env.REACT_APP_AUTH0_AUDIENCE;
 
   const navigate = useNavigate();
-  const location = useLocation();
 
-  const onRedirectCallback = (appState: AppState) => {
-    navigate(appState?.returnTo || location.pathname, { replace: true });
+  const onRedirectCallback = () => {
+    navigate(callbackUrl ?? '/', { replace: true });
   };
-
   return (
-    <Auth0Provider
+    <Auth0Provider 
       domain={domain}
       clientId={clientId}
-      redirectUri={callbackUrl}
+      redirectUri={"http://localhost"}
       onRedirectCallback={onRedirectCallback}
       audience={audience}
     >

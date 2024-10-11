@@ -26,3 +26,4 @@ cypress/videos
 
 # env
 .env
+.env.*
