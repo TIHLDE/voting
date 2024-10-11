@@ -10,7 +10,10 @@ import { checkJwt, DecodedToken } from './lib/auth/verifyToken';
 import simpleMock from './lib/mocks/mock';
 import { protectedSchema } from './schema';
 import { saveAuth0UserIfNotExist } from './utils/save_user_locally';
-
+const corsOptions = {
+    origin: [process.env.FRONTEND_URL ?? '', 'http://localhost'],
+    credentials: true
+}
 export const createApollo = (prisma: PrismaClient) => {
     const server = new ApolloServer({
         context: async ({ req }): Promise<Context> => {
@@ -31,10 +34,7 @@ export const createApollo = (prisma: PrismaClient) => {
     return server;
 };
 
-const corsOptions = {
-    origin: process.env.FRONTEND_URL ?? '',
-    credentials: true
-}
+
 
 
 export const createGraphqlServer = async (server: ApolloServer, prisma: PrismaClient) => {
@@ -45,6 +45,6 @@ export const createGraphqlServer = async (server: ApolloServer, prisma: PrismaCl
     // Connect to database
     if (process.env.NODE_ENV != 'development') await prisma.$connect();
 
-    server.applyMiddleware({ app, path: '/graphql', cors: corsOptions });
+    server.applyMiddleware({ app, path: '/graphql', cors: false});
     return app;
 };
