@@ -4,6 +4,7 @@ COPY ./package.json ./yarn.lock ./
 RUN yarn install
 COPY ./prisma/schema.prisma ./prisma/
 COPY . .
+RUN yarn prisma generate
 RUN yarn run build
 RUN echo "done building"
 
