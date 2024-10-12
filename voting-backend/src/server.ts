@@ -6,7 +6,7 @@ import cors from 'cors';
 import 'dotenv/config';
 import express from 'express';
 import { Context } from './context';
-import { checkJwt, DecodedToken } from './lib/auth/verifyToken';
+import { checkJwt } from './lib/auth/verifyToken';
 import simpleMock from './lib/mocks/mock';
 import { protectedSchema } from './schema';
 import { saveAuth0UserIfNotExist } from './utils/save_user_locally';
@@ -17,12 +17,21 @@ const corsOptions = {
 export const createApollo = (prisma: PrismaClient) => {
     const server = new ApolloServer({
         context: async ({ req }): Promise<Context> => {
-            if (req.user) {
-                const decodedToken = req.user as DecodedToken;
-                const userId = decodedToken.sub.split('|')[1];
-                console.log("saving user", userId, req.headers['authorization']);
-                await saveAuth0UserIfNotExist(prisma, userId, req.headers['authorization']);
-                return { userId: userId, prisma };
+            try {   
+                if (req.auth) {
+                    const sub = req.auth.payload?.sub
+                    if (!sub) {
+                        console.log(req.auth);
+                        throw new Error('Something wrong with the auth token');
+                    }
+
+                    const userId = sub.split('|')[1];
+                    await saveAuth0UserIfNotExist(prisma, userId, req.headers.authorization);
+                    return { userId: userId, prisma };
+                }
+            } catch (error) {
+                
+                console.error(error);
             }
             return { userId: '', prisma };
         },
