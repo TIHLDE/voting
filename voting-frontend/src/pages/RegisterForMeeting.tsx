@@ -36,15 +36,12 @@ const RegisterForMeeting: React.FC = () => {
   if(!meetingId) return <div>Noe gikk galt</div>;
   
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isLoading && !loading ) {
     loginWithRedirect({
-      appState: {
-        returnTo: window.location.href,
-      },
       authorizationParams: {
         redirect_uri: process.env.REACT_APP_REDIRECT_URI,
       },
-      });
+    });
   } 
     
   return (
