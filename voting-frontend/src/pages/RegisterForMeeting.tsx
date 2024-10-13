@@ -1,4 +1,3 @@
-import { useAuth0 } from '@auth0/auth0-react';
 import { Button, Center, useToast, VStack } from '@chakra-ui/react';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -27,22 +26,15 @@ const RegisterForMeeting: React.FC = () => {
       });
     },
   });
-  const { isAuthenticated, loginWithRedirect, isLoading } = useAuth0();
 
   const { meetingId } = useParams<{ meetingId: string }>();
 
 
-  if (loading || isLoading) return <Loading text="Registrerer deg som deltaker" />;
+  if (loading) return <Loading text="Registrerer deg som deltaker" />;
   if(!meetingId) return <div>Noe gikk galt</div>;
   
 
-  if (!isAuthenticated && !isLoading && !loading ) {
-    loginWithRedirect({
-      appState: {
-        returnTo: window.location.href,
-      },
-    });
-  } 
+
     
   return (
     <Center mt="20vh" mb="2vh">
