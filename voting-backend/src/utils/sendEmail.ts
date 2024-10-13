@@ -3,7 +3,7 @@ import moment from 'moment';
 import nodemailer from 'nodemailer';
 import { ParticipantOrInviteType } from '../schema/meeting';
 
-const transporter = nodemailer.createTransport('SMTP', {
+const transporter = nodemailer.createTransport( {
     host: process.env.SMTP_HOST,
     port: parseInt(process.env.SMTP_PORT || '587'),
     auth: {
