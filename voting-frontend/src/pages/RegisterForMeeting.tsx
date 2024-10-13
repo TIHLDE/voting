@@ -38,8 +38,8 @@ const RegisterForMeeting: React.FC = () => {
 
   if (!isAuthenticated && !isLoading && !loading ) {
     loginWithRedirect({
-      authorizationParams: {
-        redirect_uri: process.env.REACT_APP_REDIRECT_URI,
+      appState: {
+        returnTo: window.location.href,
       },
     });
   } 
