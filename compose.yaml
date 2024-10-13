@@ -28,7 +28,7 @@ services:
       - redis
       - votingdb
     env_file:
-      - ./voting-backend/.env.docker
+      - ./voting-backend/.env
     build:
       context: ./voting-backend
     ports:
@@ -38,7 +38,7 @@ services:
     depends_on:
       - backend
     env_file:
-      - ./voting-frontend/.env.docker
+      - ./voting-frontend/.env
     build:
       context: ./voting-frontend
     ports:
