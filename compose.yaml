@@ -33,6 +33,7 @@ services:
       context: ./voting-backend
     ports:
       - "4000:4000"
+    restart: always
   frontend:
     depends_on:
       - backend
@@ -42,6 +43,7 @@ services:
       context: ./voting-frontend
     ports:
       - "3000:3000"
+    restart: always
 
 
 
