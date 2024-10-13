@@ -41,7 +41,6 @@ const RegisterForMeeting: React.FC = () => {
       appState: {
         returnTo: window.location.href,
       },
-      redirectUri: window.location.href,
     });
   } 
     
