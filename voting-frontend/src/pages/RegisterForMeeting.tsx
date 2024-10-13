@@ -13,6 +13,9 @@ const RegisterForMeeting: React.FC = () => {
 
   const { meetingId } = useParams<{ meetingId: string }>();
 
+  
+
+  console.log(meetingId, data, loading, error);
   useEffect(() => {
     if (meetingId && !loading && !data && !error) {
       registerAsParticipant({ variables: { meetingId } });
@@ -31,6 +34,13 @@ const RegisterForMeeting: React.FC = () => {
     }
   }, [data, navigate, meetingId, toast]);
 
+  if (!meetingId) return <></>;
+  try {
+    registerAsParticipant({ variables: { meetingId: meetingId } });
+  } catch (e) {
+    console.error(e);
+  }
+
   if (loading) return <Loading text="Registrerer deg som deltaker" />;
 
   if (error)
@@ -47,8 +57,7 @@ const RegisterForMeeting: React.FC = () => {
           }),
         500
       );
-    }
-    else{
+    } else {
       return (
         <Center mt="10vh" mb="1vh">
           <VStack>
