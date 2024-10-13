@@ -13,14 +13,13 @@ const RegisterForMeeting: React.FC = () => {
 
   const { meetingId } = useParams<{ meetingId: string }>();
 
+
+
   
 
   console.log(meetingId, data, loading, error);
-  useEffect(() => {
-    if (meetingId && !loading && !data && !error) {
-      registerAsParticipant({ variables: { meetingId } });
-    }
-  }, [meetingId, data, loading, error, registerAsParticipant]);
+
+  
 
   useEffect(() => {
     if (data) {
@@ -34,40 +33,44 @@ const RegisterForMeeting: React.FC = () => {
     }
   }, [data, navigate, meetingId, toast]);
 
-  if (!meetingId) return <></>;
-  try {
-    registerAsParticipant({ variables: { meetingId: meetingId } });
-  } catch (e) {
-    console.error(e);
-  }
 
-  if (loading) return <Loading text="Registrerer deg som deltaker" />;
-
-  if (error)
-    if (!isAuthenticated){
-      setTimeout(
-        () =>
-          loginWithRedirect({
-            appState: {
+  if (!isAuthenticated) {
+    loginWithRedirect({
+      appState: {
               returnTo: window.location.href,
             },
             authorizationParams: {
               redirect_uri: process.env.REACT_APP_REDIRECT_URI,
             },
-          }),
-        500
-      );
-    } else {
-      return (
-        <Center mt="10vh" mb="1vh">
-          <VStack>
-            <Text as="b">Kunne ikke registrere deg som deltaker.</Text>
-            <Text>Enten finnes ikke møtet, eller så tillater det ikke selvregistrering.</Text>
-          </VStack>
-        </Center>
-      );
-    }
-  return <></>;
+      });
+  } 
+
+  if (loading) return <Loading text="Registrerer deg som deltaker" />;
+  if (meetingId) {
+    registerAsParticipant({ variables: { meetingId } });
+  }
+  if (data) {
+    return (
+      <Center mt="10vh" mb="1vh">
+        <VStack>
+          <Text as="b">Registrering vellykket.</Text>
+          <Text>Du vil bli videresendt til møtet om litt.</Text>
+        </VStack>
+      </Center>
+    );
+  }
+
+  
+
+    
+  return (
+    <Center mt="10vh" mb="1vh">
+      <VStack>
+        <Text as="b">Kunne ikke registrere deg som deltaker.</Text>
+        <Text>Enten finnes ikke møtet, eller så tillater det ikke selvregistrering.</Text>
+      </VStack>
+    </Center>
+  );
 };
 
 export default RegisterForMeeting;
