@@ -24,6 +24,7 @@ export const UpdatePasswordLinkQuery = queryField('updateMyPassword', {
             domain: process.env.AUTH0_DOMAIN ?? "",
             clientId: process.env.CLIENT_ID,
             clientSecret: process.env.CLIENT_SECRET,
+             
             // scope: 'delete:users'
         });
 
