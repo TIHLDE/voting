@@ -2,7 +2,7 @@ import { useAuth0 } from '@auth0/auth0-react';
 import { CloseIcon, HamburgerIcon } from '@chakra-ui/icons';
 import { Box, Button, Divider, Flex, HStack, IconButton, Image, Stack, useDisclosure } from '@chakra-ui/react';
 import React from 'react';
-import { useLocation, useNavigate } from 'react-router';
+import { useNavigate } from 'react-router';
 import { NavLink } from 'react-router-dom';
 import Logo from '../../static/blue_logo.svg';
 import { hamburgerIconColor, navBar, offwhite, pageBackground } from '../styles/colors';
@@ -37,7 +37,6 @@ const Navbar: React.FC = () => {
 
 const LogInButton = () => {
   const { isAuthenticated, isLoading, loginWithRedirect } = useAuth0();
-  const location = useLocation();
 
   const logIn = () => {
     if (isLoading || isAuthenticated) return;
@@ -45,7 +44,7 @@ const LogInButton = () => {
       () =>
         loginWithRedirect({
           appState: {
-            returnTo: location.pathname,
+            returnTo: "/",
           },
         }),
       500
