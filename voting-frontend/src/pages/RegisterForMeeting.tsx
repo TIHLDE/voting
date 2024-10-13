@@ -32,12 +32,14 @@ const RegisterForMeeting: React.FC = () => {
   const { meetingId } = useParams<{ meetingId: string }>();
 
   useEffect(() => {
-    if (!isAuthenticated && !isLoading && !loading ) {
+    if (!isAuthenticated && !isLoading && !loading) {
+      setTimeout(() => {
       loginWithRedirect({
         appState: {
           returnTo: window.location.href,
-        },
-      });
+          },
+        });
+      }, 1000);
     } 
   }, [isAuthenticated, isLoading, loading, loginWithRedirect]);
 
