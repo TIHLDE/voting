@@ -11,7 +11,7 @@ export interface DecodedToken {
 }
 
 export const checkJwt = auth({
+  jwksUri: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`,
   audience: 'https://tihlde-voting',
-  issuerBaseURL: 'https://dev-grxlv-id.us.auth0.com/',
   tokenSigningAlg: 'RS256'
 });
