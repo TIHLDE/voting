@@ -1,6 +1,6 @@
 import { useAuth0 } from '@auth0/auth0-react';
 import { Button, Center, useToast, VStack } from '@chakra-ui/react';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useRegisterAsParticipantMutation } from '../__generated__/graphql-types';
 import Loading from '../components/common/Loading';
@@ -31,19 +31,22 @@ const RegisterForMeeting: React.FC = () => {
 
   const { meetingId } = useParams<{ meetingId: string }>();
 
+  useEffect(() => {
+    if (!isAuthenticated && !isLoading && !loading ) {
+      loginWithRedirect({
+        appState: {
+          returnTo: window.location.href,
+        },
+      });
+    } 
+  }, [isAuthenticated, isLoading, loading, loginWithRedirect]);
 
   if (loading || isLoading) return <Loading text="Registrerer deg som deltaker" />;
   if(!meetingId) return <div>Noe gikk galt</div>;
   
 
-  if (!isAuthenticated && !isLoading && !loading ) {
-    loginWithRedirect({
-      appState: {
-        returnTo: window.location.href,
-      },
-    });
-  } 
-    
+  
+
   return (
     <Center mt="20vh" mb="2vh">
       <VStack>
