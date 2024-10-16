@@ -22,8 +22,26 @@ export const saveAuth0UserIfNotExist = async (prisma: PrismaClient, userId: stri
             },
         });
         const profile = request.data;
-        await prisma.user.create({
+        const user = await prisma.user.create({
             data: { email: profile.email, password: '', id: userId, emailVerified: false },
         });
+
+        const invites = await prisma.invite.findMany({
+            where: {
+                email: profile.email
+            }
+        })
+
+        for (const invite of invites) {
+            await prisma.participant.create({
+                data: {
+                    id: userId,
+                    meetingId: invite.meetingId,
+                    role: invite.role,
+                    isVotingEligible: invite.isVotingEligible,
+                    userId: user.id
+                }
+            })  
+        }
     }
 };
