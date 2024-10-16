@@ -1,10 +1,9 @@
-import { Participant, Role as RoleEnum } from '@prisma/client';
-import { inputObjectType, mutationField, nonNull, stringArg, list } from 'nexus';
+import { Role as RoleEnum } from '@prisma/client';
+import { inputObjectType, list, mutationField, nonNull, stringArg } from 'nexus';
+import { pubsub } from '../../lib/pubsub';
+import sendEmail from '../../utils/sendEmail';
 import { MeetingStatus, Role } from '../enums';
 import { Meeting, ParticipantOrInvite } from './typedefs';
-import sendEmail from '../../utils/sendEmail';
-import { string } from 'casual';
-import { pubsub } from '../../lib/pubsub';
 
 export type ParticipantOrInviteType = {
     email: string;
@@ -257,9 +256,18 @@ export const RegisterAsParticipant = mutationField('registerAsParticipant', {
         meetingId: nonNull(stringArg()),
     },
     resolve: async (_, { meetingId }, ctx) => {
+        const user = await ctx.prisma.user.findUnique({
+            where: {
+                id: ctx.userId
+            }
+        })
+        if (!user) throw new Error('User not found');
         const existingParticipant = await ctx.prisma.participant.findUnique({
             where: {
                 userId_meetingId: { meetingId, userId: ctx.userId },
+                user: {
+                    email: user.email
+                }
             },
         });
         if (existingParticipant) return existingParticipant;
