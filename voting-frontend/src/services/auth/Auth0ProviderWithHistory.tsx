@@ -15,8 +15,7 @@ const Auth0WithHistoryProvider: React.FC = ({ children }) => {
       redirectUri={callbackUrl}
       audience={audience}
       onRedirectCallback={(appState) => {
-        // @ts-ignore
-        if(appState?.returnTo !== "/" || appState?.returnTo !== "") {
+        if(appState?.returnTo || appState?.returnTo === "/" || appState?.returnTo === "") {
           window.location.replace(appState?.returnTo || "/");
         }
       }}
