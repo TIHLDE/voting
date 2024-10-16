@@ -33,15 +33,25 @@ export const saveAuth0UserIfNotExist = async (prisma: PrismaClient, userId: stri
         })
 
         for (const invite of invites) {
-            await prisma.participant.create({
-                data: {
+            const participant = await prisma.participant.findUnique({
+                where: {
+                    userId_meetingId: {
+                        userId: userId,
+                        meetingId: invite.meetingId
+                    }
+                }
+            })
+            if (!participant) {
+                await prisma.participant.create({
+                    data: {
                     id: userId,
                     meetingId: invite.meetingId,
                     role: invite.role,
                     isVotingEligible: invite.isVotingEligible,
                     userId: user.id
-                }
-            })  
+                    }
+                })  
+            }
         }
     }
 };
