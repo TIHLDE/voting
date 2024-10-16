@@ -1,7 +1,7 @@
 import { Role as RoleEnum } from '@prisma/client';
 import { inputObjectType, list, mutationField, nonNull, stringArg } from 'nexus';
 import { pubsub } from '../../lib/pubsub';
-import sendEmail from '../../utils/sendEmail';
+import { sendSingleEmail } from '../../utils/sendEmail';
 import { MeetingStatus, Role } from '../enums';
 import { Meeting, ParticipantOrInvite } from './typedefs';
 
@@ -11,9 +11,6 @@ export type ParticipantOrInviteType = {
     isVotingEligible: boolean;
 };
 
-type RegisteredParticipant = ParticipantOrInviteType & {
-    userId: string;
-};
 
 export const CreateMeetingInput = inputObjectType({
     name: 'CreateMeetingInput',
@@ -192,7 +189,53 @@ export const AddParticipantsMutation = mutationField('addParticipants', {
                 id: meetingId,
             },
         });
+
         if (!meeting) throw new Error('Meeting does not exist.');
+
+        participants.forEach(async (participant) => {
+            const user = await ctx.prisma.user.findUnique({ where: { email: participant.email } });
+            if (user) {
+                //if is not a participant, create one
+                const existingParticipant = await ctx.prisma.participant.findUnique({
+                    where: {
+                        userId_meetingId: { userId: user.id, meetingId }
+                    }
+                })
+                if (!existingParticipant) {
+                    await ctx.prisma.participant.create({
+                        data: {
+                            userId: user.id,
+                        role: participant.role,
+                        isVotingEligible: participant.isVotingEligible,
+                        meetingId,
+                        }
+                    })
+                    sendSingleEmail(participant.email, participant.role, meeting, true);
+                }
+            } else {
+                //if is not a user, create an invite
+                //check if invite already exists
+                const existingInvite = await ctx.prisma.invite.findUnique({
+                    where: {
+                        email_meetingId: { email: participant.email, meetingId }
+                    }
+                })
+                if (!existingInvite) {
+                    await ctx.prisma.invite.create({
+                        data: {
+                            email: participant.email,
+                            role: participant.role,
+                            isVotingEligible: participant.isVotingEligible,
+                            meetingId,
+                        }
+                    })   
+                    sendSingleEmail(participant.email, participant.role, meeting, false);
+                }
+
+                
+            }
+        })
+        /* if (!meeting) throw new Error('Meeting does not exist.');
         const registeredParticipants: RegisteredParticipant[] = [];
         const unregisteredParticipants: typeof participants = [];
         const filterParticipantsPromises: Promise<string>[] = [];
@@ -225,7 +268,17 @@ export const AddParticipantsMutation = mutationField('addParticipants', {
                     meetingId,
                 };
             }),
-        });
+        }); 
+        registeredParticipants.forEach(async (participant) => {
+            await ctx.prisma.participant.create({
+                data: {
+                    userId: participant.userId,
+                    role: participant.role,
+                    isVotingEligible: participant.isVotingEligible,
+                    meetingId,
+                }
+            })
+        })
 
         // create invtes for the participants that are not registered users.
         const creatednvites = await ctx.prisma.invite.createMany({
@@ -235,17 +288,11 @@ export const AddParticipantsMutation = mutationField('addParticipants', {
                     meetingId,
                 };
             }),
-        });
+        }); */
 
-        try {
-            await sendEmail(unregisteredParticipants, false, meeting);
-
-            await sendEmail(registeredParticipants, true, meeting);
-        } catch (error) {
-            console.log(error);
-        }
-
-        return creatednvites.count + createdParticipants.count;
+        
+        // return the number of invites created
+        return participants.length;
     },
 });
 

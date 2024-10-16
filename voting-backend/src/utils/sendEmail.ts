@@ -65,4 +65,18 @@ const sendEmail = async (participants: ParticipantOrInviteType[], userIsRegister
     }
 };
 
+export const sendSingleEmail = async (email: string, role: Role, meeting: Meeting, userIsRegistered: boolean) => {
+    const emailContents = createEmail(email, role, meeting, userIsRegistered);
+
+    const response = await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: email,
+        subject: 'Du er invitert til et nytt møte.',
+        html: emailContents,
+    });
+
+    return response;
+};
+    
+
 export default sendEmail;
