@@ -1,5 +1,5 @@
 services:
-  
+
   votingdb:
     image: postgres
     container_name: votingdb
@@ -21,7 +21,7 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]  
+    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}" ]
     restart: always
   backend:
     depends_on:
@@ -32,7 +32,7 @@ services:
     build:
       context: ./voting-backend
     ports:
-      - "4000:4000"
+      - "4000:4001"
     restart: always
   frontend:
     depends_on:
@@ -42,10 +42,8 @@ services:
     build:
       context: ./voting-frontend
     ports:
-      - "3000:3000"
+      - "3000:3001"
     restart: always
-
-
 
 volumes:
   votingdb_data:
