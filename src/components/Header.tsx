@@ -22,13 +22,6 @@ export default function Header() {
           >
             Hjem
           </Link>
-          <Link
-            to="/about"
-            className="text-muted-foreground no-underline transition hover:text-foreground"
-            activeProps={{ className: 'text-foreground no-underline' }}
-          >
-            Om oss
-          </Link>
         </div>
 
         <div className="ml-auto flex items-center gap-2">

@@ -81,8 +81,12 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "@prisma/engines",
       "esbuild",
-      "lightningcss"
+      "lightningcss",
+      "msw",
+      "prisma",
+      "unrs-resolver"
     ]
   }
 }

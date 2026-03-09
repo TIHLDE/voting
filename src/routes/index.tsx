@@ -19,11 +19,11 @@ function LandingPage() {
           preferansevalg (STV), for organisasjoner av alle storrelser.
         </p>
         <div className="flex flex-wrap gap-3">
-          <Link to="/auth" className={buttonVariants({ variant: 'default' }) + ' no-underline'}>
+          <Link
+            to="/auth"
+            className={buttonVariants({ variant: 'default' }) + ' no-underline'}
+          >
             Kom i gang
-          </Link>
-          <Link to="/about" className={buttonVariants({ variant: 'outline' }) + ' no-underline'}>
-            Les mer
           </Link>
         </div>
       </section>
