@@ -1,0 +1,312 @@
+import { createServerFn } from '@tanstack/react-start'
+import { eq, and, asc } from 'drizzle-orm'
+import { z } from 'zod'
+import {
+  votation,
+  alternative,
+  hasVoted,
+  vote,
+  stvVote,
+  votationResultReview,
+} from '#/db/schema.ts'
+import { validateStatusTransition } from './votation-state.ts'
+import { publish } from './sse/emitter.ts'
+import { db } from '#/db/index.ts'
+import { requireAdmin, requireParticipant, requireVotingEligible } from './permissions.server.ts'
+import { setWinner } from './results.server.ts'
+import { ensureNotVoted, ensureVotationOpen, getVoteCountData } from './voting.server.ts'
+
+export { getOpenVotation } from './votations.ts'
+
+export const castVote = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ alternativeId: z.string() }))
+  .handler(async ({ data }) => {
+    const alt = await db.query.alternative.findFirst({
+      where: eq(alternative.id, data.alternativeId),
+      with: { votation: true },
+    })
+    if (!alt) throw new Error('Alternativet finnes ikke')
+
+    const v = await ensureVotationOpen(alt.votationId)
+    const { session } = await requireVotingEligible(v.meetingId)
+    await ensureNotVoted(session.user.id, alt.votationId)
+
+    await db.transaction(async (tx) => {
+      await tx.insert(hasVoted).values({
+        userId: session.user.id,
+        votationId: alt.votationId,
+      })
+
+      await tx.insert(vote).values({
+        alternativeId: data.alternativeId,
+      })
+    })
+
+    const counts = await getVoteCountData(alt.votationId, v.meetingId)
+    publish(`votation:${alt.votationId}:votes`, counts)
+
+    return { success: true }
+  })
+
+export const castBlankVote = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ votationId: z.string() }))
+  .handler(async ({ data }) => {
+    const v = await ensureVotationOpen(data.votationId)
+    if (!v.blankVotes) throw new Error('Blanke stemmer er ikke tillatt')
+
+    const { session } = await requireVotingEligible(v.meetingId)
+    await ensureNotVoted(session.user.id, data.votationId)
+
+    await db.transaction(async (tx) => {
+      await tx.insert(hasVoted).values({
+        userId: session.user.id,
+        votationId: data.votationId,
+      })
+
+      await tx
+        .update(votation)
+        .set({ blankVoteCount: v.blankVoteCount + 1 })
+        .where(eq(votation.id, data.votationId))
+    })
+
+    const counts = await getVoteCountData(data.votationId, v.meetingId)
+    publish(`votation:${data.votationId}:votes`, counts)
+
+    return { success: true }
+  })
+
+export const castStvVote = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      votationId: z.string(),
+      alternatives: z.array(
+        z.object({
+          alternativeId: z.string(),
+          ranking: z.number(),
+        })
+      ),
+    })
+  )
+  .handler(async ({ data }) => {
+    const v = await ensureVotationOpen(data.votationId)
+    if (v.type !== 'STV') throw new Error('Denne voteringen er ikke STV')
+
+    const { session } = await requireVotingEligible(v.meetingId)
+    await ensureNotVoted(session.user.id, data.votationId)
+
+    await db.transaction(async (tx) => {
+      await tx.insert(hasVoted).values({
+        userId: session.user.id,
+        votationId: data.votationId,
+      })
+
+      const [newStvVote] = await tx
+        .insert(stvVote)
+        .values({ votationId: data.votationId })
+        .returning()
+
+      if (data.alternatives.length > 0) {
+        await tx.insert(vote).values(
+          data.alternatives.map((a) => ({
+            alternativeId: a.alternativeId,
+            ranking: a.ranking,
+            stvVoteId: newStvVote.id,
+          }))
+        )
+      }
+    })
+
+    const counts = await getVoteCountData(data.votationId, v.meetingId)
+    publish(`votation:${data.votationId}:votes`, counts)
+
+    return { success: true }
+  })
+
+export const startNextVotation = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ meetingId: z.string() }))
+  .handler(async ({ data }) => {
+    await requireAdmin(data.meetingId)
+
+    // Check no votation is currently open
+    const openVotation = await db.query.votation.findFirst({
+      where: and(
+        eq(votation.meetingId, data.meetingId),
+        eq(votation.status, 'OPEN')
+      ),
+    })
+    if (openVotation) {
+      throw new Error('Det er allerede en åpen votering')
+    }
+
+    // Find next UPCOMING votation
+    const next = await db.query.votation.findFirst({
+      where: and(
+        eq(votation.meetingId, data.meetingId),
+        eq(votation.status, 'UPCOMING')
+      ),
+      orderBy: [asc(votation.index)],
+      with: { alternatives: true },
+    })
+
+    if (!next) {
+      throw new Error('Ingen kommende voteringer')
+    }
+
+    if (next.alternatives.length === 0) {
+      throw new Error('Voteringen har ingen alternativer')
+    }
+
+    await db
+      .update(votation)
+      .set({ status: 'OPEN' })
+      .where(eq(votation.id, next.id))
+
+    publish(`meeting:${data.meetingId}:votation-opened`, { votationId: next.id })
+
+    return { votationId: next.id }
+  })
+
+export const updateVotationStatus = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      votationId: z.string(),
+      status: z.enum([
+        'UPCOMING',
+        'OPEN',
+        'CHECKING_RESULT',
+        'PUBLISHED_RESULT',
+        'INVALID',
+      ]),
+    })
+  )
+  .handler(async ({ data }) => {
+    const v = await db.query.votation.findFirst({
+      where: eq(votation.id, data.votationId),
+    })
+    if (!v) throw new Error('Voteringen finnes ikke')
+
+    await requireAdmin(v.meetingId)
+
+    if (!validateStatusTransition(v.status, data.status)) {
+      throw new Error(
+        `Ugyldig statusovergang fra ${v.status} til ${data.status}`
+      )
+    }
+
+    // Compute results when closing voting
+    if (data.status === 'CHECKING_RESULT') {
+      await setWinner(data.votationId)
+    }
+
+    await db
+      .update(votation)
+      .set({ status: data.status })
+      .where(eq(votation.id, data.votationId))
+
+    publish(`votation:${data.votationId}:status`, {
+      votationId: data.votationId,
+      votationStatus: data.status,
+    })
+
+    return { success: true }
+  })
+
+export const getVoteCount = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ votationId: z.string() }))
+  .handler(async ({ data }) => {
+    const v = await db.query.votation.findFirst({
+      where: eq(votation.id, data.votationId),
+    })
+    if (!v) throw new Error('Voteringen finnes ikke')
+
+    await requireParticipant(v.meetingId)
+    return getVoteCountData(data.votationId, v.meetingId)
+  })
+
+export const reviewVotation = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      votationId: z.string(),
+      approved: z.boolean(),
+    })
+  )
+  .handler(async ({ data }) => {
+    const v = await db.query.votation.findFirst({
+      where: eq(votation.id, data.votationId),
+    })
+    if (!v) throw new Error('Voteringen finnes ikke')
+    if (v.status !== 'CHECKING_RESULT') {
+      throw new Error('Voteringen er ikke i kontrollstatus')
+    }
+
+    const { participant: p } = await requireParticipant(v.meetingId)
+    if (p.role !== 'ADMIN' && p.role !== 'COUNTER') {
+      throw new Error('Kun administratorer og tellere kan godkjenne resultater')
+    }
+
+    // Upsert review
+    await db
+      .insert(votationResultReview)
+      .values({
+        votationId: data.votationId,
+        participantId: p.id,
+        approved: data.approved,
+      })
+      .onConflictDoUpdate({
+        target: [votationResultReview.votationId, votationResultReview.participantId],
+        set: { approved: data.approved },
+      })
+
+    // Get review counts
+    const reviews = await db.query.votationResultReview.findMany({
+      where: eq(votationResultReview.votationId, data.votationId),
+    })
+
+    const approved = reviews.filter((r) => r.approved).length
+    const disapproved = reviews.filter((r) => !r.approved).length
+
+    publish(`votation:${data.votationId}:reviews`, { approved, disapproved })
+
+    return { approved, disapproved }
+  })
+
+export const getReviews = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ votationId: z.string() }))
+  .handler(async ({ data }) => {
+    const v = await db.query.votation.findFirst({
+      where: eq(votation.id, data.votationId),
+    })
+    if (!v) throw new Error('Voteringen finnes ikke')
+
+    await requireAdmin(v.meetingId)
+
+    const reviews = await db.query.votationResultReview.findMany({
+      where: eq(votationResultReview.votationId, data.votationId),
+      with: { participant: { with: { user: true } } },
+    })
+
+    return reviews
+  })
+
+export const getMyReview = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ votationId: z.string() }))
+  .handler(async ({ data }) => {
+    const v = await db.query.votation.findFirst({
+      where: eq(votation.id, data.votationId),
+    })
+    if (!v) throw new Error('Voteringen finnes ikke')
+
+    const { participant: p } = await requireParticipant(v.meetingId)
+
+    const [review] = await db
+      .select()
+      .from(votationResultReview)
+      .where(
+        and(
+          eq(votationResultReview.votationId, data.votationId),
+          eq(votationResultReview.participantId, p.id)
+        )
+      )
+
+    return review ?? null
+  })
