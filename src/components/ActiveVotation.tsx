@@ -1,0 +1,392 @@
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useMemo } from 'react'
+import { getVotationById } from '#/server/votations.ts'
+import {
+  castVote,
+  castBlankVote,
+  castStvVote,
+  getVoteCount,
+  updateVotationStatus,
+} from '#/server/voting.ts'
+import { Button } from '#/components/ui/button'
+import { useSSE } from '#/hooks/useSSE'
+import VotationResultView from './VotationResult'
+import CheckResults from './CheckResults'
+
+interface ActiveVotationProps {
+  meetingId: string
+  openVotationId: string | null
+  isAdmin: boolean
+}
+
+export default function ActiveVotation({
+  meetingId,
+  openVotationId,
+  isAdmin,
+}: ActiveVotationProps) {
+  const queryClient = useQueryClient()
+
+  const { data: votation } = useQuery({
+    queryKey: ['votation', openVotationId],
+    queryFn: () =>
+      getVotationById({ data: { votationId: openVotationId! } }),
+    enabled: !!openVotationId,
+  })
+
+  useSSE(
+    openVotationId ? `votation:${openVotationId}:status` : '',
+    () => {
+      void queryClient.invalidateQueries({
+        queryKey: ['votation', openVotationId],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: ['votations', meetingId],
+      })
+    }
+  )
+
+  if (!openVotationId) {
+    return (
+      <div className="rounded-xl border bg-card p-6 text-center shadow-sm">
+        <p className="text-muted-foreground">
+          Ingen aktiv votering. {isAdmin && 'Klikk "Start neste votering" for a begynne.'}
+        </p>
+      </div>
+    )
+  }
+
+  if (!votation) return null
+
+  return (
+    <div className="rounded-xl border bg-card p-6 shadow-sm">
+      <h2 className="mb-2 text-2xl font-bold text-foreground">
+        {votation.title}
+      </h2>
+      {votation.description && (
+        <p className="mb-4 text-muted-foreground">
+          {votation.description}
+        </p>
+      )}
+
+      {votation.status === 'OPEN' && (
+        <VotingInterface
+          votationId={votation.id}
+          type={votation.type}
+          alternatives={votation.alternatives}
+          blankVotes={votation.blankVotes}
+          isAdmin={isAdmin}
+        />
+      )}
+
+      {votation.status === 'CHECKING_RESULT' && (
+        <CheckResults
+          votationId={votation.id}
+          meetingId={meetingId}
+          isAdmin={isAdmin}
+        />
+      )}
+
+      {votation.status === 'PUBLISHED_RESULT' && (
+        <VotationResultView
+          votationId={votation.id}
+          meetingId={meetingId}
+          isAdmin={isAdmin}
+        />
+      )}
+
+      {votation.status === 'INVALID' && (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-center">
+          <p className="font-semibold text-destructive">
+            Votering avbrutt
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function VotingInterface({
+  votationId,
+  type,
+  alternatives,
+  blankVotes,
+  isAdmin,
+}: {
+  votationId: string
+  type: string
+  alternatives: Array<{ id: string; text: string }>
+  blankVotes: boolean
+  isAdmin: boolean
+}) {
+  const [selectedAlt, setSelectedAlt] = useState<string | null>(null)
+  const [hasVoted, setHasVoted] = useState(false)
+  const [stvRanking, setStvRanking] = useState<
+    Array<{ alternativeId: string; ranking: number }>
+  >([])
+  const queryClient = useQueryClient()
+
+  const { data: voteCount } = useQuery({
+    queryKey: ['voteCount', votationId],
+    queryFn: () => getVoteCount({ data: { votationId } }),
+  })
+
+  useSSE(`votation:${votationId}:votes`, (data) => {
+    queryClient.setQueryData(['voteCount', votationId], data)
+  })
+
+  // Shuffle alternatives deterministically per session
+  const shuffled = useMemo(() => {
+    const arr = [...alternatives]
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      ;[arr[i], arr[j]] = [arr[j], arr[i]]
+    }
+    return arr
+  }, [alternatives])
+
+  const voteMutation = useMutation({
+    mutationFn: () => castVote({ data: { alternativeId: selectedAlt! } }),
+    onSuccess: () => setHasVoted(true),
+  })
+
+  const blankMutation = useMutation({
+    mutationFn: () => castBlankVote({ data: { votationId } }),
+    onSuccess: () => setHasVoted(true),
+  })
+
+  const stvMutation = useMutation({
+    mutationFn: () =>
+      castStvVote({
+        data: { votationId, alternatives: stvRanking },
+      }),
+    onSuccess: () => setHasVoted(true),
+  })
+
+  const closeMutation = useMutation({
+    mutationFn: () =>
+      updateVotationStatus({
+        data: { votationId, status: 'CHECKING_RESULT' },
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ['votation', votationId],
+      })
+    },
+  })
+
+  const invalidateMutation = useMutation({
+    mutationFn: () =>
+      updateVotationStatus({
+        data: { votationId, status: 'INVALID' },
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ['votation', votationId],
+      })
+    },
+  })
+
+  if (hasVoted) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-center dark:border-green-800 dark:bg-green-950">
+          <p className="font-semibold text-green-700 dark:text-green-300">
+            Din stemme er registrert!
+          </p>
+        </div>
+        <VoteCountDisplay voteCount={voteCount} />
+        {isAdmin && (
+          <AdminVotingControls
+            onClose={() => closeMutation.mutate()}
+            onInvalidate={() => invalidateMutation.mutate()}
+            closing={closeMutation.isPending}
+          />
+        )}
+      </div>
+    )
+  }
+
+  if (type === 'STV') {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Ranger alternativene etter preferanse. Klikk for a legge til i
+          rangeringen.
+        </p>
+
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold">Din rangering:</h3>
+          {stvRanking.map((r, i) => {
+            const alt = alternatives.find(
+              (a) => a.id === r.alternativeId
+            )
+            return (
+              <div
+                key={r.alternativeId}
+                className="flex items-center gap-2 rounded-lg border border-primary bg-primary/5 p-3"
+              >
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                  {i + 1}
+                </span>
+                <span className="text-sm">{alt?.text}</span>
+                <button
+                  type="button"
+                  className="ml-auto text-xs text-destructive hover:underline"
+                  onClick={() =>
+                    setStvRanking(
+                      stvRanking
+                        .filter((_, idx) => idx !== i)
+                        .map((r, idx) => ({ ...r, ranking: idx + 1 }))
+                    )
+                  }
+                >
+                  Fjern
+                </button>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="space-y-2">
+          <h3 className="text-sm font-semibold">Tilgjengelige:</h3>
+          {shuffled
+            .filter(
+              (a) => !stvRanking.some((r) => r.alternativeId === a.id)
+            )
+            .map((alt) => (
+              <button
+                key={alt.id}
+                type="button"
+                onClick={() =>
+                  setStvRanking([
+                    ...stvRanking,
+                    {
+                      alternativeId: alt.id,
+                      ranking: stvRanking.length + 1,
+                    },
+                  ])
+                }
+                className="w-full rounded-lg border bg-card p-3 text-left text-sm transition hover:border-primary"
+              >
+                {alt.text}
+              </button>
+            ))}
+        </div>
+
+        <Button
+          onClick={() => stvMutation.mutate()}
+          disabled={stvRanking.length === 0 || stvMutation.isPending}
+          className="w-full"
+        >
+          {stvMutation.isPending ? 'Sender...' : 'Avgi stemme'}
+        </Button>
+
+        <VoteCountDisplay voteCount={voteCount} />
+        {isAdmin && (
+          <AdminVotingControls
+            onClose={() => closeMutation.mutate()}
+            onInvalidate={() => invalidateMutation.mutate()}
+            closing={closeMutation.isPending}
+          />
+        )}
+      </div>
+    )
+  }
+
+  // Simple / Qualified
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        {shuffled.map((alt) => (
+          <button
+            key={alt.id}
+            type="button"
+            onClick={() => setSelectedAlt(alt.id)}
+            className={`w-full rounded-lg border p-3 text-left text-sm transition ${
+              selectedAlt === alt.id
+                ? 'border-primary bg-primary/10 font-semibold'
+                : 'bg-card hover:border-primary'
+            }`}
+          >
+            {alt.text}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex gap-2">
+        <Button
+          onClick={() => voteMutation.mutate()}
+          disabled={!selectedAlt || voteMutation.isPending}
+          className="flex-1"
+        >
+          {voteMutation.isPending ? 'Sender...' : 'Avgi stemme'}
+        </Button>
+        {blankVotes && (
+          <Button
+            variant="outline"
+            onClick={() => blankMutation.mutate()}
+            disabled={blankMutation.isPending}
+          >
+            {blankMutation.isPending ? 'Sender...' : 'Blank stemme'}
+          </Button>
+        )}
+      </div>
+
+      <VoteCountDisplay voteCount={voteCount} />
+      {isAdmin && (
+        <AdminVotingControls
+          onClose={() => closeMutation.mutate()}
+          onInvalidate={() => invalidateMutation.mutate()}
+          closing={closeMutation.isPending}
+        />
+      )}
+    </div>
+  )
+}
+
+function VoteCountDisplay({
+  voteCount,
+}: {
+  voteCount?: { voteCount: number; votingEligibleCount: number } | null
+}) {
+  if (!voteCount) return null
+
+  const percent =
+    voteCount.votingEligibleCount > 0
+      ? Math.round(
+          (voteCount.voteCount / voteCount.votingEligibleCount) * 100
+        )
+      : 0
+
+  return (
+    <div className="rounded-lg border bg-card p-3 text-center">
+      <p className="text-2xl font-bold text-foreground">
+        {voteCount.voteCount} / {voteCount.votingEligibleCount}
+      </p>
+      <p className="text-sm text-muted-foreground">
+        stemmer avgitt ({percent}%)
+      </p>
+    </div>
+  )
+}
+
+function AdminVotingControls({
+  onClose,
+  onInvalidate,
+  closing,
+}: {
+  onClose: () => void
+  onInvalidate: () => void
+  closing: boolean
+}) {
+  return (
+    <div className="flex gap-2 border-t pt-4">
+      <Button onClick={onClose} disabled={closing}>
+        {closing ? 'Stenger...' : 'Avslutt votering'}
+      </Button>
+      <Button variant="destructive" onClick={onInvalidate}>
+        Ugyldiggjor
+      </Button>
+    </div>
+  )
+}

@@ -9,18 +9,33 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DemoTanstackQueryRouteImport } from './routes/demo/tanstack-query'
-import { Route as DemoDrizzleRouteImport } from './routes/demo/drizzle'
-import { Route as DemoBetterAuthRouteImport } from './routes/demo/better-auth'
-import { Route as DemoFormSimpleRouteImport } from './routes/demo/form.simple'
-import { Route as DemoFormAddressRouteImport } from './routes/demo/form.address'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedMeetingsRouteImport } from './routes/_authenticated/meetings'
+import { Route as AuthenticatedMeetingsIndexRouteImport } from './routes/_authenticated/meetings.index'
+import { Route as ApiSseChannelRouteImport } from './routes/api/sse/$channel'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AuthenticatedMeetingsNewRouteImport } from './routes/_authenticated/meetings.new'
+import { Route as AuthenticatedMeetingsMeetingIdRouteImport } from './routes/_authenticated/meetings.$meetingId'
+import { Route as AuthenticatedMeetingsMeetingIdIndexRouteImport } from './routes/_authenticated/meetings.$meetingId/index'
+import { Route as AuthenticatedMeetingsMeetingIdRegisterRouteImport } from './routes/_authenticated/meetings.$meetingId_.register'
+import { Route as AuthenticatedMeetingsMeetingIdEditRouteImport } from './routes/_authenticated/meetings.$meetingId/edit'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -28,29 +43,25 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DemoTanstackQueryRoute = DemoTanstackQueryRouteImport.update({
-  id: '/demo/tanstack-query',
-  path: '/demo/tanstack-query',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const DemoDrizzleRoute = DemoDrizzleRouteImport.update({
-  id: '/demo/drizzle',
-  path: '/demo/drizzle',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedMeetingsRoute = AuthenticatedMeetingsRouteImport.update({
+  id: '/meetings',
+  path: '/meetings',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
-const DemoBetterAuthRoute = DemoBetterAuthRouteImport.update({
-  id: '/demo/better-auth',
-  path: '/demo/better-auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DemoFormSimpleRoute = DemoFormSimpleRouteImport.update({
-  id: '/demo/form/simple',
-  path: '/demo/form/simple',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DemoFormAddressRoute = DemoFormAddressRouteImport.update({
-  id: '/demo/form/address',
-  path: '/demo/form/address',
+const AuthenticatedMeetingsIndexRoute =
+  AuthenticatedMeetingsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedMeetingsRoute,
+  } as any)
+const ApiSseChannelRoute = ApiSseChannelRouteImport.update({
+  id: '/api/sse/$channel',
+  path: '/api/sse/$channel',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -58,89 +69,159 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedMeetingsNewRoute =
+  AuthenticatedMeetingsNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AuthenticatedMeetingsRoute,
+  } as any)
+const AuthenticatedMeetingsMeetingIdRoute =
+  AuthenticatedMeetingsMeetingIdRouteImport.update({
+    id: '/$meetingId',
+    path: '/$meetingId',
+    getParentRoute: () => AuthenticatedMeetingsRoute,
+  } as any)
+const AuthenticatedMeetingsMeetingIdIndexRoute =
+  AuthenticatedMeetingsMeetingIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedMeetingsMeetingIdRoute,
+  } as any)
+const AuthenticatedMeetingsMeetingIdRegisterRoute =
+  AuthenticatedMeetingsMeetingIdRegisterRouteImport.update({
+    id: '/$meetingId_/register',
+    path: '/$meetingId/register',
+    getParentRoute: () => AuthenticatedMeetingsRoute,
+  } as any)
+const AuthenticatedMeetingsMeetingIdEditRoute =
+  AuthenticatedMeetingsMeetingIdEditRouteImport.update({
+    id: '/edit',
+    path: '/edit',
+    getParentRoute: () => AuthenticatedMeetingsMeetingIdRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/demo/better-auth': typeof DemoBetterAuthRoute
-  '/demo/drizzle': typeof DemoDrizzleRoute
-  '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/auth': typeof AuthRoute
+  '/meetings': typeof AuthenticatedMeetingsRouteWithChildren
+  '/profile': typeof AuthenticatedProfileRoute
+  '/meetings/$meetingId': typeof AuthenticatedMeetingsMeetingIdRouteWithChildren
+  '/meetings/new': typeof AuthenticatedMeetingsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/demo/form/address': typeof DemoFormAddressRoute
-  '/demo/form/simple': typeof DemoFormSimpleRoute
+  '/api/sse/$channel': typeof ApiSseChannelRoute
+  '/meetings/': typeof AuthenticatedMeetingsIndexRoute
+  '/meetings/$meetingId/edit': typeof AuthenticatedMeetingsMeetingIdEditRoute
+  '/meetings/$meetingId/register': typeof AuthenticatedMeetingsMeetingIdRegisterRoute
+  '/meetings/$meetingId/': typeof AuthenticatedMeetingsMeetingIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/demo/better-auth': typeof DemoBetterAuthRoute
-  '/demo/drizzle': typeof DemoDrizzleRoute
-  '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/auth': typeof AuthRoute
+  '/profile': typeof AuthenticatedProfileRoute
+  '/meetings/new': typeof AuthenticatedMeetingsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/demo/form/address': typeof DemoFormAddressRoute
-  '/demo/form/simple': typeof DemoFormSimpleRoute
+  '/api/sse/$channel': typeof ApiSseChannelRoute
+  '/meetings': typeof AuthenticatedMeetingsIndexRoute
+  '/meetings/$meetingId/edit': typeof AuthenticatedMeetingsMeetingIdEditRoute
+  '/meetings/$meetingId/register': typeof AuthenticatedMeetingsMeetingIdRegisterRoute
+  '/meetings/$meetingId': typeof AuthenticatedMeetingsMeetingIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/about': typeof AboutRoute
-  '/demo/better-auth': typeof DemoBetterAuthRoute
-  '/demo/drizzle': typeof DemoDrizzleRoute
-  '/demo/tanstack-query': typeof DemoTanstackQueryRoute
+  '/auth': typeof AuthRoute
+  '/_authenticated/meetings': typeof AuthenticatedMeetingsRouteWithChildren
+  '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/_authenticated/meetings/$meetingId': typeof AuthenticatedMeetingsMeetingIdRouteWithChildren
+  '/_authenticated/meetings/new': typeof AuthenticatedMeetingsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/demo/form/address': typeof DemoFormAddressRoute
-  '/demo/form/simple': typeof DemoFormSimpleRoute
+  '/api/sse/$channel': typeof ApiSseChannelRoute
+  '/_authenticated/meetings/': typeof AuthenticatedMeetingsIndexRoute
+  '/_authenticated/meetings/$meetingId/edit': typeof AuthenticatedMeetingsMeetingIdEditRoute
+  '/_authenticated/meetings/$meetingId_/register': typeof AuthenticatedMeetingsMeetingIdRegisterRoute
+  '/_authenticated/meetings/$meetingId/': typeof AuthenticatedMeetingsMeetingIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/about'
-    | '/demo/better-auth'
-    | '/demo/drizzle'
-    | '/demo/tanstack-query'
+    | '/auth'
+    | '/meetings'
+    | '/profile'
+    | '/meetings/$meetingId'
+    | '/meetings/new'
     | '/api/auth/$'
-    | '/demo/form/address'
-    | '/demo/form/simple'
+    | '/api/sse/$channel'
+    | '/meetings/'
+    | '/meetings/$meetingId/edit'
+    | '/meetings/$meetingId/register'
+    | '/meetings/$meetingId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
-    | '/demo/better-auth'
-    | '/demo/drizzle'
-    | '/demo/tanstack-query'
+    | '/auth'
+    | '/profile'
+    | '/meetings/new'
     | '/api/auth/$'
-    | '/demo/form/address'
-    | '/demo/form/simple'
+    | '/api/sse/$channel'
+    | '/meetings'
+    | '/meetings/$meetingId/edit'
+    | '/meetings/$meetingId/register'
+    | '/meetings/$meetingId'
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/about'
-    | '/demo/better-auth'
-    | '/demo/drizzle'
-    | '/demo/tanstack-query'
+    | '/auth'
+    | '/_authenticated/meetings'
+    | '/_authenticated/profile'
+    | '/_authenticated/meetings/$meetingId'
+    | '/_authenticated/meetings/new'
     | '/api/auth/$'
-    | '/demo/form/address'
-    | '/demo/form/simple'
+    | '/api/sse/$channel'
+    | '/_authenticated/meetings/'
+    | '/_authenticated/meetings/$meetingId/edit'
+    | '/_authenticated/meetings/$meetingId_/register'
+    | '/_authenticated/meetings/$meetingId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AboutRoute: typeof AboutRoute
-  DemoBetterAuthRoute: typeof DemoBetterAuthRoute
-  DemoDrizzleRoute: typeof DemoDrizzleRoute
-  DemoTanstackQueryRoute: typeof DemoTanstackQueryRoute
+  AuthRoute: typeof AuthRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  DemoFormAddressRoute: typeof DemoFormAddressRoute
-  DemoFormSimpleRoute: typeof DemoFormSimpleRoute
+  ApiSseChannelRoute: typeof ApiSseChannelRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/about': {
       id: '/about'
       path: '/about'
       fullPath: '/about'
       preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -150,39 +231,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/demo/tanstack-query': {
-      id: '/demo/tanstack-query'
-      path: '/demo/tanstack-query'
-      fullPath: '/demo/tanstack-query'
-      preLoaderRoute: typeof DemoTanstackQueryRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/profile': {
+      id: '/_authenticated/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthenticatedProfileRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/demo/drizzle': {
-      id: '/demo/drizzle'
-      path: '/demo/drizzle'
-      fullPath: '/demo/drizzle'
-      preLoaderRoute: typeof DemoDrizzleRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/meetings': {
+      id: '/_authenticated/meetings'
+      path: '/meetings'
+      fullPath: '/meetings'
+      preLoaderRoute: typeof AuthenticatedMeetingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
-    '/demo/better-auth': {
-      id: '/demo/better-auth'
-      path: '/demo/better-auth'
-      fullPath: '/demo/better-auth'
-      preLoaderRoute: typeof DemoBetterAuthRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/meetings/': {
+      id: '/_authenticated/meetings/'
+      path: '/'
+      fullPath: '/meetings/'
+      preLoaderRoute: typeof AuthenticatedMeetingsIndexRouteImport
+      parentRoute: typeof AuthenticatedMeetingsRoute
     }
-    '/demo/form/simple': {
-      id: '/demo/form/simple'
-      path: '/demo/form/simple'
-      fullPath: '/demo/form/simple'
-      preLoaderRoute: typeof DemoFormSimpleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/demo/form/address': {
-      id: '/demo/form/address'
-      path: '/demo/form/address'
-      fullPath: '/demo/form/address'
-      preLoaderRoute: typeof DemoFormAddressRouteImport
+    '/api/sse/$channel': {
+      id: '/api/sse/$channel'
+      path: '/api/sse/$channel'
+      fullPath: '/api/sse/$channel'
+      preLoaderRoute: typeof ApiSseChannelRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -192,18 +266,104 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/meetings/new': {
+      id: '/_authenticated/meetings/new'
+      path: '/new'
+      fullPath: '/meetings/new'
+      preLoaderRoute: typeof AuthenticatedMeetingsNewRouteImport
+      parentRoute: typeof AuthenticatedMeetingsRoute
+    }
+    '/_authenticated/meetings/$meetingId': {
+      id: '/_authenticated/meetings/$meetingId'
+      path: '/$meetingId'
+      fullPath: '/meetings/$meetingId'
+      preLoaderRoute: typeof AuthenticatedMeetingsMeetingIdRouteImport
+      parentRoute: typeof AuthenticatedMeetingsRoute
+    }
+    '/_authenticated/meetings/$meetingId/': {
+      id: '/_authenticated/meetings/$meetingId/'
+      path: '/'
+      fullPath: '/meetings/$meetingId/'
+      preLoaderRoute: typeof AuthenticatedMeetingsMeetingIdIndexRouteImport
+      parentRoute: typeof AuthenticatedMeetingsMeetingIdRoute
+    }
+    '/_authenticated/meetings/$meetingId_/register': {
+      id: '/_authenticated/meetings/$meetingId_/register'
+      path: '/$meetingId/register'
+      fullPath: '/meetings/$meetingId/register'
+      preLoaderRoute: typeof AuthenticatedMeetingsMeetingIdRegisterRouteImport
+      parentRoute: typeof AuthenticatedMeetingsRoute
+    }
+    '/_authenticated/meetings/$meetingId/edit': {
+      id: '/_authenticated/meetings/$meetingId/edit'
+      path: '/edit'
+      fullPath: '/meetings/$meetingId/edit'
+      preLoaderRoute: typeof AuthenticatedMeetingsMeetingIdEditRouteImport
+      parentRoute: typeof AuthenticatedMeetingsMeetingIdRoute
+    }
   }
 }
 
+interface AuthenticatedMeetingsMeetingIdRouteChildren {
+  AuthenticatedMeetingsMeetingIdEditRoute: typeof AuthenticatedMeetingsMeetingIdEditRoute
+  AuthenticatedMeetingsMeetingIdIndexRoute: typeof AuthenticatedMeetingsMeetingIdIndexRoute
+}
+
+const AuthenticatedMeetingsMeetingIdRouteChildren: AuthenticatedMeetingsMeetingIdRouteChildren =
+  {
+    AuthenticatedMeetingsMeetingIdEditRoute:
+      AuthenticatedMeetingsMeetingIdEditRoute,
+    AuthenticatedMeetingsMeetingIdIndexRoute:
+      AuthenticatedMeetingsMeetingIdIndexRoute,
+  }
+
+const AuthenticatedMeetingsMeetingIdRouteWithChildren =
+  AuthenticatedMeetingsMeetingIdRoute._addFileChildren(
+    AuthenticatedMeetingsMeetingIdRouteChildren,
+  )
+
+interface AuthenticatedMeetingsRouteChildren {
+  AuthenticatedMeetingsMeetingIdRoute: typeof AuthenticatedMeetingsMeetingIdRouteWithChildren
+  AuthenticatedMeetingsNewRoute: typeof AuthenticatedMeetingsNewRoute
+  AuthenticatedMeetingsIndexRoute: typeof AuthenticatedMeetingsIndexRoute
+  AuthenticatedMeetingsMeetingIdRegisterRoute: typeof AuthenticatedMeetingsMeetingIdRegisterRoute
+}
+
+const AuthenticatedMeetingsRouteChildren: AuthenticatedMeetingsRouteChildren = {
+  AuthenticatedMeetingsMeetingIdRoute:
+    AuthenticatedMeetingsMeetingIdRouteWithChildren,
+  AuthenticatedMeetingsNewRoute: AuthenticatedMeetingsNewRoute,
+  AuthenticatedMeetingsIndexRoute: AuthenticatedMeetingsIndexRoute,
+  AuthenticatedMeetingsMeetingIdRegisterRoute:
+    AuthenticatedMeetingsMeetingIdRegisterRoute,
+}
+
+const AuthenticatedMeetingsRouteWithChildren =
+  AuthenticatedMeetingsRoute._addFileChildren(
+    AuthenticatedMeetingsRouteChildren,
+  )
+
+interface AuthenticatedRouteChildren {
+  AuthenticatedMeetingsRoute: typeof AuthenticatedMeetingsRouteWithChildren
+  AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedMeetingsRoute: AuthenticatedMeetingsRouteWithChildren,
+  AuthenticatedProfileRoute: AuthenticatedProfileRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AboutRoute: AboutRoute,
-  DemoBetterAuthRoute: DemoBetterAuthRoute,
-  DemoDrizzleRoute: DemoDrizzleRoute,
-  DemoTanstackQueryRoute: DemoTanstackQueryRoute,
+  AuthRoute: AuthRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  DemoFormAddressRoute: DemoFormAddressRoute,
-  DemoFormSimpleRoute: DemoFormSimpleRoute,
+  ApiSseChannelRoute: ApiSseChannelRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

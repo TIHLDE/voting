@@ -1,84 +1,76 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { buttonVariants } from '#/components/ui/button'
 
-export const Route = createFileRoute('/')({ component: App })
+export const Route = createFileRoute('/')({ component: LandingPage })
 
-function App() {
+function LandingPage() {
   return (
-    <main className="page-wrap px-4 pb-8 pt-14">
-      <section className="island-shell rise-in relative overflow-hidden rounded-[2rem] px-6 py-10 sm:px-10 sm:py-14">
-        <div className="pointer-events-none absolute -left-20 -top-24 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(79,184,178,0.32),transparent_66%)]" />
-        <div className="pointer-events-none absolute -bottom-20 -right-20 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(47,106,74,0.18),transparent_66%)]" />
-        <p className="island-kicker mb-3">TanStack Start Base Template</p>
-        <h1 className="display-title mb-5 max-w-3xl text-4xl leading-[1.02] font-bold tracking-tight text-[var(--sea-ink)] sm:text-6xl">
-          Start simple, ship quickly.
+    <main className="mx-auto max-w-5xl px-4 pb-8 pt-14">
+      <section className="rounded-xl border bg-card p-8 shadow-sm sm:p-12">
+        <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          Vedtatt
+        </p>
+        <h1 className="mb-5 max-w-3xl text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+          Demokratiske avstemninger, enkelt og trygt.
         </h1>
-        <p className="mb-8 max-w-2xl text-base text-[var(--sea-ink-soft)] sm:text-lg">
-          This base starter intentionally keeps things light: two routes, clean
-          structure, and the essentials you need to build from scratch.
+        <p className="mb-8 max-w-2xl text-base text-muted-foreground sm:text-lg">
+          Gjennomfor effektive og gode demokratiske prosesser. Vedtatt
+          tilbyr sanntidsavstemninger med flere valgmetoder, inkludert
+          preferansevalg (STV), for organisasjoner av alle storrelser.
         </p>
         <div className="flex flex-wrap gap-3">
-          <a
-            href="/about"
-            className="rounded-full border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.14)] px-5 py-2.5 text-sm font-semibold text-[var(--lagoon-deep)] no-underline transition hover:-translate-y-0.5 hover:bg-[rgba(79,184,178,0.24)]"
-          >
-            About This Starter
-          </a>
-          <a
-            href="https://tanstack.com/router"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-full border border-[rgba(23,58,64,0.2)] bg-white/50 px-5 py-2.5 text-sm font-semibold text-[var(--sea-ink)] no-underline transition hover:-translate-y-0.5 hover:border-[rgba(23,58,64,0.35)]"
-          >
-            Router Guide
-          </a>
+          <Link to="/auth" className={buttonVariants({ variant: 'default' }) + ' no-underline'}>
+            Kom i gang
+          </Link>
+          <Link to="/about" className={buttonVariants({ variant: 'outline' }) + ' no-underline'}>
+            Les mer
+          </Link>
         </div>
       </section>
 
       <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           [
-            'Type-Safe Routing',
-            'Routes and links stay in sync across every page.',
+            'Sanntidsavstemning',
+            'Se stemmene komme inn i sanntid mens voteringen pagar.',
           ],
           [
-            'Server Functions',
-            'Call server code from your UI without creating API boilerplate.',
+            'Flere valgmetoder',
+            'Simpelt flertall, kvalifisert flertall og preferansevalg (STV).',
           ],
           [
-            'Streaming by Default',
-            'Ship progressively rendered responses for faster experiences.',
+            'Hemmelig valg',
+            'Systemet sporer hvem som har stemt, men ikke hva de stemte.',
           ],
           [
-            'Tailwind Native',
-            'Design quickly with utility-first styling and reusable tokens.',
+            'QR-registrering',
+            'Deltakere kan registrere seg via QR-kode eller delbar lenke.',
           ],
-        ].map(([title, desc], index) => (
+        ].map(([title, desc]) => (
           <article
             key={title}
-            className="island-shell feature-card rise-in rounded-2xl p-5"
-            style={{ animationDelay: `${index * 90 + 80}ms` }}
+            className="rounded-xl border bg-card p-5 shadow-sm"
           >
-            <h2 className="mb-2 text-base font-semibold text-[var(--sea-ink)]">
+            <h2 className="mb-2 text-base font-semibold text-foreground">
               {title}
             </h2>
-            <p className="m-0 text-sm text-[var(--sea-ink-soft)]">{desc}</p>
+            <p className="m-0 text-sm text-muted-foreground">{desc}</p>
           </article>
         ))}
       </section>
 
-      <section className="island-shell mt-8 rounded-2xl p-6">
-        <p className="island-kicker mb-2">Quick Start</p>
-        <ul className="m-0 list-disc space-y-2 pl-5 text-sm text-[var(--sea-ink-soft)]">
+      <section className="mt-8 rounded-xl border bg-card p-6 shadow-sm">
+        <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+          For hvem?
+        </p>
+        <ul className="m-0 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
+          <li>Studentorganisasjoner og linjeforeninger</li>
           <li>
-            Edit <code>src/routes/index.tsx</code> to customize the home page.
+            Ideelle organisasjoner med behov for formelle generalforsamlinger
           </li>
           <li>
-            Update <code>src/components/Header.tsx</code> and{' '}
-            <code>src/components/Footer.tsx</code> for brand links.
-          </li>
-          <li>
-            Add routes in <code>src/routes</code> and tweak visual tokens in{' '}
-            <code>src/styles.css</code>.
+            Enhver organisasjon som trenger revisjonssikre, strukturerte
+            demokratiske beslutningsprosesser
           </li>
         </ul>
       </section>
