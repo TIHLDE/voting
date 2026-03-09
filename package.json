@@ -1,0 +1,24 @@
+{
+  "name": "voting",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "voting-backend/",
+      "voting-frontend/"
+    ],
+    "catalog": {
+      "typescript": "^5"
+    }
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "setup-dev": "turbo run setup-dev"
+  },
+  "devDependencies": {
+    "turbo": "^2.8.14"
+  },
+  "packageManager": "bun@1.3.9"
+}
