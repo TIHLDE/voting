@@ -111,6 +111,7 @@ export const participant = pgTable(
       .$defaultFn(() => crypto.randomUUID()),
     role: roleEnum('role').notNull(),
     isVotingEligible: boolean('is_voting_eligible').notNull().default(true),
+    isApproved: boolean('is_approved').notNull().default(true),
     userId: text('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),

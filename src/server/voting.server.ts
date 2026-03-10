@@ -1,4 +1,4 @@
-import { eq, and, count } from 'drizzle-orm';
+import { eq, and, count, ne } from 'drizzle-orm';
 import { votation, hasVoted, participant } from '#/db/schema.ts';
 import { db } from '#/db/index.ts';
 
@@ -28,7 +28,14 @@ export async function getVoteCountData(votationId: string, meetingId: string) {
   const [eligibleResult] = await db
     .select({ count: count() })
     .from(participant)
-    .where(and(eq(participant.meetingId, meetingId), eq(participant.isVotingEligible, true)));
+    .where(
+      and(
+        eq(participant.meetingId, meetingId),
+        eq(participant.isVotingEligible, true),
+        eq(participant.isApproved, true),
+        ne(participant.role, 'ADMIN'),
+      ),
+    );
 
   return {
     voteCount: voteCountResult.count,

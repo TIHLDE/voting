@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start';
-import { eq, and, asc } from 'drizzle-orm';
+import { eq, and, asc, desc } from 'drizzle-orm';
 import { z } from 'zod';
 import { votation, alternative } from '#/db/schema.ts';
 import { db } from '#/db/index.ts';
@@ -218,4 +218,20 @@ export const getOpenVotation = createServerFn({ method: 'GET' })
     });
 
     return open?.id ?? null;
+  });
+
+export const getActiveVotationId = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ meetingId: z.string() }))
+  .handler(async ({ data }) => {
+    await requireParticipant(data.meetingId);
+
+    for (const status of ['OPEN', 'CHECKING_RESULT', 'PUBLISHED_RESULT'] as const) {
+      const v = await db.query.votation.findFirst({
+        where: and(eq(votation.meetingId, data.meetingId), eq(votation.status, status)),
+        orderBy: [desc(votation.index)],
+      });
+      if (v) return v.id;
+    }
+
+    return null;
   });

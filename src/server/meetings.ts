@@ -113,6 +113,27 @@ export const updateMeeting = createServerFn({ method: 'POST' })
     return updated;
   });
 
+export const getMeetingPublicInfo = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ meetingId: z.string() }))
+  .handler(async ({ data }) => {
+    await requireAuth();
+
+    const m = await db.query.meeting.findFirst({
+      where: eq(meeting.id, data.meetingId),
+      columns: {
+        id: true,
+        title: true,
+        organization: true,
+        description: true,
+        allowSelfRegistration: true,
+        status: true,
+      },
+    });
+
+    if (!m) throw new Error('Møtet finnes ikke');
+    return m;
+  });
+
 export const deleteMeeting = createServerFn({ method: 'POST' })
   .inputValidator(z.object({ meetingId: z.string() }))
   .handler(async ({ data }) => {

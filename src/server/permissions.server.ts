@@ -12,6 +12,9 @@ export async function requireParticipant(meetingId: string) {
   if (!p) {
     throw new Error('Du er ikke deltaker i dette møtet');
   }
+  if (!p.isApproved) {
+    throw new Error('Din deltakelse er ikke godkjent ennå');
+  }
   return { session, participant: p };
 }
 
@@ -37,6 +40,9 @@ export async function requireOwner(meetingId: string) {
 
 export async function requireVotingEligible(meetingId: string) {
   const result = await requireParticipant(meetingId);
+  if (result.participant.role === 'ADMIN') {
+    throw new Error('Administratorer kan ikke stemme');
+  }
   if (!result.participant.isVotingEligible) {
     throw new Error('Du har ikke stemmerett i dette møtet');
   }

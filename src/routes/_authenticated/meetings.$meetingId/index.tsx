@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import { getMeetingById, updateMeeting } from '#/server/meetings.ts';
 import { getVotationsForMeeting } from '#/server/votations.ts';
 import { getOpenVotation, startNextVotation } from '#/server/voting.ts';
+import { getPendingParticipants, approveParticipant, denyParticipant } from '#/server/participants.ts';
 import AdminBar from '#/components/AdminBar';
 import VotationList from '#/components/VotationList';
 import ActiveVotation from '#/components/ActiveVotation';
+import ManageParticipants from '#/components/ManageParticipants';
 import StatusBadge from '#/components/StatusBadge';
 import { Button } from '#/components/ui/button';
 import { useWsSubscription } from '#/hooks/useWsSubscription';
@@ -20,7 +22,6 @@ function MeetingLobby() {
   const { session } = Route.useRouteContext();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('votations');
-  const [presentationMode, setPresentationMode] = useState(false);
 
   const { data: meeting } = useQuery({
     queryKey: ['meeting', meetingId],
@@ -37,7 +38,17 @@ function MeetingLobby() {
     queryFn: () => getOpenVotation({ data: { meetingId } }),
   });
 
-  const isAdmin = meeting?.participants?.some((p) => p.userId === session.user.id && p.role === 'ADMIN');
+  const myParticipant = meeting?.participants?.find((p) => p.userId === session.user.id);
+  const isAdmin = myParticipant?.role === 'ADMIN';
+  const canVote = myParticipant ? myParticipant.role !== 'ADMIN' && myParticipant.isVotingEligible : false;
+
+  const { data: pendingParticipants } = useQuery({
+    queryKey: ['pendingParticipants', meetingId],
+    queryFn: () => getPendingParticipants({ data: { meetingId } }),
+    enabled: !!isAdmin,
+  });
+
+  const pendingCount = pendingParticipants?.length ?? 0;
 
   useWsSubscription(`meeting:${meetingId}:votation-opened`, {
     invalidate: [
@@ -51,15 +62,23 @@ function MeetingLobby() {
     invalidate: [['votations', meetingId]],
   });
 
+  useWsSubscription(isAdmin ? `meeting:${meetingId}:participant-pending` : '', {
+    invalidate: [['pendingParticipants', meetingId]],
+  });
+
+  useWsSubscription(isAdmin ? `meeting:${meetingId}:participants-updated` : '', {
+    invalidate: [
+      ['pendingParticipants', meetingId],
+      ['participants', meetingId],
+      ['meeting', meetingId],
+    ],
+  });
+
   const startMutation = useMutation({
     mutationFn: () => startNextVotation({ data: { meetingId } }),
     onSuccess: () => {
-      void queryClient.invalidateQueries({
-        queryKey: ['openVotation', meetingId],
-      });
-      void queryClient.invalidateQueries({
-        queryKey: ['votations', meetingId],
-      });
+      void queryClient.invalidateQueries({ queryKey: ['openVotation', meetingId] });
+      void queryClient.invalidateQueries({ queryKey: ['votations', meetingId] });
       setActiveTab('active');
     },
   });
@@ -76,7 +95,8 @@ function MeetingLobby() {
   const adminTabs = [
     { id: 'votations', label: 'Voteringer' },
     { id: 'active', label: 'Aktiv votering' },
-    { id: 'selfregistration', label: 'Selvregistrering' },
+    { id: 'participants', label: 'Deltakere', badge: pendingCount > 0 ? pendingCount : undefined },
+    { id: 'selfregistration', label: 'Registrering' },
   ];
 
   return (
@@ -84,7 +104,7 @@ function MeetingLobby() {
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="text-3xl font-bold text-foreground">{meeting.title}</h1>
         <StatusBadge status={meeting.status} />
-        {isAdmin && !presentationMode && (
+        {isAdmin && (
           <div className="ml-auto flex gap-2">
             {meeting.status === 'UPCOMING' && (
               <Button size="sm" variant="outline" onClick={() => statusMutation.mutate('ONGOING')}>
@@ -101,6 +121,11 @@ function MeetingLobby() {
                 Rediger
               </Button>
             </Link>
+            <Link to="/meetings/$meetingId/present" params={{ meetingId }} target="_blank">
+              <Button size="sm" variant="outline">
+                Presentasjon
+              </Button>
+            </Link>
           </div>
         )}
       </div>
@@ -112,8 +137,6 @@ function MeetingLobby() {
           activeTab={activeTab}
           onTabChange={setActiveTab}
           tabs={adminTabs}
-          presentationMode={presentationMode}
-          onTogglePresentationMode={() => setPresentationMode(!presentationMode)}
           onStartNextVotation={() => startMutation.mutate()}
           startingVotation={startMutation.isPending}
         />
@@ -130,13 +153,112 @@ function MeetingLobby() {
       )}
 
       {activeTab === 'active' && (
-        <ActiveVotation meetingId={meetingId} openVotationId={openVotationId ?? null} isAdmin={!!isAdmin} />
+        <ActiveVotation
+          meetingId={meetingId}
+          openVotationId={openVotationId ?? null}
+          isAdmin={!!isAdmin}
+          canVote={canVote}
+        />
+      )}
+
+      {activeTab === 'participants' && isAdmin && (
+        <ParticipantsPanel meetingId={meetingId} pendingParticipants={pendingParticipants ?? []} />
       )}
 
       {activeTab === 'selfregistration' && isAdmin && (
         <SelfRegistrationPanel meetingId={meetingId} allowSelfRegistration={meeting.allowSelfRegistration} />
       )}
     </main>
+  );
+}
+
+function ParticipantsPanel({
+  meetingId,
+  pendingParticipants,
+}: {
+  meetingId: string;
+  pendingParticipants: Array<{
+    id: string;
+    user: { name: string; email: string };
+  }>;
+}) {
+  const queryClient = useQueryClient();
+
+  const approveMutation = useMutation({
+    mutationFn: (participantId: string) => approveParticipant({ data: { meetingId, participantId } }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['pendingParticipants', meetingId] });
+      void queryClient.invalidateQueries({ queryKey: ['participants', meetingId] });
+      void queryClient.invalidateQueries({ queryKey: ['meeting', meetingId] });
+    },
+  });
+
+  const denyMutation = useMutation({
+    mutationFn: (participantId: string) => denyParticipant({ data: { meetingId, participantId } }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['pendingParticipants', meetingId] });
+    },
+  });
+
+  const approveAllMutation = useMutation({
+    mutationFn: async () => {
+      for (const p of pendingParticipants) {
+        await approveParticipant({ data: { meetingId, participantId: p.id } });
+      }
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['pendingParticipants', meetingId] });
+      void queryClient.invalidateQueries({ queryKey: ['participants', meetingId] });
+      void queryClient.invalidateQueries({ queryKey: ['meeting', meetingId] });
+    },
+  });
+
+  return (
+    <div className="space-y-6">
+      {pendingParticipants.length > 0 && (
+        <div className="rounded-xl border-2 border-amber-500/30 bg-amber-50 p-6 dark:bg-amber-950/20">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-foreground">
+              Venter på godkjenning ({pendingParticipants.length})
+            </h3>
+            {pendingParticipants.length > 1 && (
+              <Button size="sm" onClick={() => approveAllMutation.mutate()} disabled={approveAllMutation.isPending}>
+                {approveAllMutation.isPending ? 'Godkjenner...' : 'Godkjenn alle'}
+              </Button>
+            )}
+          </div>
+          <div className="space-y-2">
+            {pendingParticipants.map((p) => (
+              <div key={p.id} className="flex items-center gap-3 rounded-lg border bg-background p-3">
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">{p.user.name}</p>
+                  <p className="text-xs text-muted-foreground">{p.user.email}</p>
+                </div>
+                <Button size="sm" onClick={() => approveMutation.mutate(p.id)} disabled={approveMutation.isPending}>
+                  Godkjenn
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => denyMutation.mutate(p.id)}
+                  disabled={denyMutation.isPending}
+                >
+                  Avvis
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {pendingParticipants.length === 0 && (
+        <div className="rounded-xl border bg-card p-6 text-center shadow-sm">
+          <p className="text-sm text-muted-foreground">Ingen ventende forespørsler.</p>
+        </div>
+      )}
+
+      <ManageParticipants meetingId={meetingId} />
+    </div>
   );
 }
 
@@ -157,13 +279,14 @@ function SelfRegistrationPanel({
     );
   }
 
-  const regUrl = typeof window !== 'undefined' ? `${window.location.origin}/meetings/${meetingId}/register` : '';
+  const regUrl = typeof window !== 'undefined' ? `${window.location.origin}/join/${meetingId}` : '';
 
   return (
     <div className="rounded-xl border bg-card p-6 shadow-sm">
       <h2 className="mb-4 text-xl font-semibold text-foreground">Selvregistrering</h2>
       <p className="mb-4 text-sm text-muted-foreground">
-        Del denne lenken eller QR-koden med deltakere som skal registrere seg selv.
+        Del denne lenken eller QR-koden med deltakere som skal registrere seg selv. Deltakere som registrerer seg må
+        godkjennes under Deltakere-fanen.
       </p>
       <div className="mb-4 flex items-center gap-2">
         <code className="flex-1 rounded-lg border bg-muted px-3 py-2 text-sm">{regUrl}</code>
@@ -185,7 +308,7 @@ function SelfRegistrationPanel({
 }
 
 function QRCode({ meetingId }: { meetingId: string }) {
-  const url = typeof window !== 'undefined' ? `${window.location.origin}/meetings/${meetingId}/register` : '';
+  const url = typeof window !== 'undefined' ? `${window.location.origin}/join/${meetingId}` : '';
 
   if (!url) return null;
 

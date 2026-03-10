@@ -11,9 +11,10 @@ interface ActiveVotationProps {
   meetingId: string;
   openVotationId: string | null;
   isAdmin: boolean;
+  canVote: boolean;
 }
 
-export default function ActiveVotation({ meetingId, openVotationId, isAdmin }: ActiveVotationProps) {
+export default function ActiveVotation({ meetingId, openVotationId, isAdmin, canVote }: ActiveVotationProps) {
   const { data: votation } = useQuery({
     queryKey: ['votation', openVotationId],
     queryFn: () => getVotationById({ data: { votationId: openVotationId! } }),
@@ -51,6 +52,7 @@ export default function ActiveVotation({ meetingId, openVotationId, isAdmin }: A
           alternatives={votation.alternatives}
           blankVotes={votation.blankVotes}
           isAdmin={isAdmin}
+          canVote={canVote}
         />
       )}
 
@@ -77,12 +79,14 @@ function VotingInterface({
   alternatives,
   blankVotes,
   isAdmin,
+  canVote,
 }: {
   votationId: string;
   type: string;
   alternatives: Array<{ id: string; text: string }>;
   blankVotes: boolean;
   isAdmin: boolean;
+  canVote: boolean;
 }) {
   const [selectedAlt, setSelectedAlt] = useState<string | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
@@ -149,6 +153,26 @@ function VotingInterface({
       });
     },
   });
+
+  if (!canVote) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-lg border bg-muted/50 p-4 text-center">
+          <p className="font-medium text-muted-foreground">
+            {isAdmin ? 'Administratorer kan ikke stemme.' : 'Du har ikke stemmerett i denne voteringen.'}
+          </p>
+        </div>
+        <VoteCountDisplay voteCount={voteCount} />
+        {isAdmin && (
+          <AdminVotingControls
+            onClose={() => closeMutation.mutate()}
+            onInvalidate={() => invalidateMutation.mutate()}
+            closing={closeMutation.isPending}
+          />
+        )}
+      </div>
+    );
+  }
 
   if (hasVoted) {
     return (
