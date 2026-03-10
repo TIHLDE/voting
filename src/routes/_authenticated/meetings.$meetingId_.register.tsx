@@ -24,9 +24,9 @@ function RegisterPage() {
   return (
     <main className="mx-auto max-w-md px-4 py-12">
       <section className="rounded-xl border bg-card p-6 text-center shadow-sm sm:p-8">
-        <h1 className="mb-4 text-2xl font-bold text-foreground">Bli med i motet</h1>
+        <h1 className="mb-4 text-2xl font-bold text-foreground">Bli med i møtet</h1>
         <p className="mb-6 text-muted-foreground">
-          Klikk knappen under for a registrere deg som deltaker i dette motet.
+          Klikk knappen under for a registrere deg som deltaker i dette møtet.
         </p>
         <Button onClick={() => registerMutation.mutate()} disabled={registerMutation.isPending} className="w-full">
           {registerMutation.isPending ? 'Registrerer...' : 'Registrer meg'}

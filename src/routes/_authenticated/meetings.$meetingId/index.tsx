@@ -92,12 +92,12 @@ function MeetingLobby() {
           <div className="ml-auto flex gap-2">
             {meeting.status === 'UPCOMING' && (
               <Button size="sm" variant="outline" onClick={() => statusMutation.mutate('ONGOING')}>
-                Start mote
+                Start møte
               </Button>
             )}
             {meeting.status === 'ONGOING' && (
               <Button size="sm" variant="outline" onClick={() => statusMutation.mutate('ENDED')}>
-                Avslutt mote
+                Avslutt møte
               </Button>
             )}
             <Link to="/meetings/$meetingId/edit" params={{ meetingId }}>
@@ -155,7 +155,7 @@ function SelfRegistrationPanel({
     return (
       <div className="rounded-xl border bg-card p-6 text-center shadow-sm">
         <p className="text-muted-foreground">
-          Selvregistrering er ikke aktivert for dette motet. Du kan aktivere det i moteinnstillingene.
+          Selvregistrering er ikke aktivert for dette møtet. Du kan aktivere det i møteinnstillingene.
         </p>
       </div>
     );

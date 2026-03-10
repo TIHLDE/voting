@@ -26,7 +26,7 @@ function MeetingLayout() {
   if (!meeting) {
     return (
       <main className="mx-auto max-w-5xl px-4 py-12">
-        <p className="text-muted-foreground">Motet finnes ikke.</p>
+        <p className="text-muted-foreground">Møtet finnes ikke.</p>
       </main>
     );
   }

@@ -16,7 +16,7 @@ export default function BetterAuthHeader() {
           to="/meetings"
           className="text-sm font-medium text-muted-foreground no-underline transition hover:text-foreground"
         >
-          Mine moter
+          Mine møter
         </Link>
         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
           <span className="text-xs font-medium text-muted-foreground">

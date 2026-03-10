@@ -121,7 +121,7 @@ export default function VotationList({ votations, onViewActive }: VotationListPr
 
       {votations.length === 0 && (
         <p className="py-8 text-center text-sm text-muted-foreground">
-          Ingen voteringer er opprettet for dette motet enna.
+          Ingen voteringer er opprettet for dette møtet enna.
         </p>
       )}
     </div>

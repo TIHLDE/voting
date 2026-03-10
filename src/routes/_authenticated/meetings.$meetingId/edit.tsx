@@ -13,7 +13,7 @@ export const Route = createFileRoute('/_authenticated/meetings/$meetingId/edit')
   component: EditMeeting,
 });
 
-const STEPS = ['Motedetaljer', 'Voteringer', 'Deltakere'];
+const STEPS = ['Møtedetaljer', 'Voteringer', 'Deltakere'];
 
 function EditMeeting() {
   const { meetingId } = Route.useParams();
@@ -59,7 +59,7 @@ function EditMeeting() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-12">
-      <h1 className="mb-8 text-center text-3xl font-bold text-foreground">Rediger mote</h1>
+      <h1 className="mb-8 text-center text-3xl font-bold text-foreground">Rediger møte</h1>
 
       <WizardShell currentStep={step} steps={STEPS} onStepChange={setStep}>
         <div className="mx-auto max-w-2xl rounded-xl border bg-card p-6 shadow-sm sm:p-8">
@@ -79,13 +79,13 @@ function EditMeeting() {
                   <Button
                     variant="destructive"
                     onClick={() => {
-                      if (window.confirm('Er du sikker pa at du vil slette dette motet?')) {
+                      if (window.confirm('Er du sikker pa at du vil slette dette møtet?')) {
                         deleteMutation.mutate();
                       }
                     }}
                     disabled={deleteMutation.isPending}
                   >
-                    Slett mote
+                    Slett møte
                   </Button>
                 </div>
               )}

@@ -18,9 +18,9 @@ function MeetingsDashboard() {
   return (
     <main className="mx-auto max-w-5xl px-4 py-12">
       <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-foreground">Mine moter</h1>
+        <h1 className="text-3xl font-bold text-foreground">Mine møter</h1>
         <Link to="/meetings/new" className={buttonVariants({ variant: 'default' }) + ' no-underline'}>
-          Opprett mote
+          Opprett møte
         </Link>
       </div>
 

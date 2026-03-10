@@ -17,7 +17,7 @@ export const Route = createFileRoute('/_authenticated/meetings/new')({
   component: NewMeetingWizard,
 });
 
-const STEPS = ['Motedetaljer', 'Voteringer', 'Deltakere'];
+const STEPS = ['Møtedetaljer', 'Voteringer', 'Deltakere'];
 
 function NewMeetingWizard() {
   const [step, setStep] = useState(0);
@@ -29,7 +29,7 @@ function NewMeetingWizard() {
 
   const createMutation = useMutation({
     mutationFn: async () => {
-      if (!meetingData) throw new Error('Mangler motedetaljer');
+      if (!meetingData) throw new Error('Mangler møtedetaljer');
 
       const newMeeting = await createMeeting({ data: meetingData });
 
@@ -72,7 +72,7 @@ function NewMeetingWizard() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-12">
-      <h1 className="mb-8 text-center text-3xl font-bold text-foreground">Opprett nytt mote</h1>
+      <h1 className="mb-8 text-center text-3xl font-bold text-foreground">Opprett nytt møte</h1>
 
       <WizardShell currentStep={step} steps={STEPS} onStepChange={setStep}>
         <div className="mx-auto max-w-2xl rounded-xl border bg-card p-6 shadow-sm sm:p-8">
@@ -104,7 +104,7 @@ function NewMeetingWizard() {
                   Tilbake
                 </Button>
                 <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
-                  {createMutation.isPending ? 'Oppretter...' : 'Opprett mote'}
+                  {createMutation.isPending ? 'Oppretter...' : 'Opprett møte'}
                 </Button>
               </div>
               {createMutation.error && <p className="text-sm text-destructive">{createMutation.error.message}</p>}
