@@ -7,12 +7,12 @@ import { db } from '#/db/index.ts';
 import * as schema from '#/db/schema.ts';
 
 export const auth = betterAuth({
-  database: drizzleAdapter(db, {
-    provider: 'pg',
-    schema,
-  }),
-  emailAndPassword: {
-    enabled: true,
-  },
-  plugins: [tanstackStartCookies()],
+    database: drizzleAdapter(db, {
+        provider: 'pg',
+        schema,
+    }),
+    emailAndPassword: {
+        enabled: true,
+    },
+    plugins: [tanstackStartCookies()],
 });

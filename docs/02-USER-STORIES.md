@@ -77,10 +77,10 @@
 - "Slett bruker" option on the profile page with confirmation dialog
 - Confirmation dialog warns about irreversibility
 - On confirmation:
-  - Auth0 account is deleted
-  - Local user record is deleted (cascade)
-  - All open votations where the user was a participant are **invalidated**
-  - Real-time notification sent to affected votation subscribers with reason
+    - Auth0 account is deleted
+    - Local user record is deleted (cascade)
+    - All open votations where the user was a participant are **invalidated**
+    - Real-time notification sent to affected votation subscribers with reason
 - User is logged out after deletion
 - Toast notification confirms deletion
 
@@ -98,11 +98,11 @@
 
 - "Opprett møte" link in navigation leads to meeting creation wizard
 - Step 1: Enter meeting details:
-  - Organization name (required)
-  - Meeting title (required)
-  - Start time (required, date+time picker in Norwegian locale)
-  - Description (optional, auto-resizing textarea)
-  - Allow self-registration (toggle)
+    - Organization name (required)
+    - Meeting title (required)
+    - Start time (required, date+time picker in Norwegian locale)
+    - Description (optional, auto-resizing textarea)
+    - Allow self-registration (toggle)
 - Validation: Organization and title must not be empty
 - On creation, user is automatically assigned as ADMIN + meeting owner
 - Meeting is created with status UPCOMING
@@ -119,13 +119,13 @@
 
 - Step 2 of the creation wizard shows the votation editor
 - Can add one or more votations with:
-  - Title (required)
-  - Description (optional)
-  - Voting type: Simple majority / Qualified 50% / Qualified 67% / STV
-  - Alternatives (at least one, max 120 chars each)
-  - Allow blank votes (checkbox, hidden for STV)
-  - Hidden results (checkbox)
-  - Number of winners (for STV, minimum 1)
+    - Title (required)
+    - Description (optional)
+    - Voting type: Simple majority / Qualified 50% / Qualified 67% / STV
+    - Alternatives (at least one, max 120 chars each)
+    - Allow blank votes (checkbox, hidden for STV)
+    - Hidden results (checkbox)
+    - Number of winners (for STV, minimum 1)
 - Can reorder votations via drag-and-drop
 - Can duplicate an existing votation
 - Can delete votations
@@ -211,14 +211,14 @@
 **Acceptance Criteria:**
 
 - "Mine møter" page shows all meetings categorized:
-  - **Ongoing** — meetings that have started and are within the active window
-  - **Upcoming** — meetings scheduled in the future
-  - **Ended** — past meetings
+    - **Ongoing** — meetings that have started and are within the active window
+    - **Upcoming** — meetings scheduled in the future
+    - **Ended** — past meetings
 - Each meeting card displays:
-  - Title
-  - Formatted start time
-  - Status tag (Aktiv / time remaining / Avsluttet)
-  - "Admin" badge if user is an admin
+    - Title
+    - Formatted start time
+    - Status tag (Aktiv / time remaining / Avsluttet)
+    - "Admin" badge if user is an admin
 - Clicking a card navigates to the meeting lobby
 - Admin users see options popover (Edit, Delete)
 
@@ -321,9 +321,9 @@
 - Only one votation can be OPEN at a time
 - The next UPCOMING votation (by index order) is opened
 - Error handling for:
-  - Already an open votation → "Møtet kan kun ha en åpen votering om gangen"
-  - No upcoming votations → "Møtet har ingen kommende voteringer"
-  - Votation has no alternatives → "Voteringen kan ikke åpnes da den ikke har noen alternativer"
+    - Already an open votation → "Møtet kan kun ha en åpen votering om gangen"
+    - No upcoming votations → "Møtet har ingen kommende voteringer"
+    - Votation has no alternatives → "Voteringen kan ikke åpnes da den ikke har noen alternativer"
 - All participants receive real-time notification and auto-navigate to the active votation
 
 ---
@@ -341,9 +341,9 @@
 - Selected alternative highlighted with green border
 - "Avgi stemme" (Cast vote) button enabled only when selection made
 - After voting:
-  - Confirmation shown
-  - Live vote count updated
-  - Optional "Vis meg hva jeg stemte" (Show my vote) toggle
+    - Confirmation shown
+    - Live vote count updated
+    - Optional "Vis meg hva jeg stemte" (Show my vote) toggle
 - Cannot vote twice on the same votation
 - Cannot vote if not eligible
 
@@ -406,9 +406,9 @@
 
 - Admin clicks "Gå videre" to transition from OPEN → CHECKING_RESULT
 - Results are computed automatically:
-  - Simple: most votes wins
-  - Qualified: must exceed threshold % of eligible voters
-  - STV: multi-round elimination with Droop quota
+    - Simple: most votes wins
+    - Qualified: must exceed threshold % of eligible voters
+    - STV: multi-round elimination with Droop quota
 - Winners are highlighted in green
 - Results table shows: alternative, vote count, % of total, % of eligible
 - For STV: additional round-by-round breakdown with quota line
@@ -425,9 +425,9 @@
 **Acceptance Criteria:**
 
 - During CHECKING_RESULT status:
-  - "Gyldig" (Valid) and "Ugyldig" (Invalid) buttons shown
-  - Can toggle between approved and disapproved
-  - Real-time counter: "X godkjent, Y ikke godkjent av Z tellere"
+    - "Gyldig" (Valid) and "Ugyldig" (Invalid) buttons shown
+    - Can toggle between approved and disapproved
+    - Real-time counter: "X godkjent, Y ikke godkjent av Z tellere"
 - Review visible to all admins and counters
 - Regular participants see a waiting/checking results message
 
@@ -443,9 +443,9 @@
 
 - Admin clicks "Publiser resultat" to transition CHECKING_RESULT → PUBLISHED_RESULT
 - All participants see:
-  - Winner announcement with celebration visual
-  - Full results table
-  - Download results as CSV button
+    - Winner announcement with celebration visual
+    - Full results table
+    - Download results as CSV button
 - If `hiddenVotes = true`, regular participants see only the winner, not the detailed breakdown
 - "Start neste votering" button appears for admins
 
@@ -509,9 +509,9 @@
 **Acceptance Criteria:**
 
 - Top navigation bar with tabs:
-  - Selvregistrering (Self-registration QR code)
-  - Voteringsliste (Votation list)
-  - Aktiv votering (Active votation)
+    - Selvregistrering (Self-registration QR code)
+    - Voteringsliste (Votation list)
+    - Aktiv votering (Active votation)
 - Presentation mode toggle (hides admin controls for projection)
 - "Administrer deltagere" (Manage participants) modal
 - "Start neste votering" button
@@ -561,10 +561,10 @@
 - About page accessible from navigation
 - Shows information about partner organizations
 - Expandable section explaining voting types:
-  - Simpelt flertall (Simple majority)
-  - Kvalifisert flertall (Qualified majority)
-  - Kvalifisert 2/3 flertall (Qualified 2/3 majority)
-  - Preferansevalg / STV
+    - Simpelt flertall (Simple majority)
+    - Kvalifisert flertall (Qualified majority)
+    - Kvalifisert 2/3 flertall (Qualified 2/3 majority)
+    - Preferansevalg / STV
 - No authentication required
 
 ---

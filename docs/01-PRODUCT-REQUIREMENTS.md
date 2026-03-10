@@ -340,8 +340,8 @@ _\*\* Only after results are published AND votes are not hidden_
 
 - Admins can add participants by email address
 - For each email:
-  - If user exists → creates Participant record immediately
-  - If user does not exist → creates Invite record (converted on signup)
+    - If user exists → creates Participant record immediately
+    - If user does not exist → creates Invite record (converted on signup)
 - Each participant is assigned: role (ADMIN/COUNTER/PARTICIPANT) and voting eligibility
 
 #### F-PART-02: Invite Participants via CSV Upload
@@ -366,11 +366,11 @@ _\*\* Only after results are published AND votes are not hidden_
 #### F-PART-05: Manage Participants
 
 - Admins can:
-  - Search/filter participants by email
-  - Sort participants alphabetically (A-Å / Å-A)
-  - Change participant roles (Admin, Counter, Participant)
-  - Toggle voting eligibility
-  - Bulk select and delete participants
+    - Search/filter participants by email
+    - Sort participants alphabetically (A-Å / Å-A)
+    - Change participant roles (Admin, Counter, Participant)
+    - Toggle voting eligibility
+    - Bulk select and delete participants
 - The meeting owner cannot be removed or have their role changed
 - Role changes are broadcast in real-time via subscriptions
 
@@ -387,13 +387,13 @@ _\*\* Only after results are published AND votes are not hidden_
 
 - Admins can create one or more votations for a meeting
 - **Fields per votation:**
-  - Title (required, max 255 chars)
-  - Description (optional)
-  - Type: Simple / Qualified 50% / Qualified 67% / STV
-  - Alternatives (voting options, max 120 chars each)
-  - Allow blank votes (checkbox, hidden for STV)
-  - Hidden vote results (checkbox — restricts result visibility)
-  - Number of winners (for STV only, default 1)
+    - Title (required, max 255 chars)
+    - Description (optional)
+    - Type: Simple / Qualified 50% / Qualified 67% / STV
+    - Alternatives (voting options, max 120 chars each)
+    - Allow blank votes (checkbox, hidden for STV)
+    - Hidden vote results (checkbox — restricts result visibility)
+    - Number of winners (for STV only, default 1)
 - Votations are ordered by index (drag-and-drop reordering supported)
 - Batch creation and update supported
 
@@ -413,10 +413,10 @@ _\*\* Only after results are published AND votes are not hidden_
 #### F-VOTE-04: Votation List View
 
 - All participants see the votation list organized by status:
-  - **Active votation** (currently open, highlighted green)
-  - **Next votation** (next in queue)
-  - **Upcoming votations** (remaining in queue)
-  - **Ended votations** (published or invalidated, showing winners)
+    - **Active votation** (currently open, highlighted green)
+    - **Next votation** (next in queue)
+    - **Upcoming votations** (remaining in queue)
+    - **Ended votations** (published or invalidated, showing winners)
 - Admin mode: full CRUD with drag-and-drop
 - Lobby mode: read-only with click-to-view
 
@@ -428,9 +428,9 @@ _\*\* Only after results are published AND votes are not hidden_
 
 - Admins can start the next votation in queue via "Start neste votering"
 - **Constraints:**
-  - Only one votation can be OPEN at a time (enforced by backend)
-  - Votation must have at least one alternative
-  - Returns union type: `OpenedVotation | MaxOneOpenVotationError | NoUpcomingVotations | VotationHasNoAlternatives`
+    - Only one votation can be OPEN at a time (enforced by backend)
+    - Votation must have at least one alternative
+    - Returns union type: `OpenedVotation | MaxOneOpenVotationError | NoUpcomingVotations | VotationHasNoAlternatives`
 - All meeting participants receive a real-time notification with the opened votation ID
 
 #### F-VOTING-02: Cast Vote (Simple/Qualified)
@@ -457,27 +457,27 @@ _\*\* Only after results are published AND votes are not hidden_
 
 - Admin transitions votation from `OPEN` → `CHECKING_RESULT`
 - System automatically computes results:
-  - **Simple:** Alternative with most votes wins
-  - **Qualified:** Alternative exceeding the threshold % of eligible voters wins
-  - **STV:** Multi-round elimination using Droop quota (detailed STV algorithm)
+    - **Simple:** Alternative with most votes wins
+    - **Qualified:** Alternative exceeding the threshold % of eligible voters wins
+    - **STV:** Multi-round elimination using Droop quota (detailed STV algorithm)
 - A `VotationResult` snapshot is created with eligible count, vote count, blank count, quota
 
 #### F-VOTING-06: Result Review
 
 - During `CHECKING_RESULT` status:
-  - Admins and Counters see the computed results
-  - They can **approve** or **disapprove** the result
-  - Review counts (approved / disapproved) are shown in real-time
-  - Each reviewer can change their review
+    - Admins and Counters see the computed results
+    - They can **approve** or **disapprove** the result
+    - Review counts (approved / disapproved) are shown in real-time
+    - Each reviewer can change their review
 - Review results help administrators decide whether to publish or invalidate
 
 #### F-VOTING-07: Publish Results
 
 - Admin transitions votation from `CHECKING_RESULT` → `PUBLISHED_RESULT`
 - All participants see the results:
-  - Winner announcement with visual celebration
-  - Results table showing: alternative, votes, % of total, % of eligible
-  - STV: Additional round-by-round breakdown
+    - Winner announcement with visual celebration
+    - Results table showing: alternative, votes, % of total, % of eligible
+    - STV: Additional round-by-round breakdown
 - Results can be downloaded as CSV
 
 #### F-VOTING-08: Invalidate Votation
@@ -501,11 +501,11 @@ The STV implementation uses the **Droop quota** method:
 
 1. **Quota calculation:** `quota = floor(totalVotes / (numberOfWinners + 1)) + 1`
 2. **Round processing:**
-   - Count first-preference votes for all remaining alternatives
-   - Alternatives exceeding the quota → declared **winners**
-   - Winner's surplus votes are redistributed with reduced weight: `weight = surplus / totalVotesForWinner`
-   - If no winner in a round, the alternative with the **fewest votes** is eliminated as a **loser**
-   - Loser's votes are redistributed at full weight to next preference
+    - Count first-preference votes for all remaining alternatives
+    - Alternatives exceeding the quota → declared **winners**
+    - Winner's surplus votes are redistributed with reduced weight: `weight = surplus / totalVotesForWinner`
+    - If no winner in a round, the alternative with the **fewest votes** is eliminated as a **loser**
+    - Loser's votes are redistributed at full weight to next preference
 3. **Tie-breaking:** If multiple alternatives tie for fewest votes and eliminating all would leave too few candidates, some are randomly kept
 4. **Termination:** When enough winners found, or remaining alternatives ≤ seats left
 5. **Storage:** Each round's results are stored (winners, losers, vote counts per alternative per round)
@@ -549,9 +549,9 @@ The STV implementation uses the **Droop quota** method:
 #### F-UI-04: Meeting Creation Wizard
 
 - 3-step wizard:
-  1. Meeting details (title, organization, start time, description)
-  2. Votations (create/edit votation list)
-  3. Participants (invite by email/CSV, configure roles)
+    1. Meeting details (title, organization, start time, description)
+    2. Votations (create/edit votation list)
+    3. Participants (invite by email/CSV, configure roles)
 - Step indicator with navigation
 - Unsaved changes warning when navigating between steps
 

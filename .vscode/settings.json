@@ -1,15 +1,15 @@
 {
-  "prettier.enable": false,
-  "eslint.enable": false,
-  "editor.defaultFormatter": "oxc.oxc-vscode",
+    "prettier.enable": false,
+    "eslint.enable": false,
+    "editor.defaultFormatter": "oxc.oxc-vscode",
 
-  "files.watcherExclude": {
-    "**/routeTree.gen.ts": true
-  },
-  "search.exclude": {
-    "**/routeTree.gen.ts": true
-  },
-  "files.readonlyInclude": {
-    "**/routeTree.gen.ts": true
-  }
+    "files.watcherExclude": {
+        "**/routeTree.gen.ts": true
+    },
+    "search.exclude": {
+        "**/routeTree.gen.ts": true
+    },
+    "files.readonlyInclude": {
+        "**/routeTree.gen.ts": true
+    }
 }

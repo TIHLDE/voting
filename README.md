@@ -52,9 +52,9 @@ bun --bun run check
 
 1. Generate and set the `BETTER_AUTH_SECRET` environment variable in your `.env.local`:
 
-   ```bash
-   bunx --bun @better-auth/cli secret
-   ```
+    ```bash
+    bunx --bun @better-auth/cli secret
+    ```
 
 2. Visit the [Better Auth documentation](https://www.better-auth.com) to unlock the full potential of authentication in your app.
 
@@ -68,10 +68,10 @@ import { betterAuth } from 'better-auth';
 import { Pool } from 'pg';
 
 export const auth = betterAuth({
-  database: new Pool({
-    connectionString: process.env.DATABASE_URL,
-  }),
-  // ... rest of config
+    database: new Pool({
+        connectionString: process.env.DATABASE_URL,
+    }),
+    // ... rest of config
 });
 ```
 
@@ -135,30 +135,33 @@ Here is an example layout that includes a header:
 import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router';
 
 export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      { charSet: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { title: 'My App' },
-    ],
-  }),
-  shellComponent: ({ children }) => (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <Link to="/">Home</Link>
-            <Link to="/about">About</Link>
-          </nav>
-        </header>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  ),
+    head: () => ({
+        meta: [
+            { charSet: 'utf-8' },
+            {
+                name: 'viewport',
+                content: 'width=device-width, initial-scale=1',
+            },
+            { title: 'My App' },
+        ],
+    }),
+    shellComponent: ({ children }) => (
+        <html lang="en">
+            <head>
+                <HeadContent />
+            </head>
+            <body>
+                <header>
+                    <nav>
+                        <Link to="/">Home</Link>
+                        <Link to="/about">About</Link>
+                    </nav>
+                </header>
+                {children}
+                <Scripts />
+            </body>
+        </html>
+    ),
 });
 ```
 
@@ -172,20 +175,20 @@ TanStack Start provides server functions that allow you to write server-side cod
 import { createServerFn } from '@tanstack/react-start';
 
 const getServerTime = createServerFn({
-  method: 'GET',
+    method: 'GET',
 }).handler(async () => {
-  return new Date().toISOString();
+    return new Date().toISOString();
 });
 
 // Use in a component
 function MyComponent() {
-  const [time, setTime] = useState('');
+    const [time, setTime] = useState('');
 
-  useEffect(() => {
-    getServerTime().then(setTime);
-  }, []);
+    useEffect(() => {
+        getServerTime().then(setTime);
+    }, []);
 
-  return <div>Server time: {time}</div>;
+    return <div>Server time: {time}</div>;
 }
 ```
 
@@ -198,11 +201,11 @@ import { createFileRoute } from '@tanstack/react-router';
 import { json } from '@tanstack/react-start';
 
 export const Route = createFileRoute('/api/hello')({
-  server: {
-    handlers: {
-      GET: () => json({ message: 'Hello, World!' }),
+    server: {
+        handlers: {
+            GET: () => json({ message: 'Hello, World!' }),
+        },
     },
-  },
 });
 ```
 
@@ -216,22 +219,22 @@ For example:
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/people')({
-  loader: async () => {
-    const response = await fetch('https://swapi.dev/api/people');
-    return response.json();
-  },
-  component: PeopleComponent,
+    loader: async () => {
+        const response = await fetch('https://swapi.dev/api/people');
+        return response.json();
+    },
+    component: PeopleComponent,
 });
 
 function PeopleComponent() {
-  const data = Route.useLoaderData();
-  return (
-    <ul>
-      {data.results.map((person) => (
-        <li key={person.name}>{person.name}</li>
-      ))}
-    </ul>
-  );
+    const data = Route.useLoaderData();
+    return (
+        <ul>
+            {data.results.map((person) => (
+                <li key={person.name}>{person.name}</li>
+            ))}
+        </ul>
+    );
 }
 ```
 

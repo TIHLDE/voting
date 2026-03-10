@@ -199,73 +199,73 @@
 
 ```graphql
 input CreateMeetingInput {
-  organization: String!
-  title: String!
-  startTime: DateTime!
-  description: String
-  allowSelfRegistration: Boolean!
+    organization: String!
+    title: String!
+    startTime: DateTime!
+    description: String
+    allowSelfRegistration: Boolean!
 }
 
 input UpdateMeetingInput {
-  id: String!
-  organization: String
-  title: String
-  startTime: DateTime
-  description: String
-  status: MeetingStatus
-  allowSelfRegistration: Boolean
+    id: String!
+    organization: String
+    title: String
+    startTime: DateTime
+    description: String
+    status: MeetingStatus
+    allowSelfRegistration: Boolean
 }
 
 input ParticipantInput {
-  email: String!
-  role: Role!
-  isVotingEligible: Boolean!
+    email: String!
+    role: Role!
+    isVotingEligible: Boolean!
 }
 
 input CreateVotationInput {
-  title: String!
-  description: String
-  blankVotes: Boolean!
-  hiddenVotes: Boolean!
-  type: VotationType!
-  numberOfWinners: Int!
-  majorityThreshold: Int!
-  index: Int!
-  alternatives: [CreateAlternativeInput!]
+    title: String!
+    description: String
+    blankVotes: Boolean!
+    hiddenVotes: Boolean!
+    type: VotationType!
+    numberOfWinners: Int!
+    majorityThreshold: Int!
+    index: Int!
+    alternatives: [CreateAlternativeInput!]
 }
 
 input UpdateVotationInput {
-  id: String!
-  title: String!
-  description: String
-  blankVotes: Boolean!
-  hiddenVotes: Boolean!
-  type: VotationType!
-  numberOfWinners: Int!
-  majorityThreshold: Int!
-  index: Int!
-  alternatives: [UpdateAlternativeInput!]
+    id: String!
+    title: String!
+    description: String
+    blankVotes: Boolean!
+    hiddenVotes: Boolean!
+    type: VotationType!
+    numberOfWinners: Int!
+    majorityThreshold: Int!
+    index: Int!
+    alternatives: [UpdateAlternativeInput!]
 }
 
 input UpdateVotationIndexInput {
-  id: String!
-  index: Int!
+    id: String!
+    index: Int!
 }
 
 input CreateAlternativeInput {
-  text: String!
-  index: Int!
+    text: String!
+    index: Int!
 }
 
 input UpdateAlternativeInput {
-  id: String!
-  text: String!
-  index: Int!
+    id: String!
+    text: String!
+    index: Int!
 }
 
 input StvVoteAlternativeInput {
-  alternativeId: String!
-  ranking: Int!
+    alternativeId: String!
+    ranking: Int!
 }
 ```
 
