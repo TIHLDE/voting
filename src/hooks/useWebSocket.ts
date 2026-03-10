@@ -15,7 +15,7 @@ export function useWebSocket(channel: string, onMessage: (data: unknown) => void
       if (disposed) return;
 
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      ws = new WebSocket(`${protocol}//${window.location.host}/_ws`);
+      ws = new WebSocket(`${protocol}//${window.location.host}/api/ws`);
 
       ws.onopen = () => {
         ws!.send(JSON.stringify({ type: 'subscribe', channel }));

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiWsRouteImport } from './routes/api/ws'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedMeetingsRouteImport } from './routes/_authenticated/meetings'
 import { Route as AuthenticatedMeetingsIndexRouteImport } from './routes/_authenticated/meetings.index'
@@ -34,6 +35,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWsRoute = ApiWsRouteImport.update({
+  id: '/api/ws',
+  path: '/api/ws',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
@@ -93,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/meetings': typeof AuthenticatedMeetingsRouteWithChildren
   '/profile': typeof AuthenticatedProfileRoute
+  '/api/ws': typeof ApiWsRoute
   '/meetings/$meetingId': typeof AuthenticatedMeetingsMeetingIdRouteWithChildren
   '/meetings/new': typeof AuthenticatedMeetingsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -105,6 +112,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/api/ws': typeof ApiWsRoute
   '/meetings/new': typeof AuthenticatedMeetingsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/meetings': typeof AuthenticatedMeetingsIndexRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/meetings': typeof AuthenticatedMeetingsRouteWithChildren
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/api/ws': typeof ApiWsRoute
   '/_authenticated/meetings/$meetingId': typeof AuthenticatedMeetingsMeetingIdRouteWithChildren
   '/_authenticated/meetings/new': typeof AuthenticatedMeetingsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -134,6 +143,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/meetings'
     | '/profile'
+    | '/api/ws'
     | '/meetings/$meetingId'
     | '/meetings/new'
     | '/api/auth/$'
@@ -146,6 +156,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/profile'
+    | '/api/ws'
     | '/meetings/new'
     | '/api/auth/$'
     | '/meetings'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/meetings'
     | '/_authenticated/profile'
+    | '/api/ws'
     | '/_authenticated/meetings/$meetingId'
     | '/_authenticated/meetings/new'
     | '/api/auth/$'
@@ -172,6 +184,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ApiWsRoute: typeof ApiWsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -196,6 +209,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ws': {
+      id: '/api/ws'
+      path: '/api/ws'
+      fullPath: '/api/ws'
+      preLoaderRoute: typeof ApiWsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/profile': {
@@ -321,6 +341,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
+  ApiWsRoute: ApiWsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
