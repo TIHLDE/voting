@@ -204,6 +204,16 @@ export default function VotationEditor({
             onChange?.(arrayMove(items, oldIndex, newIndex));
         } else {
             const items = serverVotations as any[];
+            const activeItem = items.find((v: any) => v.id === active.id);
+            const overItem = items.find((v: any) => v.id === over.id);
+            if (!activeItem || !overItem) return;
+            // Only allow reordering UPCOMING votations
+            if (
+                activeItem.status !== 'UPCOMING' ||
+                overItem.status !== 'UPCOMING'
+            )
+                return;
+
             const oldIndex = items.findIndex((v: any) => v.id === active.id);
             const newIndex = items.findIndex((v: any) => v.id === over.id);
             if (oldIndex === -1 || newIndex === -1) return;
@@ -321,17 +331,45 @@ export default function VotationEditor({
             updateVotationIndexes({
                 data: { meetingId: meetingId!, votations },
             }),
-        onSuccess: () => {
-            void queryClient.invalidateQueries({
+        onMutate: async (newOrder) => {
+            await queryClient.cancelQueries({
                 queryKey: ['votations', meetingId],
             });
+            const previous = queryClient.getQueryData(['votations', meetingId]);
+            queryClient.setQueryData(
+                ['votations', meetingId],
+                (old: any[] | undefined) => {
+                    if (!old) return old;
+                    const indexMap = new Map(
+                        newOrder.map((v) => [v.id, v.index]),
+                    );
+                    return [...old]
+                        .map((v: any) => ({
+                            ...v,
+                            index: indexMap.get(v.id) ?? v.index,
+                        }))
+                        .sort((a: any, b: any) => a.index - b.index);
+                },
+            );
+            return { previous };
         },
-        onError: (err) => {
+        onError: (err, _, context) => {
+            if (context?.previous) {
+                queryClient.setQueryData(
+                    ['votations', meetingId],
+                    context.previous,
+                );
+            }
             toast.error(
                 err instanceof Error
                     ? err.message
                     : 'Kunne ikke endre rekkefølge',
             );
+        },
+        onSettled: () => {
+            void queryClient.invalidateQueries({
+                queryKey: ['votations', meetingId],
+            });
         },
     });
 
@@ -500,6 +538,7 @@ function SortableVotationItem({
     savePending: boolean;
     deletePending: boolean;
 }) {
+    const isDraggable = isLocal || isEditable;
     const {
         attributes,
         listeners,
@@ -507,10 +546,10 @@ function SortableVotationItem({
         transform,
         transition,
         isDragging,
-    } = useSortable({ id });
+    } = useSortable({ id, disabled: !isDraggable });
 
     const style = {
-        transform: CSS.Transform.toString(transform),
+        transform: CSS.Translate.toString(transform),
         transition,
         opacity: isDragging ? 0.5 : 1,
         position: 'relative' as const,
@@ -524,7 +563,11 @@ function SortableVotationItem({
                     <div className="flex items-center">
                         <button
                             type="button"
-                            className="cursor-grab touch-none p-4 text-muted-foreground hover:text-foreground"
+                            className={`touch-none p-4 ${
+                                isDraggable
+                                    ? 'cursor-grab text-muted-foreground hover:text-foreground'
+                                    : 'cursor-default text-muted-foreground/30'
+                            }`}
                             {...attributes}
                             {...listeners}
                         >

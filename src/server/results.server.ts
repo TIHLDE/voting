@@ -79,6 +79,7 @@ async function computeStvResult(
     votationId: string,
     numberOfWinners: number,
     resultId: string,
+    blankVoteCount: number,
 ) {
     // Load all STV ballots
     const stvVotes = await db.query.stvVote.findMany({
@@ -103,8 +104,10 @@ async function computeStvResult(
         where: eq(alternative.votationId, votationId),
     });
 
+    // Include blank votes in total for majority requirement
     const totalBallots = ballots.length;
-    const quota = Math.floor(totalBallots / (numberOfWinners + 1)) + 1;
+    const totalVotes = totalBallots + blankVoteCount;
+    const quota = Math.floor(totalVotes / (numberOfWinners + 1)) + 1;
 
     // Save quota to result
     await db
@@ -115,6 +118,7 @@ async function computeStvResult(
     const eliminated = new Set<string>();
     const winners = new Set<string>();
     let round = 0;
+    const roundHistory: Map<string, number>[] = [];
 
     while (winners.size < numberOfWinners) {
         const remaining = alts.filter(
@@ -123,13 +127,23 @@ async function computeStvResult(
 
         if (remaining.length === 0) break;
 
-        // If remaining alternatives <= seats left, all win
+        // If remaining alternatives <= seats left
         if (remaining.length <= numberOfWinners - winners.size) {
-            // Count and save before adding winners
             const finalCounts = countVotes(ballots, alts, eliminated, winners);
             await saveRound(resultId, round, alts, finalCounts);
-            for (const alt of remaining) {
-                winners.add(alt.id);
+
+            if (numberOfWinners === 1) {
+                // IRV: last candidate must still meet quota (majority)
+                const lastVotes = finalCounts.get(remaining[0].id) ?? 0;
+                if (lastVotes >= quota) {
+                    winners.add(remaining[0].id);
+                }
+                // If they don't meet quota → no winner
+            } else {
+                // Multi-winner STV: auto-fill remaining seats
+                for (const alt of remaining) {
+                    winners.add(alt.id);
+                }
             }
             break;
         }
@@ -139,6 +153,7 @@ async function computeStvResult(
 
         // Save round with actual vote counts BEFORE processing
         await saveRound(resultId, round, alts, voteCounts);
+        roundHistory.push(new Map(voteCounts));
 
         // Find winners this round
         const roundWinners: string[] = [];
@@ -182,19 +197,25 @@ async function computeStvResult(
             const seatsLeft = numberOfWinners - winners.size;
             const remainingAfterElim = remaining.length - lowestAlts.length;
 
-            if (remainingAfterElim < seatsLeft) {
-                const canEliminate = remaining.length - seatsLeft;
-                for (
-                    let i = 0;
-                    i < canEliminate && i < lowestAlts.length;
-                    i++
-                ) {
-                    eliminated.add(lowestAlts[i]);
-                }
-            } else {
+            if (remainingAfterElim >= seatsLeft) {
+                // Safe to eliminate all tied candidates
                 for (const id of lowestAlts) {
                     eliminated.add(id);
                 }
+            } else if (lowestAlts.length > 1) {
+                // Multiple tied and eliminating all would leave too few
+                // Try to break tie using previous round history
+                const toEliminate = breakTieByHistory(lowestAlts, roundHistory);
+                if (toEliminate) {
+                    eliminated.add(toEliminate);
+                } else {
+                    // Unbreakable tie that determines outcome → no winner
+                    break;
+                }
+            } else {
+                // Single candidate at bottom but can't eliminate
+                // (remaining would drop below seats needed)
+                break;
             }
         }
 
@@ -209,6 +230,40 @@ async function computeStvResult(
             .set({ isWinner: true })
             .where(eq(alternative.id, winnerId));
     }
+}
+
+/**
+ * Break a tie by looking at previous rounds' vote counts.
+ * Returns the ID of the candidate to eliminate (fewest votes in most recent
+ * differing round), or null if the tie is unbreakable.
+ */
+function breakTieByHistory(
+    tiedIds: string[],
+    roundHistory: Map<string, number>[],
+): string | null {
+    for (let i = roundHistory.length - 1; i >= 0; i--) {
+        const round = roundHistory[i];
+        let minVotes = Infinity;
+        let minId: string | null = null;
+        let uniqueMin = true;
+
+        for (const id of tiedIds) {
+            const votes = round.get(id) ?? 0;
+            if (votes < minVotes) {
+                minVotes = votes;
+                minId = id;
+                uniqueMin = true;
+            } else if (votes === minVotes) {
+                uniqueMin = false;
+            }
+        }
+
+        if (uniqueMin && minId) {
+            return minId;
+        }
+    }
+
+    return null;
 }
 
 function countVotes(
@@ -329,6 +384,7 @@ export async function setWinner(votationId: string) {
                 votationId,
                 v.numberOfWinners,
                 result.votationId,
+                v.blankVoteCount,
             );
             break;
     }
