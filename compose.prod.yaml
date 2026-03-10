@@ -1,6 +1,6 @@
 services:
     voting:
-        container_name: vedtatt.drift.tihlde.org
+        container_name: vedtatt.tihlde.org
         build:
             context: .
         restart: unless-stopped
