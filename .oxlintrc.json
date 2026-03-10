@@ -14,7 +14,8 @@
     "**/coverage/**",
     "**/dist/**",
     "**/snap/**",
-    "**/vite.config.*.timestamp-*.*"
+    "**/vite.config.*.timestamp-*.*",
+    "src/routeTree.gen.ts"
   ],
   "rules": {},
   "overrides": [
