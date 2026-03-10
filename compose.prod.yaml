@@ -3,8 +3,7 @@ services:
         container_name: vedtatt.drift.tihlde.org
         build:
             context: .
-            no_cache: true
         restart: unless-stopped
         ports:
-            - '3000:3000'
+          - ${BIND_IP_ADDRESS:-127.0.0.1}:3000:3000
         env_file: .env
