@@ -14,5 +14,18 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+
+  voting:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   pgdata:
