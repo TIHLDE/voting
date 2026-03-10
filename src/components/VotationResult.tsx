@@ -47,6 +47,7 @@ export default function VotationResultView({
     if (!results) return null;
 
     const { result, alternatives, votation } = results;
+    const isSTV = votation.type === 'STV';
     const winners = alternatives.filter((a) => a.isWinner);
     const totalVotes = alternatives.reduce((sum, a) => sum + a.voteCount, 0);
 
@@ -55,7 +56,7 @@ export default function VotationResultView({
             {winners.length > 0 && (
                 <div className="rounded-xl border-2 border-green-600 bg-green-50 p-6 text-center dark:border-green-400 dark:bg-green-950">
                     <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-green-700 dark:text-green-400">
-                        Vinner
+                        {winners.length > 1 ? 'Vinnere' : 'Vinner'}
                     </p>
                     <p className="text-2xl font-bold text-foreground">
                         {winners.map((w) => w.text).join(', ')}
@@ -79,7 +80,7 @@ export default function VotationResultView({
                                 Alternativ
                             </th>
                             <th className="p-2 text-right font-semibold">
-                                Stemmer
+                                {isSTV ? 'Førstevalg' : 'Stemmer'}
                             </th>
                             <th className="p-2 text-right font-semibold">
                                 % av totalt

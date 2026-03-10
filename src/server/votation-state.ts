@@ -8,7 +8,7 @@ type VotationStatus =
 const validTransitions: Record<VotationStatus, VotationStatus[]> = {
     UPCOMING: ['OPEN'],
     OPEN: ['CHECKING_RESULT', 'INVALID'],
-    CHECKING_RESULT: ['PUBLISHED_RESULT', 'INVALID'],
+    CHECKING_RESULT: ['PUBLISHED_RESULT', 'INVALID', 'OPEN'],
     PUBLISHED_RESULT: [],
     INVALID: [],
 };

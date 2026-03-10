@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, useNavigate, Link } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -67,6 +67,13 @@ function EditMeeting() {
 
     return (
         <main className="mx-auto max-w-5xl px-4 py-12">
+            <div className="mb-4">
+                <Link to="/meetings/$meetingId" params={{ meetingId }}>
+                    <Button variant="outline" size="sm">
+                        Tilbake til møte
+                    </Button>
+                </Link>
+            </div>
             <h1 className="mb-8 text-center text-3xl font-bold text-foreground">
                 Rediger møte
             </h1>

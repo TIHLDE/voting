@@ -43,7 +43,9 @@ export default function ActiveVotation({
             invalidate: [
                 ['votation', activeVotationId],
                 ['votations', meetingId],
-                ['activeVotation', meetingId],
+                ['hasVoted', activeVotationId],
+                ['voteCount', activeVotationId],
+                ['results', activeVotationId],
             ],
         },
     );
@@ -201,9 +203,6 @@ function VotingInterface({
             void queryClient.invalidateQueries({
                 queryKey: ['votation', votationId],
             });
-            void queryClient.invalidateQueries({
-                queryKey: ['activeVotation', meetingId],
-            });
         },
         onError: (err) => {
             toast.error(
@@ -222,9 +221,6 @@ function VotingInterface({
         onSuccess: () => {
             void queryClient.invalidateQueries({
                 queryKey: ['votation', votationId],
-            });
-            void queryClient.invalidateQueries({
-                queryKey: ['activeVotation', meetingId],
             });
         },
         onError: (err) => {
@@ -479,7 +475,7 @@ function AdminVotingControls({
                 onClick={onInvalidate}
                 disabled={closing || invalidating}
             >
-                {invalidating ? 'Ugyldiggjør...' : 'Ugyldiggjør'}
+                {invalidating ? 'Avbryter...' : 'Avbryt votering'}
             </Button>
         </div>
     );

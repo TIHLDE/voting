@@ -57,7 +57,10 @@ export const getVotationResults = createServerFn({ method: 'GET' })
                 id: alt.id,
                 text: alt.text,
                 isWinner: alt.isWinner,
-                voteCount: alt.votes.length,
+                voteCount:
+                    v.type === 'STV'
+                        ? alt.votes.filter((vote) => vote.ranking === 1).length
+                        : alt.votes.length,
             })),
         };
     });

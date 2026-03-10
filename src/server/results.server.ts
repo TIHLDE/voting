@@ -125,74 +125,47 @@ async function computeStvResult(
 
         // If remaining alternatives <= seats left, all win
         if (remaining.length <= numberOfWinners - winners.size) {
+            // Count and save before adding winners
+            const finalCounts = countVotes(ballots, alts, eliminated, winners);
+            await saveRound(resultId, round, alts, finalCounts);
             for (const alt of remaining) {
                 winners.add(alt.id);
             }
-            // Save final round
-            await saveRound(
-                resultId,
-                round,
-                alts,
-                ballots,
-                eliminated,
-                winners,
-                Array.from(winners).filter((id) =>
-                    remaining.some((a) => a.id === id),
-                ),
-                [],
-            );
             break;
         }
 
-        // Count votes
-        const voteCounts = new Map<string, number>();
-        for (const alt of remaining) {
-            voteCounts.set(alt.id, 0);
-        }
+        // Count votes for this round
+        const voteCounts = countVotes(ballots, alts, eliminated, winners);
 
-        for (const ballot of ballots) {
-            const topChoice = ballot.rankings.find(
-                (r) =>
-                    !eliminated.has(r.alternativeId) &&
-                    !winners.has(r.alternativeId),
-            );
-            if (topChoice) {
-                voteCounts.set(
-                    topChoice.alternativeId,
-                    (voteCounts.get(topChoice.alternativeId) ?? 0) +
-                        ballot.weight,
-                );
+        // Save round with actual vote counts BEFORE processing
+        await saveRound(resultId, round, alts, voteCounts);
+
+        // Find winners this round
+        const roundWinners: string[] = [];
+        for (const [altId, votes] of voteCounts) {
+            if (votes >= quota) {
+                roundWinners.push(altId);
             }
         }
 
-        // Check for winners
-        const roundWinners: string[] = [];
-        const roundLosers: string[] = [];
-
-        for (const [altId, votes] of voteCounts) {
-            if (votes >= quota) {
-                winners.add(altId);
-                roundWinners.push(altId);
-
-                // Redistribute surplus
-                const surplus = votes - quota;
-                if (surplus > 0) {
-                    const transferWeight = surplus / votes;
-                    for (const ballot of ballots) {
-                        const topChoice = ballot.rankings.find(
-                            (r) =>
-                                !eliminated.has(r.alternativeId) &&
-                                !winners.has(r.alternativeId),
-                        );
-                        const currentTop = ballot.rankings.find(
-                            (r) => r.alternativeId === altId,
-                        );
-                        if (currentTop && topChoice) {
-                            ballot.weight *= transferWeight;
-                        }
+        // Process surplus redistribution for each winner
+        for (const altId of roundWinners) {
+            const votes = voteCounts.get(altId)!;
+            const surplus = votes - quota;
+            if (surplus > 0) {
+                const transferWeight = surplus / votes;
+                for (const ballot of ballots) {
+                    const ballotTop = ballot.rankings.find(
+                        (r) =>
+                            !eliminated.has(r.alternativeId) &&
+                            !winners.has(r.alternativeId),
+                    );
+                    if (ballotTop && ballotTop.alternativeId === altId) {
+                        ballot.weight *= transferWeight;
                     }
                 }
             }
+            winners.add(altId);
         }
 
         // If no winners this round, eliminate the lowest
@@ -206,12 +179,10 @@ async function computeStvResult(
                 .filter(([, votes]) => votes === minVotes)
                 .map(([id]) => id);
 
-            // If eliminating all tied losers would leave too few, keep some
             const seatsLeft = numberOfWinners - winners.size;
             const remainingAfterElim = remaining.length - lowestAlts.length;
 
             if (remainingAfterElim < seatsLeft) {
-                // Only eliminate enough
                 const canEliminate = remaining.length - seatsLeft;
                 for (
                     let i = 0;
@@ -219,30 +190,15 @@ async function computeStvResult(
                     i++
                 ) {
                     eliminated.add(lowestAlts[i]);
-                    roundLosers.push(lowestAlts[i]);
                 }
             } else {
                 for (const id of lowestAlts) {
                     eliminated.add(id);
-                    roundLosers.push(id);
                 }
             }
         }
 
-        await saveRound(
-            resultId,
-            round,
-            alts,
-            ballots,
-            eliminated,
-            winners,
-            roundWinners,
-            roundLosers,
-        );
-
         round++;
-
-        // Safety limit
         if (round > 100) break;
     }
 
@@ -255,22 +211,18 @@ async function computeStvResult(
     }
 }
 
-async function saveRound(
-    resultId: string,
-    roundIndex: number,
-    alts: Array<{ id: string }>,
+function countVotes(
     ballots: StvBallot[],
+    alts: Array<{ id: string }>,
     eliminated: Set<string>,
     winners: Set<string>,
-    _roundWinners: string[],
-    _roundLosers: string[],
-) {
-    // Count current votes for this round
+): Map<string, number> {
     const voteCounts = new Map<string, number>();
     for (const alt of alts) {
-        voteCounts.set(alt.id, 0);
+        if (!eliminated.has(alt.id) && !winners.has(alt.id)) {
+            voteCounts.set(alt.id, 0);
+        }
     }
-
     for (const ballot of ballots) {
         const topChoice = ballot.rankings.find(
             (r) =>
@@ -284,7 +236,15 @@ async function saveRound(
             );
         }
     }
+    return voteCounts;
+}
 
+async function saveRound(
+    resultId: string,
+    roundIndex: number,
+    alts: Array<{ id: string }>,
+    voteCounts: Map<string, number>,
+) {
     const [roundResult] = await db
         .insert(stvRoundResult)
         .values({
@@ -293,18 +253,16 @@ async function saveRound(
         })
         .returning();
 
-    const voteCountEntries = Array.from(voteCounts.entries()).filter(
-        ([altId]) => !eliminated.has(altId) || alts.some((a) => a.id === altId),
-    );
+    const entries = alts
+        .filter((alt) => voteCounts.has(alt.id))
+        .map((alt) => ({
+            alternativeId: alt.id,
+            voteCount: voteCounts.get(alt.id) ?? 0,
+            stvRoundResultId: roundResult.id,
+        }));
 
-    if (voteCountEntries.length > 0) {
-        await db.insert(alternativeRoundVoteCount).values(
-            voteCountEntries.map(([altId, voteCount]) => ({
-                alternativeId: altId,
-                voteCount,
-                stvRoundResultId: roundResult.id,
-            })),
-        );
+    if (entries.length > 0) {
+        await db.insert(alternativeRoundVoteCount).values(entries);
     }
 }
 

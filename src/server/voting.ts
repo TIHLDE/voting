@@ -8,6 +8,7 @@ import {
     vote,
     stvVote,
     votationResultReview,
+    votationResult,
     meeting,
 } from '#/db/schema.ts';
 import { validateStatusTransition } from './votation-state.ts';
@@ -255,6 +256,80 @@ export const updateVotationStatus = createServerFn({ method: 'POST' })
         return { success: true };
     });
 
+export const resetVotation = createServerFn({ method: 'POST' })
+    .inputValidator(z.object({ votationId: z.string() }))
+    .handler(async ({ data }) => {
+        const v = await db.query.votation.findFirst({
+            where: eq(votation.id, data.votationId),
+        });
+        if (!v) throw new Error('Voteringen finnes ikke');
+        if (v.status !== 'CHECKING_RESULT') {
+            throw new Error('Kan kun gjøre om voteringer som kontrolleres');
+        }
+
+        await requireAdmin(v.meetingId);
+
+        // Clear all vote data
+        await db.transaction(async (tx) => {
+            // Delete votes for alternatives in this votation
+            const alts = await tx.query.alternative.findMany({
+                where: eq(alternative.votationId, data.votationId),
+            });
+            const altIds = alts.map((a) => a.id);
+
+            if (altIds.length > 0) {
+                for (const altId of altIds) {
+                    await tx.delete(vote).where(eq(vote.alternativeId, altId));
+                }
+            }
+
+            // Delete STV votes
+            await tx
+                .delete(stvVote)
+                .where(eq(stvVote.votationId, data.votationId));
+
+            // Delete hasVoted records
+            await tx
+                .delete(hasVoted)
+                .where(eq(hasVoted.votationId, data.votationId));
+
+            // Delete result (cascades to stvRoundResult + alternativeRoundVoteCount)
+            await tx
+                .delete(votationResult)
+                .where(eq(votationResult.votationId, data.votationId));
+
+            // Delete reviews
+            await tx
+                .delete(votationResultReview)
+                .where(eq(votationResultReview.votationId, data.votationId));
+
+            // Reset alternatives
+            for (const altId of altIds) {
+                await tx
+                    .update(alternative)
+                    .set({ isWinner: false })
+                    .where(eq(alternative.id, altId));
+            }
+
+            // Reset votation and immediately re-open
+            await tx
+                .update(votation)
+                .set({ status: 'OPEN', blankVoteCount: 0 })
+                .where(eq(votation.id, data.votationId));
+        });
+
+        // Notify all clients that voting restarted
+        publish(`votation:${data.votationId}:status`, {
+            votationId: data.votationId,
+            votationStatus: 'OPEN',
+        });
+        publish(`meeting:${v.meetingId}:votation-opened`, {
+            votationId: data.votationId,
+        });
+
+        return { success: true };
+    });
+
 export const getVoteCount = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
@@ -338,6 +413,26 @@ export const getReviews = createServerFn({ method: 'GET' })
         });
 
         return reviews;
+    });
+
+export const getReviewCounts = createServerFn({ method: 'GET' })
+    .inputValidator(z.object({ votationId: z.string() }))
+    .handler(async ({ data }) => {
+        const v = await db.query.votation.findFirst({
+            where: eq(votation.id, data.votationId),
+        });
+        if (!v) throw new Error('Voteringen finnes ikke');
+
+        await requireParticipant(v.meetingId);
+
+        const reviews = await db.query.votationResultReview.findMany({
+            where: eq(votationResultReview.votationId, data.votationId),
+        });
+
+        return {
+            approved: reviews.filter((r) => r.approved).length,
+            disapproved: reviews.filter((r) => !r.approved).length,
+        };
     });
 
 export const getMyReview = createServerFn({ method: 'GET' })

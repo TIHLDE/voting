@@ -1,14 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
 import { toast } from 'sonner';
 import { getVotationResults } from '#/server/results.ts';
-import {
-    reviewVotation,
-    getMyReview,
-    updateVotationStatus,
-} from '#/server/voting.ts';
+import { updateVotationStatus, resetVotation } from '#/server/voting.ts';
 import { Button } from '#/components/ui/button';
-import { useWsSubscription } from '#/hooks/useWsSubscription';
 
 interface CheckResultsProps {
     votationId: string;
@@ -18,38 +12,14 @@ interface CheckResultsProps {
 
 export default function CheckResults({
     votationId,
+    meetingId,
     isAdmin,
 }: CheckResultsProps) {
     const queryClient = useQueryClient();
-    const [reviewCounts, setReviewCounts] = useState({
-        approved: 0,
-        disapproved: 0,
-    });
 
     const { data: results } = useQuery({
         queryKey: ['results', votationId],
         queryFn: () => getVotationResults({ data: { votationId } }),
-    });
-
-    const { data: myReview } = useQuery({
-        queryKey: ['myReview', votationId],
-        queryFn: () => getMyReview({ data: { votationId } }),
-    });
-
-    useWsSubscription(`votation:${votationId}:reviews`, {
-        onMessage: (data) =>
-            setReviewCounts(data as { approved: number; disapproved: number }),
-    });
-
-    const reviewMutation = useMutation({
-        mutationFn: (approved: boolean) =>
-            reviewVotation({ data: { votationId, approved } }),
-        onSuccess: (data) => {
-            setReviewCounts(data);
-            void queryClient.invalidateQueries({
-                queryKey: ['myReview', votationId],
-            });
-        },
     });
 
     const publishMutation = useMutation({
@@ -71,21 +41,33 @@ export default function CheckResults({
         },
     });
 
-    const invalidateMutation = useMutation({
-        mutationFn: () =>
-            updateVotationStatus({
-                data: { votationId, status: 'INVALID' },
-            }),
+    const resetMutation = useMutation({
+        mutationFn: () => resetVotation({ data: { votationId } }),
         onSuccess: () => {
             void queryClient.invalidateQueries({
                 queryKey: ['votation', votationId],
+            });
+            void queryClient.invalidateQueries({
+                queryKey: ['votations', meetingId],
+            });
+            void queryClient.invalidateQueries({
+                queryKey: ['activeVotation', meetingId],
+            });
+            void queryClient.invalidateQueries({
+                queryKey: ['hasVoted', votationId],
+            });
+            void queryClient.invalidateQueries({
+                queryKey: ['voteCount', votationId],
+            });
+            void queryClient.invalidateQueries({
+                queryKey: ['results', votationId],
             });
         },
         onError: (err) => {
             toast.error(
                 err instanceof Error
                     ? err.message
-                    : 'Kunne ikke ugyldiggjøre votering',
+                    : 'Kunne ikke tilbakestille votering',
             );
         },
     });
@@ -98,7 +80,8 @@ export default function CheckResults({
         );
     }
 
-    const { result, alternatives } = results;
+    const { result, alternatives, votation } = results;
+    const isSTV = votation.type === 'STV';
     const winners = alternatives.filter((a) => a.isWinner);
     const totalVotes = alternatives.reduce((sum, a) => sum + a.voteCount, 0);
 
@@ -112,6 +95,14 @@ export default function CheckResults({
                 </div>
             )}
 
+            {winners.length === 0 && (
+                <div className="rounded-lg border bg-card p-4">
+                    <p className="text-sm font-semibold text-foreground">
+                        Ingen vinner
+                    </p>
+                </div>
+            )}
+
             <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                     <thead>
@@ -120,7 +111,7 @@ export default function CheckResults({
                                 Alternativ
                             </th>
                             <th className="p-2 text-right font-semibold">
-                                Stemmer
+                                {isSTV ? 'Førstevalg' : 'Stemmer'}
                             </th>
                             <th className="p-2 text-right font-semibold">
                                 % av totalt
@@ -178,53 +169,28 @@ export default function CheckResults({
                 </table>
             </div>
 
-            <div className="rounded-lg border bg-card p-4">
-                <p className="mb-3 text-sm font-semibold">Godkjenning</p>
-                <p className="mb-3 text-sm text-muted-foreground">
-                    {reviewCounts.approved} godkjent, {reviewCounts.disapproved}{' '}
-                    avvist
-                </p>
-                <div className="flex gap-2">
-                    <Button
-                        size="sm"
-                        variant={
-                            myReview?.approved === true ? 'default' : 'outline'
-                        }
-                        onClick={() => reviewMutation.mutate(true)}
-                        disabled={reviewMutation.isPending}
-                    >
-                        Godkjenn
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant={
-                            myReview?.approved === false
-                                ? 'destructive'
-                                : 'outline'
-                        }
-                        onClick={() => reviewMutation.mutate(false)}
-                        disabled={reviewMutation.isPending}
-                    >
-                        Avvis
-                    </Button>
-                </div>
-            </div>
-
             {isAdmin && (
                 <div className="flex gap-2 border-t pt-4">
                     <Button
                         onClick={() => publishMutation.mutate()}
-                        disabled={publishMutation.isPending}
+                        disabled={
+                            publishMutation.isPending || resetMutation.isPending
+                        }
                     >
                         {publishMutation.isPending
                             ? 'Publiserer...'
-                            : 'Publiser resultater'}
+                            : 'Godkjenn og publiser'}
                     </Button>
                     <Button
                         variant="destructive"
-                        onClick={() => invalidateMutation.mutate()}
+                        onClick={() => resetMutation.mutate()}
+                        disabled={
+                            publishMutation.isPending || resetMutation.isPending
+                        }
                     >
-                        Ugyldiggjor
+                        {resetMutation.isPending
+                            ? 'Tilbakestiller...'
+                            : 'Forkast og gjør om'}
                     </Button>
                 </div>
             )}
