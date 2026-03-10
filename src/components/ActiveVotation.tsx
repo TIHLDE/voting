@@ -355,13 +355,28 @@ function VotingInterface({
                         ))}
                 </div>
 
-                <Button
-                    onClick={() => stvMutation.mutate()}
-                    disabled={stvRanking.length === 0 || stvMutation.isPending}
-                    className="w-full"
-                >
-                    {stvMutation.isPending ? 'Sender...' : 'Avgi stemme'}
-                </Button>
+                <div className="flex gap-2">
+                    <Button
+                        onClick={() => stvMutation.mutate()}
+                        disabled={
+                            stvRanking.length === 0 || stvMutation.isPending
+                        }
+                        className="flex-1"
+                    >
+                        {stvMutation.isPending ? 'Sender...' : 'Avgi stemme'}
+                    </Button>
+                    {blankVotes && (
+                        <Button
+                            variant="outline"
+                            onClick={() => blankMutation.mutate()}
+                            disabled={blankMutation.isPending}
+                        >
+                            {blankMutation.isPending
+                                ? 'Sender...'
+                                : 'Blank stemme'}
+                        </Button>
+                    )}
+                </div>
 
                 <VoteCountDisplay voteCount={voteCount} />
                 {isAdmin && (

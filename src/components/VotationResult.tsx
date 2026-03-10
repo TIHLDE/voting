@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { getVotationResults } from '#/server/results.ts';
 import { startNextVotation } from '#/server/voting.ts';
 import { Button } from '#/components/ui/button';
+import VoteAudit from './VoteAudit';
 
 interface VotationResultProps {
     votationId: string;
@@ -50,6 +51,7 @@ export default function VotationResultView({
     const isSTV = votation.type === 'STV';
     const winners = alternatives.filter((a) => a.isWinner);
     const totalVotes = alternatives.reduce((sum, a) => sum + a.voteCount, 0);
+    const hideDetails = votation.hiddenVotes && !isAdmin;
 
     return (
         <div className="space-y-6">
@@ -72,104 +74,123 @@ export default function VotationResultView({
                 </div>
             )}
 
-            <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                    <thead>
-                        <tr className="border-b">
-                            <th className="p-2 text-left font-semibold">
-                                Alternativ
-                            </th>
-                            <th className="p-2 text-right font-semibold">
-                                {isSTV ? 'Førstevalg' : 'Stemmer'}
-                            </th>
-                            <th className="p-2 text-right font-semibold">
-                                % av totalt
-                            </th>
-                            <th className="p-2 text-right font-semibold">
-                                % av stemmeberettigede
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {alternatives.map((alt) => (
-                            <tr
-                                key={alt.id}
-                                className={`border-b ${alt.isWinner ? 'font-semibold text-green-700 dark:text-green-400' : ''}`}
-                            >
-                                <td className="p-2">
-                                    {alt.text}
-                                    {alt.isWinner && ' *'}
-                                </td>
-                                <td className="p-2 text-right">
-                                    {alt.voteCount}
-                                </td>
-                                <td className="p-2 text-right">
-                                    {totalVotes > 0
-                                        ? (
-                                              (alt.voteCount / totalVotes) *
-                                              100
-                                          ).toFixed(1)
-                                        : '0.0'}
-                                    %
-                                </td>
-                                <td className="p-2 text-right">
-                                    {result && result.votingEligibleCount > 0
-                                        ? (
-                                              (alt.voteCount /
-                                                  result.votingEligibleCount) *
-                                              100
-                                          ).toFixed(1)
-                                        : '0.0'}
-                                    %
-                                </td>
-                            </tr>
-                        ))}
-                        {result?.blankVoteCount != null &&
-                            result.blankVoteCount > 0 && (
-                                <tr className="border-b italic">
-                                    <td className="p-2">Blanke stemmer</td>
-                                    <td className="p-2 text-right">
-                                        {result.blankVoteCount}
-                                    </td>
-                                    <td
-                                        className="p-2 text-right"
-                                        colSpan={2}
-                                    />
-                                </tr>
-                            )}
-                    </tbody>
-                </table>
-            </div>
-
-            {result && (
-                <div className="text-sm text-muted-foreground">
-                    <p>
-                        Totalt {result.voteCount} av{' '}
-                        {result.votingEligibleCount} stemmeberettigede stemte.
+            {hideDetails ? (
+                <div className="rounded-lg border bg-muted/50 p-4 text-center">
+                    <p className="text-sm text-muted-foreground">
+                        Detaljerte resultater er skjult for denne voteringen.
                     </p>
-                    {result.quota && (
-                        <p>STV-kvote (Droop): {result.quota.toFixed(2)}</p>
-                    )}
                 </div>
+            ) : (
+                <>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b">
+                                    <th className="p-2 text-left font-semibold">
+                                        Alternativ
+                                    </th>
+                                    <th className="p-2 text-right font-semibold">
+                                        {isSTV ? 'Førstevalg' : 'Stemmer'}
+                                    </th>
+                                    <th className="p-2 text-right font-semibold">
+                                        % av totalt
+                                    </th>
+                                    <th className="p-2 text-right font-semibold">
+                                        % av stemmeberettigede
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {alternatives.map((alt) => (
+                                    <tr
+                                        key={alt.id}
+                                        className={`border-b ${alt.isWinner ? 'font-semibold text-green-700 dark:text-green-400' : ''}`}
+                                    >
+                                        <td className="p-2">
+                                            {alt.text}
+                                            {alt.isWinner && ' *'}
+                                        </td>
+                                        <td className="p-2 text-right">
+                                            {alt.voteCount}
+                                        </td>
+                                        <td className="p-2 text-right">
+                                            {totalVotes > 0
+                                                ? (
+                                                      (alt.voteCount /
+                                                          totalVotes) *
+                                                      100
+                                                  ).toFixed(1)
+                                                : '0.0'}
+                                            %
+                                        </td>
+                                        <td className="p-2 text-right">
+                                            {result &&
+                                            result.votingEligibleCount > 0
+                                                ? (
+                                                      (alt.voteCount /
+                                                          result.votingEligibleCount) *
+                                                      100
+                                                  ).toFixed(1)
+                                                : '0.0'}
+                                            %
+                                        </td>
+                                    </tr>
+                                ))}
+                                {result?.blankVoteCount != null &&
+                                    result.blankVoteCount > 0 && (
+                                        <tr className="border-b italic">
+                                            <td className="p-2">
+                                                Blanke stemmer
+                                            </td>
+                                            <td className="p-2 text-right">
+                                                {result.blankVoteCount}
+                                            </td>
+                                            <td
+                                                className="p-2 text-right"
+                                                colSpan={2}
+                                            />
+                                        </tr>
+                                    )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {result && (
+                        <div className="text-sm text-muted-foreground">
+                            <p>
+                                Totalt {result.voteCount} av{' '}
+                                {result.votingEligibleCount} stemmeberettigede
+                                stemte.
+                            </p>
+                            {result.quota && (
+                                <p>
+                                    STV-kvote (Droop): {result.quota.toFixed(2)}
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* STV round-by-round results */}
+                    {votation.type === 'STV' &&
+                        result?.stvRoundResults &&
+                        result.stvRoundResults.length > 0 && (
+                            <StvRoundTable
+                                rounds={result.stvRoundResults}
+                                alternatives={alternatives}
+                                quota={result.quota ?? 0}
+                            />
+                        )}
+
+                    <div className="flex gap-2">
+                        <DownloadResultButton
+                            alternatives={alternatives}
+                            result={result}
+                        />
+                    </div>
+                </>
             )}
 
-            {/* STV round-by-round results */}
-            {votation.type === 'STV' &&
-                result?.stvRoundResults &&
-                result.stvRoundResults.length > 0 && (
-                    <StvRoundTable
-                        rounds={result.stvRoundResults}
-                        alternatives={alternatives}
-                        quota={result.quota ?? 0}
-                    />
-                )}
-
-            <div className="flex gap-2">
-                <DownloadResultButton
-                    alternatives={alternatives}
-                    result={result}
-                />
-            </div>
+            {isAdmin && <VoteAudit votationId={votationId} />}
 
             {isAdmin && (
                 <div className="border-t pt-4">

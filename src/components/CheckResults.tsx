@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { getVotationResults } from '#/server/results.ts';
 import { updateVotationStatus, resetVotation } from '#/server/voting.ts';
 import { Button } from '#/components/ui/button';
+import VoteAudit from './VoteAudit';
 
 interface CheckResultsProps {
     votationId: string;
@@ -168,6 +169,8 @@ export default function CheckResults({
                     </tbody>
                 </table>
             </div>
+
+            {isAdmin && <VoteAudit votationId={votationId} />}
 
             {isAdmin && (
                 <div className="flex gap-2 border-t pt-4">

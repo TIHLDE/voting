@@ -1,11 +1,28 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+    DndContext,
+    closestCenter,
+    PointerSensor,
+    KeyboardSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    verticalListSortingStrategy,
+    useSortable,
+    arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
     getVotationsForMeeting,
     updateVotations,
     deleteVotation,
     createVotations,
+    updateVotationIndexes,
 } from '#/server/votations.ts';
 import { Button } from '#/components/ui/button';
 import { Input } from '#/components/ui/input';
@@ -117,6 +134,13 @@ export default function VotationEditor({
         ? (localVotations ?? [])
         : (serverVotations ?? []);
 
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: { distance: 8 },
+        }),
+        useSensor(KeyboardSensor),
+    );
+
     function getFormData(v: any): VotationFormData {
         if (isLocal) return v as VotationFormData;
         return serverEdits[v.id] ?? serverToFormData(v);
@@ -155,13 +179,39 @@ export default function VotationEditor({
     }
 
     function duplicateVotation(index: number) {
-        if (!isLocal) return;
-        const votations = localVotations ?? [];
-        const dup = {
-            ...votations[index],
-            alternatives: [...votations[index].alternatives],
-        };
-        onChange?.([...votations, dup]);
+        if (isLocal) {
+            const votations = localVotations ?? [];
+            const dup = {
+                ...votations[index],
+                alternatives: [...votations[index].alternatives],
+            };
+            onChange?.([...votations, dup]);
+        } else {
+            const v = (serverVotations as any[])[index];
+            const formData = getFormData(v);
+            createMutation.mutate(formData);
+        }
+    }
+
+    function handleDragEnd(event: DragEndEvent) {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        if (isLocal) {
+            const items = localVotations ?? [];
+            const oldIndex = Number(String(active.id).replace('local-', ''));
+            const newIndex = Number(String(over.id).replace('local-', ''));
+            onChange?.(arrayMove(items, oldIndex, newIndex));
+        } else {
+            const items = serverVotations as any[];
+            const oldIndex = items.findIndex((v: any) => v.id === active.id);
+            const newIndex = items.findIndex((v: any) => v.id === over.id);
+            if (oldIndex === -1 || newIndex === -1) return;
+            const reordered = arrayMove(items, oldIndex, newIndex);
+            reorderMutation.mutate(
+                reordered.map((v: any, i: number) => ({ id: v.id, index: i })),
+            );
+        }
     }
 
     const saveMutation = useMutation({
@@ -266,6 +316,29 @@ export default function VotationEditor({
         },
     });
 
+    const reorderMutation = useMutation({
+        mutationFn: (votations: { id: string; index: number }[]) =>
+            updateVotationIndexes({
+                data: { meetingId: meetingId!, votations },
+            }),
+        onSuccess: () => {
+            void queryClient.invalidateQueries({
+                queryKey: ['votations', meetingId],
+            });
+        },
+        onError: (err) => {
+            toast.error(
+                err instanceof Error
+                    ? err.message
+                    : 'Kunne ikke endre rekkefølge',
+            );
+        },
+    });
+
+    const sortableIds = displayVotations.map((v: any, i: number) =>
+        isLocal ? `local-${i}` : v.id,
+    );
+
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -278,167 +351,65 @@ export default function VotationEditor({
                 </Button>
             </div>
 
-            {displayVotations.map((v: any, index: number) => {
-                const isOpen = openIndex === index;
-                const votationData = getFormData(v);
-                const isEditable = isLocal || v.status === 'UPCOMING';
-                const hasEdits = !isLocal && !!serverEdits[v.id];
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+            >
+                <SortableContext
+                    items={sortableIds}
+                    strategy={verticalListSortingStrategy}
+                >
+                    {displayVotations.map((v: any, index: number) => {
+                        const sortableId = isLocal ? `local-${index}` : v.id;
+                        const isOpen = openIndex === index;
+                        const votationData = getFormData(v);
+                        const isEditable = isLocal || v.status === 'UPCOMING';
+                        const hasEdits = !isLocal && !!serverEdits[v.id];
 
-                return (
-                    <Collapsible
-                        key={isLocal ? index : v.id}
-                        open={isOpen}
-                        onOpenChange={(open) =>
-                            setOpenIndex(open ? index : null)
-                        }
-                    >
-                        <div className="rounded-lg border bg-card">
-                            <CollapsibleTrigger className="flex w-full items-center gap-3 p-4 text-left">
-                                <GripVertical className="h-4 w-4 text-muted-foreground" />
-                                <span className="flex-1 font-medium text-foreground">
-                                    {v.title || `Votering ${index + 1}`}
-                                </span>
-                                {!isLocal && !isEditable && (
-                                    <Badge
-                                        variant="secondary"
-                                        className="text-xs"
-                                    >
-                                        {STATUS_LABELS[v.status] ?? v.status}
-                                    </Badge>
-                                )}
-                                <span className="text-xs text-muted-foreground">
-                                    {TYPE_LABELS[v.type] ?? v.type}
-                                </span>
-                                <ChevronDown
-                                    className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                                />
-                            </CollapsibleTrigger>
-
-                            <CollapsibleContent>
-                                {isEditable ? (
-                                    <div className="space-y-4 border-t p-4">
-                                        <VotationFormFields
-                                            data={votationData}
-                                            onChange={(patch) =>
-                                                updateFormData(index, patch)
-                                            }
-                                        />
-                                        <div className="flex gap-2 border-t pt-4">
-                                            {!isLocal && (
-                                                <>
-                                                    <Button
-                                                        type="button"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            saveMutation.mutate(
-                                                                v.id,
-                                                            )
-                                                        }
-                                                        disabled={
-                                                            !hasEdits ||
-                                                            saveMutation.isPending
-                                                        }
-                                                    >
-                                                        <Save className="mr-1 h-4 w-4" />
-                                                        {saveMutation.isPending
-                                                            ? 'Lagrer...'
-                                                            : 'Lagre'}
-                                                    </Button>
-                                                    <Button
-                                                        type="button"
-                                                        variant="destructive"
-                                                        size="sm"
-                                                        onClick={() => {
-                                                            if (
-                                                                window.confirm(
-                                                                    'Slett denne voteringen?',
-                                                                )
-                                                            ) {
-                                                                deleteMutation.mutate(
-                                                                    v.id,
-                                                                );
-                                                            }
-                                                        }}
-                                                        disabled={
-                                                            deleteMutation.isPending
-                                                        }
-                                                    >
-                                                        <Trash2 className="mr-1 h-4 w-4" />
-                                                        Slett
-                                                    </Button>
-                                                </>
-                                            )}
-                                            {isLocal && (
-                                                <>
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            duplicateVotation(
-                                                                index,
-                                                            )
-                                                        }
-                                                    >
-                                                        <Copy className="mr-1 h-4 w-4" />
-                                                        Dupliser
-                                                    </Button>
-                                                    <Button
-                                                        type="button"
-                                                        variant="destructive"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            removeVotation(
-                                                                index,
-                                                            )
-                                                        }
-                                                    >
-                                                        <Trash2 className="mr-1 h-4 w-4" />
-                                                        Slett
-                                                    </Button>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-2 border-t p-4 text-sm text-muted-foreground">
-                                        {v.description && (
-                                            <p>{v.description}</p>
-                                        )}
-                                        <p>
-                                            Type:{' '}
-                                            {TYPE_LABELS[v.type] ?? v.type}
-                                        </p>
-                                        {v.alternatives?.length > 0 && (
-                                            <div>
-                                                <p className="font-medium text-foreground">
-                                                    Alternativer:
-                                                </p>
-                                                <ul className="list-inside list-disc">
-                                                    {v.alternatives.map(
-                                                        (a: any) => (
-                                                            <li key={a.id}>
-                                                                {a.text}
-                                                                {a.isWinner
-                                                                    ? ' (Vinner)'
-                                                                    : ''}
-                                                            </li>
-                                                        ),
-                                                    )}
-                                                </ul>
-                                            </div>
-                                        )}
-                                        <p className="text-xs italic">
-                                            Kan ikke redigeres etter at votering
-                                            er startet.
-                                        </p>
-                                    </div>
-                                )}
-                            </CollapsibleContent>
-                        </div>
-                    </Collapsible>
-                );
-            })}
+                        return (
+                            <SortableVotationItem
+                                key={sortableId}
+                                id={sortableId}
+                                isOpen={isOpen}
+                                onOpenChange={(open) =>
+                                    setOpenIndex(open ? index : null)
+                                }
+                                isEditable={isEditable}
+                                isLocal={isLocal}
+                                hasEdits={hasEdits}
+                                votation={v}
+                                votationData={votationData}
+                                index={index}
+                                onUpdateFormData={(patch) =>
+                                    updateFormData(index, patch)
+                                }
+                                onSave={
+                                    !isLocal
+                                        ? () => saveMutation.mutate(v.id)
+                                        : undefined
+                                }
+                                onDelete={
+                                    isLocal
+                                        ? () => removeVotation(index)
+                                        : () => {
+                                              if (
+                                                  window.confirm(
+                                                      'Slett denne voteringen?',
+                                                  )
+                                              ) {
+                                                  deleteMutation.mutate(v.id);
+                                              }
+                                          }
+                                }
+                                onDuplicate={() => duplicateVotation(index)}
+                                savePending={saveMutation.isPending}
+                                deletePending={deleteMutation.isPending}
+                            />
+                        );
+                    })}
+                </SortableContext>
+            </DndContext>
 
             {newVotation && !isLocal && (
                 <div className="rounded-lg border-2 border-primary bg-card">
@@ -450,7 +421,10 @@ export default function VotationEditor({
                             <VotationFormFields
                                 data={newVotation}
                                 onChange={(patch) =>
-                                    setNewVotation({ ...newVotation, ...patch })
+                                    setNewVotation({
+                                        ...newVotation,
+                                        ...patch,
+                                    })
                                 }
                             />
                             <div className="flex gap-2 border-t pt-4">
@@ -489,6 +463,174 @@ export default function VotationEditor({
                     legge til en.
                 </p>
             )}
+        </div>
+    );
+}
+
+function SortableVotationItem({
+    id,
+    isOpen,
+    onOpenChange,
+    isEditable,
+    isLocal,
+    hasEdits,
+    votation: v,
+    votationData,
+    index,
+    onUpdateFormData,
+    onSave,
+    onDelete,
+    onDuplicate,
+    savePending,
+    deletePending,
+}: {
+    id: string;
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
+    isEditable: boolean;
+    isLocal: boolean;
+    hasEdits: boolean;
+    votation: any;
+    votationData: VotationFormData;
+    index: number;
+    onUpdateFormData: (patch: Partial<VotationFormData>) => void;
+    onSave?: () => void;
+    onDelete: () => void;
+    onDuplicate: () => void;
+    savePending: boolean;
+    deletePending: boolean;
+}) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        position: 'relative' as const,
+        zIndex: isDragging ? 10 : undefined,
+    };
+
+    return (
+        <div ref={setNodeRef} style={style}>
+            <Collapsible open={isOpen} onOpenChange={onOpenChange}>
+                <div className="rounded-lg border bg-card">
+                    <div className="flex items-center">
+                        <button
+                            type="button"
+                            className="cursor-grab touch-none p-4 text-muted-foreground hover:text-foreground"
+                            {...attributes}
+                            {...listeners}
+                        >
+                            <GripVertical className="h-4 w-4" />
+                        </button>
+                        <CollapsibleTrigger className="flex flex-1 items-center gap-3 py-4 pr-4 text-left">
+                            <span className="flex-1 font-medium text-foreground">
+                                {v.title || `Votering ${index + 1}`}
+                            </span>
+                            {!isLocal && !isEditable && (
+                                <Badge variant="secondary" className="text-xs">
+                                    {STATUS_LABELS[v.status] ?? v.status}
+                                </Badge>
+                            )}
+                            <span className="text-xs text-muted-foreground">
+                                {TYPE_LABELS[v.type] ?? v.type}
+                            </span>
+                            <ChevronDown
+                                className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                            />
+                        </CollapsibleTrigger>
+                    </div>
+
+                    <CollapsibleContent>
+                        {isEditable ? (
+                            <div className="space-y-4 border-t p-4">
+                                <VotationFormFields
+                                    data={votationData}
+                                    onChange={onUpdateFormData}
+                                />
+                                <div className="flex gap-2 border-t pt-4">
+                                    {!isLocal && onSave && (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            onClick={onSave}
+                                            disabled={!hasEdits || savePending}
+                                        >
+                                            <Save className="mr-1 h-4 w-4" />
+                                            {savePending
+                                                ? 'Lagrer...'
+                                                : 'Lagre'}
+                                        </Button>
+                                    )}
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={onDuplicate}
+                                    >
+                                        <Copy className="mr-1 h-4 w-4" />
+                                        Dupliser
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={onDelete}
+                                        disabled={deletePending}
+                                    >
+                                        <Trash2 className="mr-1 h-4 w-4" />
+                                        Slett
+                                    </Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-2 border-t p-4 text-sm text-muted-foreground">
+                                {v.description && <p>{v.description}</p>}
+                                <p>Type: {TYPE_LABELS[v.type] ?? v.type}</p>
+                                {v.alternatives?.length > 0 && (
+                                    <div>
+                                        <p className="font-medium text-foreground">
+                                            Alternativer:
+                                        </p>
+                                        <ul className="list-inside list-disc">
+                                            {v.alternatives.map((a: any) => (
+                                                <li key={a.id}>
+                                                    {a.text}
+                                                    {a.isWinner
+                                                        ? ' (Vinner)'
+                                                        : ''}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                                <div className="flex gap-2 border-t pt-4">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={onDuplicate}
+                                    >
+                                        <Copy className="mr-1 h-4 w-4" />
+                                        Dupliser
+                                    </Button>
+                                </div>
+                                <p className="text-xs italic">
+                                    Kan ikke redigeres etter at votering er
+                                    startet.
+                                </p>
+                            </div>
+                        )}
+                    </CollapsibleContent>
+                </div>
+            </Collapsible>
         </div>
     );
 }
@@ -586,17 +728,15 @@ function VotationFormFields({
                 </div>
             )}
 
-            {data.type !== 'STV' && (
-                <div className="flex items-center gap-3">
-                    <Switch
-                        checked={data.blankVotes}
-                        onCheckedChange={(checked) =>
-                            onChange({ blankVotes: checked })
-                        }
-                    />
-                    <Label>Tillat blanke stemmer</Label>
-                </div>
-            )}
+            <div className="flex items-center gap-3">
+                <Switch
+                    checked={data.blankVotes}
+                    onCheckedChange={(checked) =>
+                        onChange({ blankVotes: checked })
+                    }
+                />
+                <Label>Tillat blanke stemmer</Label>
+            </div>
 
             <div className="flex items-center gap-3">
                 <Switch

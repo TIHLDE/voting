@@ -435,6 +435,66 @@ export const getReviewCounts = createServerFn({ method: 'GET' })
         };
     });
 
+export const getVoteAudit = createServerFn({ method: 'GET' })
+    .inputValidator(z.object({ votationId: z.string() }))
+    .handler(async ({ data }) => {
+        const v = await db.query.votation.findFirst({
+            where: eq(votation.id, data.votationId),
+            with: {
+                alternatives: {
+                    orderBy: [asc(alternative.index)],
+                },
+            },
+        });
+        if (!v) throw new Error('Voteringen finnes ikke');
+
+        await requireAdmin(v.meetingId);
+
+        // Get who voted
+        const voters = await db.query.hasVoted.findMany({
+            where: eq(hasVoted.votationId, data.votationId),
+            with: { user: true },
+        });
+
+        // For STV: get anonymous ballots
+        let ballots: Array<{
+            id: string;
+            rankings: Array<{ ranking: number; alternativeText: string }>;
+        }> = [];
+
+        if (v.type === 'STV') {
+            const stvVotes = await db.query.stvVote.findMany({
+                where: eq(stvVote.votationId, data.votationId),
+                with: {
+                    votes: {
+                        with: { alternative: true },
+                        orderBy: [asc(vote.ranking)],
+                    },
+                },
+            });
+
+            ballots = stvVotes.map((sv) => ({
+                id: sv.id,
+                rankings: sv.votes.map((vt) => ({
+                    ranking: vt.ranking,
+                    alternativeText: vt.alternative.text,
+                })),
+            }));
+        }
+
+        return {
+            voters: voters.map((voter) => ({
+                name: voter.user.name,
+                email: voter.user.email,
+                votedAt: voter.createdAt,
+            })),
+            type: v.type,
+            ballots,
+            blankVoteCount: v.blankVoteCount,
+            totalVoters: voters.length,
+        };
+    });
+
 export const getMyReview = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {

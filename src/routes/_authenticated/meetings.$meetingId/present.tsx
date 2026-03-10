@@ -204,7 +204,7 @@ function PresentResults({ votationId }: { votationId: string }) {
 
     if (!results) return null;
 
-    const { result, alternatives } = results;
+    const { result, alternatives, votation } = results;
     const winners = alternatives.filter((a) => a.isWinner);
 
     return (
@@ -228,46 +228,61 @@ function PresentResults({ votationId }: { votationId: string }) {
                 </div>
             )}
 
-            <table className="mx-auto w-full max-w-3xl text-left text-xl">
-                <thead>
-                    <tr className="border-b-2">
-                        <th className="p-4 font-semibold">Alternativ</th>
-                        <th className="p-4 text-right font-semibold">
-                            Stemmer
-                        </th>
-                        <th className="p-4 text-right font-semibold">%</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {alternatives.map((alt) => (
-                        <tr
-                            key={alt.id}
-                            className={`border-b ${alt.isWinner ? 'font-bold text-green-600 dark:text-green-400' : ''}`}
-                        >
-                            <td className="p-4">
-                                {alt.text}
-                                {alt.isWinner && ' *'}
-                            </td>
-                            <td className="p-4 text-right">{alt.voteCount}</td>
-                            <td className="p-4 text-right">
-                                {result && result.votingEligibleCount > 0
-                                    ? (
-                                          (alt.voteCount /
-                                              result.votingEligibleCount) *
-                                          100
-                                      ).toFixed(1) + '%'
-                                    : '0%'}
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
-
-            {result && (
-                <p className="text-xl text-muted-foreground">
-                    {result.voteCount} av {result.votingEligibleCount}{' '}
-                    stemmeberettigede stemte
+            {votation.hiddenVotes ? (
+                <p className="text-2xl text-muted-foreground">
+                    Detaljerte resultater er skjult for denne voteringen.
                 </p>
+            ) : (
+                <>
+                    <table className="mx-auto w-full max-w-3xl text-left text-xl">
+                        <thead>
+                            <tr className="border-b-2">
+                                <th className="p-4 font-semibold">
+                                    Alternativ
+                                </th>
+                                <th className="p-4 text-right font-semibold">
+                                    Stemmer
+                                </th>
+                                <th className="p-4 text-right font-semibold">
+                                    %
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {alternatives.map((alt) => (
+                                <tr
+                                    key={alt.id}
+                                    className={`border-b ${alt.isWinner ? 'font-bold text-green-600 dark:text-green-400' : ''}`}
+                                >
+                                    <td className="p-4">
+                                        {alt.text}
+                                        {alt.isWinner && ' *'}
+                                    </td>
+                                    <td className="p-4 text-right">
+                                        {alt.voteCount}
+                                    </td>
+                                    <td className="p-4 text-right">
+                                        {result &&
+                                        result.votingEligibleCount > 0
+                                            ? (
+                                                  (alt.voteCount /
+                                                      result.votingEligibleCount) *
+                                                  100
+                                              ).toFixed(1) + '%'
+                                            : '0%'}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    {result && (
+                        <p className="text-xl text-muted-foreground">
+                            {result.voteCount} av {result.votingEligibleCount}{' '}
+                            stemmeberettigede stemte
+                        </p>
+                    )}
+                </>
             )}
         </div>
     );
