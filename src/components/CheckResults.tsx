@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { getVotationResults } from '#/server/results.ts';
 import { reviewVotation, getMyReview, updateVotationStatus } from '#/server/voting.ts';
 import { Button } from '#/components/ui/button';
-import { useSSE } from '#/hooks/useSSE';
+import { useWsSubscription } from '#/hooks/useWsSubscription';
 
 interface CheckResultsProps {
   votationId: string;
@@ -28,8 +28,8 @@ export default function CheckResults({ votationId, isAdmin }: CheckResultsProps)
     queryFn: () => getMyReview({ data: { votationId } }),
   });
 
-  useSSE(`votation:${votationId}:reviews`, (data) => {
-    setReviewCounts(data as { approved: number; disapproved: number });
+  useWsSubscription(`votation:${votationId}:reviews`, {
+    onMessage: (data) => setReviewCounts(data as { approved: number; disapproved: number }),
   });
 
   const reviewMutation = useMutation({

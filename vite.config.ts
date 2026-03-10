@@ -12,7 +12,12 @@ const config = defineConfig({
     tsconfigPaths({ projects: ['./tsconfig.json'] }),
     tailwindcss(),
     tanstackStart(),
-    nitro(),
+    nitro({
+      serverDir: './server',
+      features: {
+        websocket: true,
+      },
+    }),
     viteReact(),
   ],
 });

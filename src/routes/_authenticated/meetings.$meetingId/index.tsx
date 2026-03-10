@@ -9,7 +9,7 @@ import VotationList from '#/components/VotationList';
 import ActiveVotation from '#/components/ActiveVotation';
 import StatusBadge from '#/components/StatusBadge';
 import { Button } from '#/components/ui/button';
-import { useSSE } from '#/hooks/useSSE';
+import { useWsSubscription } from '#/hooks/useWsSubscription';
 
 export const Route = createFileRoute('/_authenticated/meetings/$meetingId/')({
   component: MeetingLobby,
@@ -39,20 +39,16 @@ function MeetingLobby() {
 
   const isAdmin = meeting?.participants?.some((p) => p.userId === session.user.id && p.role === 'ADMIN');
 
-  useSSE(`meeting:${meetingId}:votation-opened`, () => {
-    void queryClient.invalidateQueries({
-      queryKey: ['openVotation', meetingId],
-    });
-    void queryClient.invalidateQueries({
-      queryKey: ['votations', meetingId],
-    });
-    setActiveTab('active');
+  useWsSubscription(`meeting:${meetingId}:votation-opened`, {
+    invalidate: [
+      ['openVotation', meetingId],
+      ['votations', meetingId],
+    ],
+    onMessage: () => setActiveTab('active'),
   });
 
-  useSSE(`meeting:${meetingId}:votations-updated`, () => {
-    void queryClient.invalidateQueries({
-      queryKey: ['votations', meetingId],
-    });
+  useWsSubscription(`meeting:${meetingId}:votations-updated`, {
+    invalidate: [['votations', meetingId]],
   });
 
   const startMutation = useMutation({

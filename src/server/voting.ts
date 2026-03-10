@@ -3,7 +3,7 @@ import { eq, and, asc } from 'drizzle-orm';
 import { z } from 'zod';
 import { votation, alternative, hasVoted, vote, stvVote, votationResultReview } from '#/db/schema.ts';
 import { validateStatusTransition } from './votation-state.ts';
-import { publish } from './sse/emitter.ts';
+import { publish } from './ws/emitter.ts';
 import { db } from '#/db/index.ts';
 import { requireAdmin, requireParticipant, requireVotingEligible } from './permissions.server.ts';
 import { setWinner } from './results.server.ts';

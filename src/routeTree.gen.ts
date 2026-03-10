@@ -15,7 +15,6 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedMeetingsRouteImport } from './routes/_authenticated/meetings'
 import { Route as AuthenticatedMeetingsIndexRouteImport } from './routes/_authenticated/meetings.index'
-import { Route as ApiSseChannelRouteImport } from './routes/api/sse/$channel'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthenticatedMeetingsNewRouteImport } from './routes/_authenticated/meetings.new'
 import { Route as AuthenticatedMeetingsMeetingIdRouteImport } from './routes/_authenticated/meetings.$meetingId'
@@ -53,11 +52,6 @@ const AuthenticatedMeetingsIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedMeetingsRoute,
   } as any)
-const ApiSseChannelRoute = ApiSseChannelRouteImport.update({
-  id: '/api/sse/$channel',
-  path: '/api/sse/$channel',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -102,7 +96,6 @@ export interface FileRoutesByFullPath {
   '/meetings/$meetingId': typeof AuthenticatedMeetingsMeetingIdRouteWithChildren
   '/meetings/new': typeof AuthenticatedMeetingsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/sse/$channel': typeof ApiSseChannelRoute
   '/meetings/': typeof AuthenticatedMeetingsIndexRoute
   '/meetings/$meetingId/edit': typeof AuthenticatedMeetingsMeetingIdEditRoute
   '/meetings/$meetingId/register': typeof AuthenticatedMeetingsMeetingIdRegisterRoute
@@ -114,7 +107,6 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/meetings/new': typeof AuthenticatedMeetingsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/sse/$channel': typeof ApiSseChannelRoute
   '/meetings': typeof AuthenticatedMeetingsIndexRoute
   '/meetings/$meetingId/edit': typeof AuthenticatedMeetingsMeetingIdEditRoute
   '/meetings/$meetingId/register': typeof AuthenticatedMeetingsMeetingIdRegisterRoute
@@ -130,7 +122,6 @@ export interface FileRoutesById {
   '/_authenticated/meetings/$meetingId': typeof AuthenticatedMeetingsMeetingIdRouteWithChildren
   '/_authenticated/meetings/new': typeof AuthenticatedMeetingsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
-  '/api/sse/$channel': typeof ApiSseChannelRoute
   '/_authenticated/meetings/': typeof AuthenticatedMeetingsIndexRoute
   '/_authenticated/meetings/$meetingId/edit': typeof AuthenticatedMeetingsMeetingIdEditRoute
   '/_authenticated/meetings/$meetingId_/register': typeof AuthenticatedMeetingsMeetingIdRegisterRoute
@@ -146,7 +137,6 @@ export interface FileRouteTypes {
     | '/meetings/$meetingId'
     | '/meetings/new'
     | '/api/auth/$'
-    | '/api/sse/$channel'
     | '/meetings/'
     | '/meetings/$meetingId/edit'
     | '/meetings/$meetingId/register'
@@ -158,7 +148,6 @@ export interface FileRouteTypes {
     | '/profile'
     | '/meetings/new'
     | '/api/auth/$'
-    | '/api/sse/$channel'
     | '/meetings'
     | '/meetings/$meetingId/edit'
     | '/meetings/$meetingId/register'
@@ -173,7 +162,6 @@ export interface FileRouteTypes {
     | '/_authenticated/meetings/$meetingId'
     | '/_authenticated/meetings/new'
     | '/api/auth/$'
-    | '/api/sse/$channel'
     | '/_authenticated/meetings/'
     | '/_authenticated/meetings/$meetingId/edit'
     | '/_authenticated/meetings/$meetingId_/register'
@@ -185,7 +173,6 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AuthRoute: typeof AuthRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  ApiSseChannelRoute: typeof ApiSseChannelRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -231,13 +218,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/meetings/'
       preLoaderRoute: typeof AuthenticatedMeetingsIndexRouteImport
       parentRoute: typeof AuthenticatedMeetingsRoute
-    }
-    '/api/sse/$channel': {
-      id: '/api/sse/$channel'
-      path: '/api/sse/$channel'
-      fullPath: '/api/sse/$channel'
-      preLoaderRoute: typeof ApiSseChannelRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
       id: '/api/auth/$'
@@ -342,7 +322,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AuthRoute: AuthRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  ApiSseChannelRoute: ApiSseChannelRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

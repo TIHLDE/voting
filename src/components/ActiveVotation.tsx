@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { getVotationById } from '#/server/votations.ts';
 import { castVote, castBlankVote, castStvVote, getVoteCount, updateVotationStatus } from '#/server/voting.ts';
 import { Button } from '#/components/ui/button';
-import { useSSE } from '#/hooks/useSSE';
+import { useWsSubscription } from '#/hooks/useWsSubscription';
 import VotationResultView from './VotationResult';
 import CheckResults from './CheckResults';
 
@@ -14,21 +14,17 @@ interface ActiveVotationProps {
 }
 
 export default function ActiveVotation({ meetingId, openVotationId, isAdmin }: ActiveVotationProps) {
-  const queryClient = useQueryClient();
-
   const { data: votation } = useQuery({
     queryKey: ['votation', openVotationId],
     queryFn: () => getVotationById({ data: { votationId: openVotationId! } }),
     enabled: !!openVotationId,
   });
 
-  useSSE(openVotationId ? `votation:${openVotationId}:status` : '', () => {
-    void queryClient.invalidateQueries({
-      queryKey: ['votation', openVotationId],
-    });
-    void queryClient.invalidateQueries({
-      queryKey: ['votations', meetingId],
-    });
+  useWsSubscription(openVotationId ? `votation:${openVotationId}:status` : '', {
+    invalidate: [
+      ['votation', openVotationId],
+      ['votations', meetingId],
+    ],
   });
 
   if (!openVotationId) {
@@ -98,8 +94,8 @@ function VotingInterface({
     queryFn: () => getVoteCount({ data: { votationId } }),
   });
 
-  useSSE(`votation:${votationId}:votes`, (data) => {
-    queryClient.setQueryData(['voteCount', votationId], data);
+  useWsSubscription(`votation:${votationId}:votes`, {
+    setQueryData: ['voteCount', votationId],
   });
 
   // Shuffle alternatives deterministically per session
