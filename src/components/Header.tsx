@@ -1,15 +1,12 @@
-import { Link } from '@tanstack/react-router'
-import BetterAuthHeader from '../integrations/better-auth/header-user.tsx'
-import ThemeToggle from './ThemeToggle'
+import { Link } from '@tanstack/react-router';
+import BetterAuthHeader from '../integrations/better-auth/header-user.tsx';
+import ThemeToggle from './ThemeToggle';
 
 export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b bg-background/95 px-4 backdrop-blur-lg">
       <nav className="mx-auto flex max-w-5xl items-center gap-4 py-3">
-        <Link
-          to="/"
-          className="text-base font-bold tracking-tight text-foreground no-underline"
-        >
+        <Link to="/" className="text-base font-bold tracking-tight text-foreground no-underline">
           Vedtatt
         </Link>
 
@@ -30,5 +27,5 @@ export default function Header() {
         </div>
       </nav>
     </header>
-  )
+  );
 }

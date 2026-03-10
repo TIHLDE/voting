@@ -1,4 +1,8 @@
 {
+  "prettier.enable": false,
+  "eslint.enable": false,
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+
   "files.watcherExclude": {
     "**/routeTree.gen.ts": true
   },

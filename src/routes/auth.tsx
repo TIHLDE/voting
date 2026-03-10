@@ -1,34 +1,34 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
-import { z } from 'zod'
-import { authClient } from '#/lib/auth-client'
-import { Button } from '#/components/ui/button'
-import { Input } from '#/components/ui/input'
-import { Label } from '#/components/ui/label'
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useState } from 'react';
+import { z } from 'zod';
+import { authClient } from '#/lib/auth-client';
+import { Button } from '#/components/ui/button';
+import { Input } from '#/components/ui/input';
+import { Label } from '#/components/ui/label';
 
 const searchSchema = z.object({
   redirect: z.string().optional(),
-})
+});
 
 export const Route = createFileRoute('/auth')({
   validateSearch: searchSchema,
   component: AuthPage,
-})
+});
 
 function AuthPage() {
-  const { redirect: redirectTo } = Route.useSearch()
-  const [isSignUp, setIsSignUp] = useState(false)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [name, setName] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const navigate = useNavigate()
+  const { redirect: redirectTo } = Route.useSearch();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setError(null)
-    setLoading(true)
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
 
     try {
       if (isSignUp) {
@@ -36,26 +36,26 @@ function AuthPage() {
           email,
           password,
           name,
-        })
+        });
         if (result.error) {
-          setError(result.error.message ?? 'Noe gikk galt ved registrering')
-          return
+          setError(result.error.message ?? 'Noe gikk galt ved registrering');
+          return;
         }
       } else {
         const result = await authClient.signIn.email({
           email,
           password,
-        })
+        });
         if (result.error) {
-          setError(result.error.message ?? 'Feil e-post eller passord')
-          return
+          setError(result.error.message ?? 'Feil e-post eller passord');
+          return;
         }
       }
-      void navigate({ to: redirectTo || '/meetings' })
+      void navigate({ to: redirectTo || '/meetings' });
     } catch {
-      setError('Noe gikk galt. Vennligst prov igjen.')
+      setError('Noe gikk galt. Vennligst prov igjen.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -106,16 +106,10 @@ function AuthPage() {
             />
           </div>
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading
-              ? 'Vennligst vent...'
-              : isSignUp
-                ? 'Opprett konto'
-                : 'Logg inn'}
+            {loading ? 'Vennligst vent...' : isSignUp ? 'Opprett konto' : 'Logg inn'}
           </Button>
         </form>
 
@@ -126,8 +120,8 @@ function AuthPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setIsSignUp(false)
-                  setError(null)
+                  setIsSignUp(false);
+                  setError(null);
                 }}
                 className="font-semibold text-foreground hover:underline"
               >
@@ -140,8 +134,8 @@ function AuthPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setIsSignUp(true)
-                  setError(null)
+                  setIsSignUp(true);
+                  setError(null);
                 }}
                 className="font-semibold text-foreground hover:underline"
               >
@@ -152,5 +146,5 @@ function AuthPage() {
         </div>
       </div>
     </main>
-  )
+  );
 }

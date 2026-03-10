@@ -1,14 +1,12 @@
-import { authClient } from '#/lib/auth-client'
-import { Link } from '@tanstack/react-router'
-import { Button, buttonVariants } from '#/components/ui/button'
+import { authClient } from '#/lib/auth-client';
+import { Link } from '@tanstack/react-router';
+import { Button, buttonVariants } from '#/components/ui/button';
 
 export default function BetterAuthHeader() {
-  const { data: session, isPending } = authClient.useSession()
+  const { data: session, isPending } = authClient.useSession();
 
   if (isPending) {
-    return (
-      <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
-    )
+    return <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />;
   }
 
   if (session?.user) {
@@ -29,18 +27,18 @@ export default function BetterAuthHeader() {
           variant="outline"
           size="sm"
           onClick={() => {
-            void authClient.signOut()
+            void authClient.signOut();
           }}
         >
           Logg ut
         </Button>
       </div>
-    )
+    );
   }
 
   return (
     <Link to="/auth" className={buttonVariants({ variant: 'outline', size: 'sm' }) + ' no-underline'}>
       Logg inn
     </Link>
-  )
+  );
 }

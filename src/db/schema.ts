@@ -1,4 +1,4 @@
-import { relations } from 'drizzle-orm'
+import { relations } from 'drizzle-orm';
 import {
   boolean,
   doublePrecision,
@@ -10,25 +10,17 @@ import {
   timestamp,
   uniqueIndex,
   varchar,
-} from 'drizzle-orm/pg-core'
+} from 'drizzle-orm/pg-core';
 
 // ---------------------------------------------------------------------------
 // Enums
 // ---------------------------------------------------------------------------
 
-export const roleEnum = pgEnum('role', ['ADMIN', 'COUNTER', 'PARTICIPANT'])
+export const roleEnum = pgEnum('role', ['ADMIN', 'COUNTER', 'PARTICIPANT']);
 
-export const votationTypeEnum = pgEnum('votation_type', [
-  'SIMPLE',
-  'QUALIFIED',
-  'STV',
-])
+export const votationTypeEnum = pgEnum('votation_type', ['SIMPLE', 'QUALIFIED', 'STV']);
 
-export const meetingStatusEnum = pgEnum('meeting_status', [
-  'UPCOMING',
-  'ONGOING',
-  'ENDED',
-])
+export const meetingStatusEnum = pgEnum('meeting_status', ['UPCOMING', 'ONGOING', 'ENDED']);
 
 export const votationStatusEnum = pgEnum('votation_status', [
   'UPCOMING',
@@ -36,7 +28,7 @@ export const votationStatusEnum = pgEnum('votation_status', [
   'CHECKING_RESULT',
   'PUBLISHED_RESULT',
   'INVALID',
-])
+]);
 
 // ---------------------------------------------------------------------------
 // Better Auth tables
@@ -50,7 +42,7 @@ export const user = pgTable('user', {
   image: text('image'),
   createdAt: timestamp('created_at').notNull(),
   updatedAt: timestamp('updated_at').notNull(),
-})
+});
 
 export const session = pgTable('session', {
   id: text('id').primaryKey(),
@@ -63,7 +55,7 @@ export const session = pgTable('session', {
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
-})
+});
 
 export const account = pgTable('account', {
   id: text('id').primaryKey(),
@@ -81,7 +73,7 @@ export const account = pgTable('account', {
   password: text('password'),
   createdAt: timestamp('created_at').notNull(),
   updatedAt: timestamp('updated_at').notNull(),
-})
+});
 
 export const verification = pgTable('verification', {
   id: text('id').primaryKey(),
@@ -90,7 +82,7 @@ export const verification = pgTable('verification', {
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at'),
   updatedAt: timestamp('updated_at'),
-})
+});
 
 // ---------------------------------------------------------------------------
 // Domain tables
@@ -105,13 +97,11 @@ export const meeting = pgTable('meeting', {
   description: text('description'),
   startTime: timestamp('start_time').notNull(),
   status: meetingStatusEnum('status').notNull().default('UPCOMING'),
-  allowSelfRegistration: boolean('allow_self_registration')
-    .notNull()
-    .default(false),
+  allowSelfRegistration: boolean('allow_self_registration').notNull().default(false),
   ownerId: text('owner_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
-})
+});
 
 export const participant = pgTable(
   'participant',
@@ -128,8 +118,8 @@ export const participant = pgTable(
       .notNull()
       .references(() => meeting.id, { onDelete: 'cascade' }),
   },
-  (t) => [uniqueIndex('participant_user_meeting_idx').on(t.userId, t.meetingId)]
-)
+  (t) => [uniqueIndex('participant_user_meeting_idx').on(t.userId, t.meetingId)],
+);
 
 export const invite = pgTable(
   'invite',
@@ -141,8 +131,8 @@ export const invite = pgTable(
       .notNull()
       .references(() => meeting.id, { onDelete: 'cascade' }),
   },
-  (t) => [uniqueIndex('invite_email_meeting_idx').on(t.email, t.meetingId)]
-)
+  (t) => [uniqueIndex('invite_email_meeting_idx').on(t.email, t.meetingId)],
+);
 
 export const votation = pgTable('votation', {
   id: text('id')
@@ -161,7 +151,7 @@ export const votation = pgTable('votation', {
   meetingId: text('meeting_id')
     .notNull()
     .references(() => meeting.id, { onDelete: 'cascade' }),
-})
+});
 
 export const alternative = pgTable('alternative', {
   id: text('id')
@@ -173,7 +163,7 @@ export const alternative = pgTable('alternative', {
   votationId: text('votation_id')
     .notNull()
     .references(() => votation.id, { onDelete: 'cascade' }),
-})
+});
 
 export const hasVoted = pgTable(
   'has_voted',
@@ -186,10 +176,8 @@ export const hasVoted = pgTable(
       .references(() => votation.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  (t) => [
-    primaryKey({ columns: [t.userId, t.votationId], name: 'has_voted_pk' }),
-  ]
-)
+  (t) => [primaryKey({ columns: [t.userId, t.votationId], name: 'has_voted_pk' })],
+);
 
 export const vote = pgTable('vote', {
   id: text('id')
@@ -202,7 +190,7 @@ export const vote = pgTable('vote', {
   stvVoteId: text('stv_vote_id').references(() => stvVote.id, {
     onDelete: 'cascade',
   }),
-})
+});
 
 export const stvVote = pgTable('stv_vote', {
   id: text('id')
@@ -211,7 +199,7 @@ export const stvVote = pgTable('stv_vote', {
   votationId: text('votation_id')
     .notNull()
     .references(() => votation.id, { onDelete: 'cascade' }),
-})
+});
 
 export const votationResult = pgTable('votation_result', {
   votationId: text('votation_id')
@@ -221,7 +209,7 @@ export const votationResult = pgTable('votation_result', {
   voteCount: integer('vote_count').notNull(),
   blankVoteCount: integer('blank_vote_count'),
   quota: doublePrecision('quota'),
-})
+});
 
 export const stvRoundResult = pgTable('stv_round_result', {
   id: text('id')
@@ -231,7 +219,7 @@ export const stvRoundResult = pgTable('stv_round_result', {
   resultId: text('result_id').references(() => votationResult.votationId, {
     onDelete: 'cascade',
   }),
-})
+});
 
 export const alternativeRoundVoteCount = pgTable(
   'alternative_round_vote_count',
@@ -249,8 +237,8 @@ export const alternativeRoundVoteCount = pgTable(
       columns: [t.alternativeId, t.stvRoundResultId],
       name: 'alt_round_vote_count_pk',
     }),
-  ]
-)
+  ],
+);
 
 export const votationResultReview = pgTable(
   'votation_result_review',
@@ -268,8 +256,8 @@ export const votationResultReview = pgTable(
       columns: [t.votationId, t.participantId],
       name: 'votation_result_review_pk',
     }),
-  ]
-)
+  ],
+);
 
 // ---------------------------------------------------------------------------
 // Relations
@@ -281,22 +269,22 @@ export const userRelations = relations(user, ({ many }) => ({
   hasVoted: many(hasVoted),
   sessions: many(session),
   accounts: many(account),
-}))
+}));
 
 export const sessionRelations = relations(session, ({ one }) => ({
   user: one(user, { fields: [session.userId], references: [user.id] }),
-}))
+}));
 
 export const accountRelations = relations(account, ({ one }) => ({
   user: one(user, { fields: [account.userId], references: [user.id] }),
-}))
+}));
 
 export const meetingRelations = relations(meeting, ({ one, many }) => ({
   owner: one(user, { fields: [meeting.ownerId], references: [user.id] }),
   participants: many(participant),
   invites: many(invite),
   votations: many(votation),
-}))
+}));
 
 export const participantRelations = relations(participant, ({ one, many }) => ({
   user: one(user, {
@@ -308,14 +296,14 @@ export const participantRelations = relations(participant, ({ one, many }) => ({
     references: [meeting.id],
   }),
   reviews: many(votationResultReview),
-}))
+}));
 
 export const inviteRelations = relations(invite, ({ one }) => ({
   meeting: one(meeting, {
     fields: [invite.meetingId],
     references: [meeting.id],
   }),
-}))
+}));
 
 export const votationRelations = relations(votation, ({ one, many }) => ({
   meeting: one(meeting, {
@@ -327,7 +315,7 @@ export const votationRelations = relations(votation, ({ one, many }) => ({
   stvVotes: many(stvVote),
   result: one(votationResult),
   reviews: many(votationResultReview),
-}))
+}));
 
 export const alternativeRelations = relations(alternative, ({ one, many }) => ({
   votation: one(votation, {
@@ -336,7 +324,7 @@ export const alternativeRelations = relations(alternative, ({ one, many }) => ({
   }),
   votes: many(vote),
   roundVoteCounts: many(alternativeRoundVoteCount),
-}))
+}));
 
 export const hasVotedRelations = relations(hasVoted, ({ one }) => ({
   user: one(user, { fields: [hasVoted.userId], references: [user.id] }),
@@ -344,7 +332,7 @@ export const hasVotedRelations = relations(hasVoted, ({ one }) => ({
     fields: [hasVoted.votationId],
     references: [votation.id],
   }),
-}))
+}));
 
 export const voteRelations = relations(vote, ({ one }) => ({
   alternative: one(alternative, {
@@ -355,7 +343,7 @@ export const voteRelations = relations(vote, ({ one }) => ({
     fields: [vote.stvVoteId],
     references: [stvVote.id],
   }),
-}))
+}));
 
 export const stvVoteRelations = relations(stvVote, ({ one, many }) => ({
   votation: one(votation, {
@@ -363,54 +351,42 @@ export const stvVoteRelations = relations(stvVote, ({ one, many }) => ({
     references: [votation.id],
   }),
   votes: many(vote),
-}))
+}));
 
-export const votationResultRelations = relations(
-  votationResult,
-  ({ one, many }) => ({
-    votation: one(votation, {
-      fields: [votationResult.votationId],
-      references: [votation.id],
-    }),
-    stvRoundResults: many(stvRoundResult),
-  })
-)
+export const votationResultRelations = relations(votationResult, ({ one, many }) => ({
+  votation: one(votation, {
+    fields: [votationResult.votationId],
+    references: [votation.id],
+  }),
+  stvRoundResults: many(stvRoundResult),
+}));
 
-export const stvRoundResultRelations = relations(
-  stvRoundResult,
-  ({ one, many }) => ({
-    result: one(votationResult, {
-      fields: [stvRoundResult.resultId],
-      references: [votationResult.votationId],
-    }),
-    alternativeVoteCounts: many(alternativeRoundVoteCount),
-  })
-)
+export const stvRoundResultRelations = relations(stvRoundResult, ({ one, many }) => ({
+  result: one(votationResult, {
+    fields: [stvRoundResult.resultId],
+    references: [votationResult.votationId],
+  }),
+  alternativeVoteCounts: many(alternativeRoundVoteCount),
+}));
 
-export const alternativeRoundVoteCountRelations = relations(
-  alternativeRoundVoteCount,
-  ({ one }) => ({
-    alternative: one(alternative, {
-      fields: [alternativeRoundVoteCount.alternativeId],
-      references: [alternative.id],
-    }),
-    stvRoundResult: one(stvRoundResult, {
-      fields: [alternativeRoundVoteCount.stvRoundResultId],
-      references: [stvRoundResult.id],
-    }),
-  })
-)
+export const alternativeRoundVoteCountRelations = relations(alternativeRoundVoteCount, ({ one }) => ({
+  alternative: one(alternative, {
+    fields: [alternativeRoundVoteCount.alternativeId],
+    references: [alternative.id],
+  }),
+  stvRoundResult: one(stvRoundResult, {
+    fields: [alternativeRoundVoteCount.stvRoundResultId],
+    references: [stvRoundResult.id],
+  }),
+}));
 
-export const votationResultReviewRelations = relations(
-  votationResultReview,
-  ({ one }) => ({
-    votation: one(votation, {
-      fields: [votationResultReview.votationId],
-      references: [votation.id],
-    }),
-    participant: one(participant, {
-      fields: [votationResultReview.participantId],
-      references: [participant.id],
-    }),
-  })
-)
+export const votationResultReviewRelations = relations(votationResultReview, ({ one }) => ({
+  votation: one(votation, {
+    fields: [votationResultReview.votationId],
+    references: [votation.id],
+  }),
+  participant: one(participant, {
+    fields: [votationResultReview.participantId],
+    references: [participant.id],
+  }),
+}));

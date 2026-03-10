@@ -1,10 +1,10 @@
-import '@tanstack/react-start/server-only'
-import { betterAuth } from 'better-auth'
-import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { tanstackStartCookies } from 'better-auth/tanstack-start'
+import '@tanstack/react-start/server-only';
+import { betterAuth } from 'better-auth';
+import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { tanstackStartCookies } from 'better-auth/tanstack-start';
 
-import { db } from '#/db/index.ts'
-import * as schema from '#/db/schema.ts'
+import { db } from '#/db/index.ts';
+import * as schema from '#/db/schema.ts';
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -15,4 +15,4 @@ export const auth = betterAuth({
     enabled: true,
   },
   plugins: [tanstackStartCookies()],
-})
+});

@@ -1,23 +1,23 @@
-import { useState } from 'react'
-import { Button } from '#/components/ui/button'
-import { Input } from '#/components/ui/input'
-import { Label } from '#/components/ui/label'
-import { Textarea } from '#/components/ui/textarea'
-import { Switch } from '#/components/ui/switch'
+import { useState } from 'react';
+import { Button } from '#/components/ui/button';
+import { Input } from '#/components/ui/input';
+import { Label } from '#/components/ui/label';
+import { Textarea } from '#/components/ui/textarea';
+import { Switch } from '#/components/ui/switch';
 
 export interface MeetingFormData {
-  title: string
-  organization: string
-  description: string
-  startTime: string
-  allowSelfRegistration: boolean
+  title: string;
+  organization: string;
+  description: string;
+  startTime: string;
+  allowSelfRegistration: boolean;
 }
 
 interface MeetingFormProps {
-  initialData?: MeetingFormData
-  onSubmit: (data: MeetingFormData) => void | Promise<void>
-  submitLabel: string
-  loading?: boolean
+  initialData?: MeetingFormData;
+  onSubmit: (data: MeetingFormData) => void | Promise<void>;
+  submitLabel: string;
+  loading?: boolean;
 }
 
 const defaultData: MeetingFormData = {
@@ -26,19 +26,14 @@ const defaultData: MeetingFormData = {
   description: '',
   startTime: '',
   allowSelfRegistration: false,
-}
+};
 
-export default function MeetingForm({
-  initialData,
-  onSubmit,
-  submitLabel,
-  loading,
-}: MeetingFormProps) {
-  const [form, setForm] = useState<MeetingFormData>(initialData ?? defaultData)
+export default function MeetingForm({ initialData, onSubmit, submitLabel, loading }: MeetingFormProps) {
+  const [form, setForm] = useState<MeetingFormData>(initialData ?? defaultData);
 
   function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    void onSubmit(form)
+    e.preventDefault();
+    void onSubmit(form);
   }
 
   return (
@@ -92,18 +87,14 @@ export default function MeetingForm({
         <Switch
           id="allowSelfRegistration"
           checked={form.allowSelfRegistration}
-          onCheckedChange={(checked) =>
-            setForm({ ...form, allowSelfRegistration: checked })
-          }
+          onCheckedChange={(checked) => setForm({ ...form, allowSelfRegistration: checked })}
         />
-        <Label htmlFor="allowSelfRegistration">
-          Tillat selvregistrering
-        </Label>
+        <Label htmlFor="allowSelfRegistration">Tillat selvregistrering</Label>
       </div>
 
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? 'Lagrer...' : submitLabel}
       </Button>
     </form>
-  )
+  );
 }

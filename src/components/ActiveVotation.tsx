@@ -1,49 +1,35 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useMemo } from 'react'
-import { getVotationById } from '#/server/votations.ts'
-import {
-  castVote,
-  castBlankVote,
-  castStvVote,
-  getVoteCount,
-  updateVotationStatus,
-} from '#/server/voting.ts'
-import { Button } from '#/components/ui/button'
-import { useSSE } from '#/hooks/useSSE'
-import VotationResultView from './VotationResult'
-import CheckResults from './CheckResults'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useMemo } from 'react';
+import { getVotationById } from '#/server/votations.ts';
+import { castVote, castBlankVote, castStvVote, getVoteCount, updateVotationStatus } from '#/server/voting.ts';
+import { Button } from '#/components/ui/button';
+import { useSSE } from '#/hooks/useSSE';
+import VotationResultView from './VotationResult';
+import CheckResults from './CheckResults';
 
 interface ActiveVotationProps {
-  meetingId: string
-  openVotationId: string | null
-  isAdmin: boolean
+  meetingId: string;
+  openVotationId: string | null;
+  isAdmin: boolean;
 }
 
-export default function ActiveVotation({
-  meetingId,
-  openVotationId,
-  isAdmin,
-}: ActiveVotationProps) {
-  const queryClient = useQueryClient()
+export default function ActiveVotation({ meetingId, openVotationId, isAdmin }: ActiveVotationProps) {
+  const queryClient = useQueryClient();
 
   const { data: votation } = useQuery({
     queryKey: ['votation', openVotationId],
-    queryFn: () =>
-      getVotationById({ data: { votationId: openVotationId! } }),
+    queryFn: () => getVotationById({ data: { votationId: openVotationId! } }),
     enabled: !!openVotationId,
-  })
+  });
 
-  useSSE(
-    openVotationId ? `votation:${openVotationId}:status` : '',
-    () => {
-      void queryClient.invalidateQueries({
-        queryKey: ['votation', openVotationId],
-      })
-      void queryClient.invalidateQueries({
-        queryKey: ['votations', meetingId],
-      })
-    }
-  )
+  useSSE(openVotationId ? `votation:${openVotationId}:status` : '', () => {
+    void queryClient.invalidateQueries({
+      queryKey: ['votation', openVotationId],
+    });
+    void queryClient.invalidateQueries({
+      queryKey: ['votations', meetingId],
+    });
+  });
 
   if (!openVotationId) {
     return (
@@ -52,21 +38,15 @@ export default function ActiveVotation({
           Ingen aktiv votering. {isAdmin && 'Klikk "Start neste votering" for a begynne.'}
         </p>
       </div>
-    )
+    );
   }
 
-  if (!votation) return null
+  if (!votation) return null;
 
   return (
     <div className="rounded-xl border bg-card p-6 shadow-sm">
-      <h2 className="mb-2 text-2xl font-bold text-foreground">
-        {votation.title}
-      </h2>
-      {votation.description && (
-        <p className="mb-4 text-muted-foreground">
-          {votation.description}
-        </p>
-      )}
+      <h2 className="mb-2 text-2xl font-bold text-foreground">{votation.title}</h2>
+      {votation.description && <p className="mb-4 text-muted-foreground">{votation.description}</p>}
 
       {votation.status === 'OPEN' && (
         <VotingInterface
@@ -79,30 +59,20 @@ export default function ActiveVotation({
       )}
 
       {votation.status === 'CHECKING_RESULT' && (
-        <CheckResults
-          votationId={votation.id}
-          meetingId={meetingId}
-          isAdmin={isAdmin}
-        />
+        <CheckResults votationId={votation.id} meetingId={meetingId} isAdmin={isAdmin} />
       )}
 
       {votation.status === 'PUBLISHED_RESULT' && (
-        <VotationResultView
-          votationId={votation.id}
-          meetingId={meetingId}
-          isAdmin={isAdmin}
-        />
+        <VotationResultView votationId={votation.id} meetingId={meetingId} isAdmin={isAdmin} />
       )}
 
       {votation.status === 'INVALID' && (
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-center">
-          <p className="font-semibold text-destructive">
-            Votering avbrutt
-          </p>
+          <p className="font-semibold text-destructive">Votering avbrutt</p>
         </div>
       )}
     </div>
-  )
+  );
 }
 
 function VotingInterface({
@@ -112,47 +82,45 @@ function VotingInterface({
   blankVotes,
   isAdmin,
 }: {
-  votationId: string
-  type: string
-  alternatives: Array<{ id: string; text: string }>
-  blankVotes: boolean
-  isAdmin: boolean
+  votationId: string;
+  type: string;
+  alternatives: Array<{ id: string; text: string }>;
+  blankVotes: boolean;
+  isAdmin: boolean;
 }) {
-  const [selectedAlt, setSelectedAlt] = useState<string | null>(null)
-  const [hasVoted, setHasVoted] = useState(false)
-  const [stvRanking, setStvRanking] = useState<
-    Array<{ alternativeId: string; ranking: number }>
-  >([])
-  const queryClient = useQueryClient()
+  const [selectedAlt, setSelectedAlt] = useState<string | null>(null);
+  const [hasVoted, setHasVoted] = useState(false);
+  const [stvRanking, setStvRanking] = useState<Array<{ alternativeId: string; ranking: number }>>([]);
+  const queryClient = useQueryClient();
 
   const { data: voteCount } = useQuery({
     queryKey: ['voteCount', votationId],
     queryFn: () => getVoteCount({ data: { votationId } }),
-  })
+  });
 
   useSSE(`votation:${votationId}:votes`, (data) => {
-    queryClient.setQueryData(['voteCount', votationId], data)
-  })
+    queryClient.setQueryData(['voteCount', votationId], data);
+  });
 
   // Shuffle alternatives deterministically per session
   const shuffled = useMemo(() => {
-    const arr = [...alternatives]
+    const arr = [...alternatives];
     for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1))
-      ;[arr[i], arr[j]] = [arr[j], arr[i]]
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-    return arr
-  }, [alternatives])
+    return arr;
+  }, [alternatives]);
 
   const voteMutation = useMutation({
     mutationFn: () => castVote({ data: { alternativeId: selectedAlt! } }),
     onSuccess: () => setHasVoted(true),
-  })
+  });
 
   const blankMutation = useMutation({
     mutationFn: () => castBlankVote({ data: { votationId } }),
     onSuccess: () => setHasVoted(true),
-  })
+  });
 
   const stvMutation = useMutation({
     mutationFn: () =>
@@ -160,7 +128,7 @@ function VotingInterface({
         data: { votationId, alternatives: stvRanking },
       }),
     onSuccess: () => setHasVoted(true),
-  })
+  });
 
   const closeMutation = useMutation({
     mutationFn: () =>
@@ -170,9 +138,9 @@ function VotingInterface({
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: ['votation', votationId],
-      })
+      });
     },
-  })
+  });
 
   const invalidateMutation = useMutation({
     mutationFn: () =>
@@ -182,17 +150,15 @@ function VotingInterface({
     onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: ['votation', votationId],
-      })
+      });
     },
-  })
+  });
 
   if (hasVoted) {
     return (
       <div className="space-y-4">
         <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-center dark:border-green-800 dark:bg-green-950">
-          <p className="font-semibold text-green-700 dark:text-green-300">
-            Din stemme er registrert!
-          </p>
+          <p className="font-semibold text-green-700 dark:text-green-300">Din stemme er registrert!</p>
         </div>
         <VoteCountDisplay voteCount={voteCount} />
         {isAdmin && (
@@ -203,23 +169,20 @@ function VotingInterface({
           />
         )}
       </div>
-    )
+    );
   }
 
   if (type === 'STV') {
     return (
       <div className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          Ranger alternativene etter preferanse. Klikk for a legge til i
-          rangeringen.
+          Ranger alternativene etter preferanse. Klikk for a legge til i rangeringen.
         </p>
 
         <div className="space-y-2">
           <h3 className="text-sm font-semibold">Din rangering:</h3>
           {stvRanking.map((r, i) => {
-            const alt = alternatives.find(
-              (a) => a.id === r.alternativeId
-            )
+            const alt = alternatives.find((a) => a.id === r.alternativeId);
             return (
               <div
                 key={r.alternativeId}
@@ -234,25 +197,21 @@ function VotingInterface({
                   className="ml-auto text-xs text-destructive hover:underline"
                   onClick={() =>
                     setStvRanking(
-                      stvRanking
-                        .filter((_, idx) => idx !== i)
-                        .map((r, idx) => ({ ...r, ranking: idx + 1 }))
+                      stvRanking.filter((_, idx) => idx !== i).map((r, idx) => ({ ...r, ranking: idx + 1 })),
                     )
                   }
                 >
                   Fjern
                 </button>
               </div>
-            )
+            );
           })}
         </div>
 
         <div className="space-y-2">
           <h3 className="text-sm font-semibold">Tilgjengelige:</h3>
           {shuffled
-            .filter(
-              (a) => !stvRanking.some((r) => r.alternativeId === a.id)
-            )
+            .filter((a) => !stvRanking.some((r) => r.alternativeId === a.id))
             .map((alt) => (
               <button
                 key={alt.id}
@@ -290,7 +249,7 @@ function VotingInterface({
           />
         )}
       </div>
-    )
+    );
   }
 
   // Simple / Qualified
@@ -303,9 +262,7 @@ function VotingInterface({
             type="button"
             onClick={() => setSelectedAlt(alt.id)}
             className={`w-full rounded-lg border p-3 text-left text-sm transition ${
-              selectedAlt === alt.id
-                ? 'border-primary bg-primary/10 font-semibold'
-                : 'bg-card hover:border-primary'
+              selectedAlt === alt.id ? 'border-primary bg-primary/10 font-semibold' : 'bg-card hover:border-primary'
             }`}
           >
             {alt.text}
@@ -322,11 +279,7 @@ function VotingInterface({
           {voteMutation.isPending ? 'Sender...' : 'Avgi stemme'}
         </Button>
         {blankVotes && (
-          <Button
-            variant="outline"
-            onClick={() => blankMutation.mutate()}
-            disabled={blankMutation.isPending}
-          >
+          <Button variant="outline" onClick={() => blankMutation.mutate()} disabled={blankMutation.isPending}>
             {blankMutation.isPending ? 'Sender...' : 'Blank stemme'}
           </Button>
         )}
@@ -341,33 +294,23 @@ function VotingInterface({
         />
       )}
     </div>
-  )
+  );
 }
 
-function VoteCountDisplay({
-  voteCount,
-}: {
-  voteCount?: { voteCount: number; votingEligibleCount: number } | null
-}) {
-  if (!voteCount) return null
+function VoteCountDisplay({ voteCount }: { voteCount?: { voteCount: number; votingEligibleCount: number } | null }) {
+  if (!voteCount) return null;
 
   const percent =
-    voteCount.votingEligibleCount > 0
-      ? Math.round(
-          (voteCount.voteCount / voteCount.votingEligibleCount) * 100
-        )
-      : 0
+    voteCount.votingEligibleCount > 0 ? Math.round((voteCount.voteCount / voteCount.votingEligibleCount) * 100) : 0;
 
   return (
     <div className="rounded-lg border bg-card p-3 text-center">
       <p className="text-2xl font-bold text-foreground">
         {voteCount.voteCount} / {voteCount.votingEligibleCount}
       </p>
-      <p className="text-sm text-muted-foreground">
-        stemmer avgitt ({percent}%)
-      </p>
+      <p className="text-sm text-muted-foreground">stemmer avgitt ({percent}%)</p>
     </div>
-  )
+  );
 }
 
 function AdminVotingControls({
@@ -375,9 +318,9 @@ function AdminVotingControls({
   onInvalidate,
   closing,
 }: {
-  onClose: () => void
-  onInvalidate: () => void
-  closing: boolean
+  onClose: () => void;
+  onInvalidate: () => void;
+  closing: boolean;
 }) {
   return (
     <div className="flex gap-2 border-t pt-4">
@@ -388,5 +331,5 @@ function AdminVotingControls({
         Ugyldiggjor
       </Button>
     </div>
-  )
+  );
 }

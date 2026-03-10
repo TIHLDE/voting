@@ -1,26 +1,18 @@
-import { Link } from '@tanstack/react-router'
-import StatusBadge from './StatusBadge'
-import { Badge } from '#/components/ui/badge'
+import { Link } from '@tanstack/react-router';
+import StatusBadge from './StatusBadge';
+import { Badge } from '#/components/ui/badge';
 
 interface MeetingCardProps {
-  id: string
-  title: string
-  organization: string
-  startTime: Date
-  status: 'UPCOMING' | 'ONGOING' | 'ENDED'
-  myRole: string
-  isOwner: boolean
+  id: string;
+  title: string;
+  organization: string;
+  startTime: Date;
+  status: 'UPCOMING' | 'ONGOING' | 'ENDED';
+  myRole: string;
+  isOwner: boolean;
 }
 
-export default function MeetingCard({
-  id,
-  title,
-  organization,
-  startTime,
-  status,
-  myRole,
-  isOwner,
-}: MeetingCardProps) {
+export default function MeetingCard({ id, title, organization, startTime, status, myRole, isOwner }: MeetingCardProps) {
   return (
     <Link
       to="/meetings/$meetingId"
@@ -40,9 +32,7 @@ export default function MeetingCard({
           </Badge>
         )}
       </div>
-      <h3 className="mb-1 text-lg font-semibold text-foreground">
-        {title}
-      </h3>
+      <h3 className="mb-1 text-lg font-semibold text-foreground">{title}</h3>
       <p className="mb-1 text-sm text-muted-foreground">{organization}</p>
       <p className="text-xs text-muted-foreground">
         {new Date(startTime).toLocaleDateString('nb-NO', {
@@ -54,5 +44,5 @@ export default function MeetingCard({
         })}
       </p>
     </Link>
-  )
+  );
 }

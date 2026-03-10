@@ -1,16 +1,11 @@
 interface WizardShellProps {
-  currentStep: number
-  steps: string[]
-  onStepChange: (step: number) => void
-  children: React.ReactNode
+  currentStep: number;
+  steps: string[];
+  onStepChange: (step: number) => void;
+  children: React.ReactNode;
 }
 
-export default function WizardShell({
-  currentStep,
-  steps,
-  onStepChange,
-  children,
-}: WizardShellProps) {
+export default function WizardShell({ currentStep, steps, onStepChange, children }: WizardShellProps) {
   return (
     <div>
       <nav className="mb-8 flex items-center justify-center gap-2">
@@ -29,9 +24,7 @@ export default function WizardShell({
           >
             <span
               className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-                index <= currentStep
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground'
+                index <= currentStep ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
               }`}
             >
               {index + 1}
@@ -42,5 +35,5 @@ export default function WizardShell({
       </nav>
       {children}
     </div>
-  )
+  );
 }

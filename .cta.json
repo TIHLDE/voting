@@ -16,12 +16,5 @@
   "routerOnly": false,
   "version": 1,
   "framework": "react",
-  "chosenAddOns": [
-    "tanstack-query",
-    "form",
-    "drizzle",
-    "better-auth",
-    "eslint",
-    "t3env"
-  ]
+  "chosenAddOns": ["tanstack-query", "form", "drizzle", "better-auth", "eslint", "t3env"]
 }

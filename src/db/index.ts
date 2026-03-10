@@ -1,6 +1,6 @@
-import '@tanstack/react-start/server-only'
-import { drizzle } from 'drizzle-orm/node-postgres'
+import '@tanstack/react-start/server-only';
+import { drizzle } from 'drizzle-orm/node-postgres';
 
-import * as schema from './schema.ts'
+import * as schema from './schema.ts';
 
-export const db = drizzle(process.env.DATABASE_URL!, { schema })
+export const db = drizzle(process.env.DATABASE_URL!, { schema });

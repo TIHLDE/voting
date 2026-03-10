@@ -46,84 +46,92 @@
 ## 2. Page-by-Page Functionality Map
 
 ### 2.1 Front Page (`/`)
-| Feature | Description | Auth Required |
-|---|---|---|
-| Hero section | Marketing copy + decorative images | No |
-| Login button | Redirects to Auth0 | No |
-| Feedback link | External form link | No |
-| Privacy PDF | Downloadable document | No |
-| Partner logos | Organization logos grid | No |
+
+| Feature       | Description                        | Auth Required |
+| ------------- | ---------------------------------- | ------------- |
+| Hero section  | Marketing copy + decorative images | No            |
+| Login button  | Redirects to Auth0                 | No            |
+| Feedback link | External form link                 | No            |
+| Privacy PDF   | Downloadable document              | No            |
+| Partner logos | Organization logos grid            | No            |
 
 ### 2.2 My Meetings (`/myMeetings`)
-| Feature | Description | Auth Required |
-|---|---|---|
-| Meeting list | Grouped: Ongoing / Upcoming / Ended | Yes |
-| Meeting card | Title, time, status tag, admin badge | Yes |
-| Navigate to lobby | Click card → Meeting Lobby | Yes |
-| Edit meeting | Options menu → Wizard (admin only) | Yes (Admin) |
-| Delete meeting | Options menu → Confirm (owner only) | Yes (Owner) |
+
+| Feature           | Description                          | Auth Required |
+| ----------------- | ------------------------------------ | ------------- |
+| Meeting list      | Grouped: Ongoing / Upcoming / Ended  | Yes           |
+| Meeting card      | Title, time, status tag, admin badge | Yes           |
+| Navigate to lobby | Click card → Meeting Lobby           | Yes           |
+| Edit meeting      | Options menu → Wizard (admin only)   | Yes (Admin)   |
+| Delete meeting    | Options menu → Confirm (owner only)  | Yes (Owner)   |
 
 ### 2.3 Manage Meeting (`/meeting/new`, `/meeting/:meetingId/edit`)
-| Feature | Description | Auth Required |
-|---|---|---|
-| **Step 1: Details** | Organization, title, start time, description, self-reg toggle | Yes |
-| **Step 2: Votations** | Create/edit/delete/reorder votations with alternatives | Yes (Admin) |
-| **Step 3: Participants** | Invite by email/CSV, manage roles, self-reg settings | Yes (Admin) |
-| Step navigation | Previous / Next / Finish buttons with unsaved change warnings | Yes |
+
+| Feature                  | Description                                                   | Auth Required |
+| ------------------------ | ------------------------------------------------------------- | ------------- |
+| **Step 1: Details**      | Organization, title, start time, description, self-reg toggle | Yes           |
+| **Step 2: Votations**    | Create/edit/delete/reorder votations with alternatives        | Yes (Admin)   |
+| **Step 3: Participants** | Invite by email/CSV, manage roles, self-reg settings          | Yes (Admin)   |
+| Step navigation          | Previous / Next / Finish buttons with unsaved change warnings | Yes           |
 
 ### 2.4 Meeting Lobby (`/meeting/:meetingId`)
-| Feature | Description | Auth Required |
-|---|---|---|
-| Meeting title | Display + link to edit (admin) | Yes (Participant) |
-| Votation list | Organized by status with real-time updates | Yes (Participant) |
-| Active votation | Auto-navigate when votation opens | Yes (Participant) |
-| Admin bar | Presentation mode, tab navigation | Yes (Admin) |
-| Self-registration tab | QR code + copy link | Yes (Admin) |
-| Manage participants | Modal with full participant management | Yes (Admin) |
-| Start next votation | Opens the next UPCOMING votation | Yes (Admin) |
+
+| Feature               | Description                                | Auth Required     |
+| --------------------- | ------------------------------------------ | ----------------- |
+| Meeting title         | Display + link to edit (admin)             | Yes (Participant) |
+| Votation list         | Organized by status with real-time updates | Yes (Participant) |
+| Active votation       | Auto-navigate when votation opens          | Yes (Participant) |
+| Admin bar             | Presentation mode, tab navigation          | Yes (Admin)       |
+| Self-registration tab | QR code + copy link                        | Yes (Admin)       |
+| Manage participants   | Modal with full participant management     | Yes (Admin)       |
+| Start next votation   | Opens the next UPCOMING votation           | Yes (Admin)       |
 
 ### 2.5 Active Votation (`/meeting/:meetingId` → active votation view)
-| Feature | Description | Auth Required |
-|---|---|---|
-| **OPEN status** | | |
-| Alternative selection | Shuffled list, single select (or ranked for STV) | Yes (Eligible) |
-| Blank vote | Optional blank vote button | Yes (Eligible) |
-| Cast vote | Submit vote atomically | Yes (Eligible) |
-| Live vote count | Real-time X/Y display | Yes (Participant) |
-| Show my vote | Toggle to reveal own vote after casting | Yes (Participant) |
-| **CHECKING_RESULT status** | | |
-| Result display | Winners + detailed table (Admin/Counter) | Yes (Admin/Counter) |
-| Review buttons | Approve / Disapprove | Yes (Admin/Counter) |
-| Review summary | X approved, Y disapproved of Z counters | Yes (Admin/Counter) |
-| Waiting message | Displayed for regular participants | Yes (Participant) |
-| **PUBLISHED_RESULT status** | | |
-| Winner announcement | Celebration visual + winner name | Yes (Participant) |
-| Results table | Full breakdown (if not hidden) | Yes (Participant) |
-| STV round details | Per-round breakdown for STV | Yes (Participant) |
-| CSV download | Export results | Yes (Participant) |
-| Start next votation | Admin button to continue | Yes (Admin) |
-| **INVALID status** | | |
-| Invalidation message | "Votering avbrutt" + reason | Yes (Participant) |
+
+| Feature                     | Description                                      | Auth Required       |
+| --------------------------- | ------------------------------------------------ | ------------------- |
+| **OPEN status**             |                                                  |                     |
+| Alternative selection       | Shuffled list, single select (or ranked for STV) | Yes (Eligible)      |
+| Blank vote                  | Optional blank vote button                       | Yes (Eligible)      |
+| Cast vote                   | Submit vote atomically                           | Yes (Eligible)      |
+| Live vote count             | Real-time X/Y display                            | Yes (Participant)   |
+| Show my vote                | Toggle to reveal own vote after casting          | Yes (Participant)   |
+| **CHECKING_RESULT status**  |                                                  |                     |
+| Result display              | Winners + detailed table (Admin/Counter)         | Yes (Admin/Counter) |
+| Review buttons              | Approve / Disapprove                             | Yes (Admin/Counter) |
+| Review summary              | X approved, Y disapproved of Z counters          | Yes (Admin/Counter) |
+| Waiting message             | Displayed for regular participants               | Yes (Participant)   |
+| **PUBLISHED_RESULT status** |                                                  |                     |
+| Winner announcement         | Celebration visual + winner name                 | Yes (Participant)   |
+| Results table               | Full breakdown (if not hidden)                   | Yes (Participant)   |
+| STV round details           | Per-round breakdown for STV                      | Yes (Participant)   |
+| CSV download                | Export results                                   | Yes (Participant)   |
+| Start next votation         | Admin button to continue                         | Yes (Admin)         |
+| **INVALID status**          |                                                  |                     |
+| Invalidation message        | "Votering avbrutt" + reason                      | Yes (Participant)   |
 
 ### 2.6 Self-Registration (`/meeting/:meetingId/register`)
-| Feature | Description | Auth Required |
-|---|---|---|
-| Auto-login redirect | Redirect to Auth0 if not authenticated | No → Yes |
-| Registration button | Register as PARTICIPANT | Yes |
-| Redirect to lobby | Navigate after registration | Yes |
+
+| Feature             | Description                            | Auth Required |
+| ------------------- | -------------------------------------- | ------------- |
+| Auto-login redirect | Redirect to Auth0 if not authenticated | No → Yes      |
+| Registration button | Register as PARTICIPANT                | Yes           |
+| Redirect to lobby   | Navigate after registration            | Yes           |
 
 ### 2.7 My Profile (`/myProfile`)
-| Feature | Description | Auth Required |
-|---|---|---|
-| Change password | Auth0 password change ticket | Yes |
-| Delete account | Confirmation → Auth0 + local deletion | Yes |
-| Privacy info | Information about email usage | Yes |
+
+| Feature         | Description                           | Auth Required |
+| --------------- | ------------------------------------- | ------------- |
+| Change password | Auth0 password change ticket          | Yes           |
+| Delete account  | Confirmation → Auth0 + local deletion | Yes           |
+| Privacy info    | Information about email usage         | Yes           |
 
 ### 2.8 About Us (`/about`)
-| Feature | Description | Auth Required |
-|---|---|---|
-| Organization info | Partner descriptions | No |
-| Voting type guide | Expandable explanation of all voting types | No |
+
+| Feature           | Description                                | Auth Required |
+| ----------------- | ------------------------------------------ | ------------- |
+| Organization info | Partner descriptions                       | No            |
+| Voting type guide | Expandable explanation of all voting types | No            |
 
 ---
 
@@ -131,61 +139,61 @@
 
 ### 3.1 Queries
 
-| Query | Input | Returns | Access |
-|---|---|---|---|
-| `user` | — | `User \| UserNotFoundError` | Authenticated |
-| `updateMyPassword` | — | `String` (Auth0 ticket URL) | Authenticated |
-| `meetings` | — | `[Meeting]!` | Authenticated |
-| `meetingById` | `meetingId: String!` | `Meeting` | Participant of meeting |
-| `participants` | `meetingId: String!` | `[ParticipantOrInvite]` | Admin of meeting |
-| `myParticipant` | `meetingId: String!` | `ParticipantOrInvite` | Participant of meeting |
-| `numberOfUpcomingVotations` | `meetingId: String!` | `Int` | Participant of meeting |
-| `votationById` | `votationId: String!` | `Votation` | Participant of votation's meeting |
-| `getVoteCount` | `votationId: String!` | `VoteCountResult` | Participant of votation's meeting |
-| `getOpenVotation` | `meetingId: String!` | `String` (votation ID or empty) | Participant of meeting |
-| `getVotationResults` | `votationId: String!` | `VotationResults` | Admin/Counter, or Participant if published + not hidden |
-| `getStvResult` | `votationId: String!` | `StvResult` | Admin/Counter, or Participant if published + not hidden |
-| `result` | `votationId: String!` | `Result` | Admin/Counter, or Participant if published + not hidden |
-| `getWinnerOfVotation` | `votationId: String!` | `[Alternative]` | Result is published |
-| `resultsOfPublishedVotations` | `meetingId: String!` | `[VotationWithWinner]` | Participant of meeting |
-| `getReviews` | `votationId: String!` | `ReviewResult` | Admin of votation's meeting |
-| `getMyReview` | `votationId: String!` | `VotationReview \| NoReview` | Participant of votation's meeting |
+| Query                         | Input                 | Returns                         | Access                                                  |
+| ----------------------------- | --------------------- | ------------------------------- | ------------------------------------------------------- |
+| `user`                        | —                     | `User \| UserNotFoundError`     | Authenticated                                           |
+| `updateMyPassword`            | —                     | `String` (Auth0 ticket URL)     | Authenticated                                           |
+| `meetings`                    | —                     | `[Meeting]!`                    | Authenticated                                           |
+| `meetingById`                 | `meetingId: String!`  | `Meeting`                       | Participant of meeting                                  |
+| `participants`                | `meetingId: String!`  | `[ParticipantOrInvite]`         | Admin of meeting                                        |
+| `myParticipant`               | `meetingId: String!`  | `ParticipantOrInvite`           | Participant of meeting                                  |
+| `numberOfUpcomingVotations`   | `meetingId: String!`  | `Int`                           | Participant of meeting                                  |
+| `votationById`                | `votationId: String!` | `Votation`                      | Participant of votation's meeting                       |
+| `getVoteCount`                | `votationId: String!` | `VoteCountResult`               | Participant of votation's meeting                       |
+| `getOpenVotation`             | `meetingId: String!`  | `String` (votation ID or empty) | Participant of meeting                                  |
+| `getVotationResults`          | `votationId: String!` | `VotationResults`               | Admin/Counter, or Participant if published + not hidden |
+| `getStvResult`                | `votationId: String!` | `StvResult`                     | Admin/Counter, or Participant if published + not hidden |
+| `result`                      | `votationId: String!` | `Result`                        | Admin/Counter, or Participant if published + not hidden |
+| `getWinnerOfVotation`         | `votationId: String!` | `[Alternative]`                 | Result is published                                     |
+| `resultsOfPublishedVotations` | `meetingId: String!`  | `[VotationWithWinner]`          | Participant of meeting                                  |
+| `getReviews`                  | `votationId: String!` | `ReviewResult`                  | Admin of votation's meeting                             |
+| `getMyReview`                 | `votationId: String!` | `VotationReview \| NoReview`    | Participant of votation's meeting                       |
 
 ### 3.2 Mutations
 
-| Mutation | Input | Returns | Access |
-|---|---|---|---|
-| `createMeeting` | `meeting: CreateMeetingInput!` | `Meeting` | Authenticated |
-| `updateMeeting` | `meeting: UpdateMeetingInput!` | `Meeting` | Admin of meeting |
-| `deleteMeeting` | `id: String!` | `Meeting` | Owner of meeting |
-| `addParticipants` | `meetingId, participants: [ParticipantInput!]!` | `Int` | Admin of meeting |
-| `updateParticipant` | `meetingId, participant: ParticipantInput!` | `ParticipantOrInvite` | Admin of meeting |
-| `deleteParticipants` | `meetingId, emails: [String!]!` | `[String]` | Admin of meeting |
-| `registerAsParticipant` | `meetingId: String!` | `Participant` | Authenticated + self-reg enabled |
-| `createVotations` | `meetingId, votations: [CreateVotationInput!]!` | `[Votation]` | Admin of meeting |
-| `updateVotations` | `meetingId, votations: [UpdateVotationInput!]!` | `[Votation]` | Admin of meeting (UPCOMING only) |
-| `updateVotationIndexes` | `meetingId, votations: [UpdateVotationIndexInput!]!` | `[Votation]` | Admin of meeting (UPCOMING only) |
-| `deleteVotation` | `votationId: String!` | `String` | Admin of votation's meeting |
-| `deleteAlternatives` | `ids: [String!]!` | `[String]` | Admin of alternatives' meeting |
-| `startNextVotation` | `meetingId: String!` | `OpenVotationResult` (union) | Admin of meeting |
-| `updateVotationStatus` | `votationId, status: VotationStatus!` | `Votation` | Admin of votation's meeting |
-| `castVote` | `alternativeId: String!` | `Vote` | Eligible + not voted + votation OPEN |
-| `castBlankVote` | `votationId: String!` | `String` | Eligible + not voted + votation OPEN |
-| `castStvVote` | `votationId, alternatives: [StvVoteAlternativeInput!]!` | `String` | Eligible + not voted + votation OPEN |
-| `reviewVotation` | `votationId, approved: Boolean!` | `String` | Admin or Counter of votation's meeting |
-| `deleteMe` | — | `String` | Authenticated |
+| Mutation                | Input                                                   | Returns                      | Access                                 |
+| ----------------------- | ------------------------------------------------------- | ---------------------------- | -------------------------------------- |
+| `createMeeting`         | `meeting: CreateMeetingInput!`                          | `Meeting`                    | Authenticated                          |
+| `updateMeeting`         | `meeting: UpdateMeetingInput!`                          | `Meeting`                    | Admin of meeting                       |
+| `deleteMeeting`         | `id: String!`                                           | `Meeting`                    | Owner of meeting                       |
+| `addParticipants`       | `meetingId, participants: [ParticipantInput!]!`         | `Int`                        | Admin of meeting                       |
+| `updateParticipant`     | `meetingId, participant: ParticipantInput!`             | `ParticipantOrInvite`        | Admin of meeting                       |
+| `deleteParticipants`    | `meetingId, emails: [String!]!`                         | `[String]`                   | Admin of meeting                       |
+| `registerAsParticipant` | `meetingId: String!`                                    | `Participant`                | Authenticated + self-reg enabled       |
+| `createVotations`       | `meetingId, votations: [CreateVotationInput!]!`         | `[Votation]`                 | Admin of meeting                       |
+| `updateVotations`       | `meetingId, votations: [UpdateVotationInput!]!`         | `[Votation]`                 | Admin of meeting (UPCOMING only)       |
+| `updateVotationIndexes` | `meetingId, votations: [UpdateVotationIndexInput!]!`    | `[Votation]`                 | Admin of meeting (UPCOMING only)       |
+| `deleteVotation`        | `votationId: String!`                                   | `String`                     | Admin of votation's meeting            |
+| `deleteAlternatives`    | `ids: [String!]!`                                       | `[String]`                   | Admin of alternatives' meeting         |
+| `startNextVotation`     | `meetingId: String!`                                    | `OpenVotationResult` (union) | Admin of meeting                       |
+| `updateVotationStatus`  | `votationId, status: VotationStatus!`                   | `Votation`                   | Admin of votation's meeting            |
+| `castVote`              | `alternativeId: String!`                                | `Vote`                       | Eligible + not voted + votation OPEN   |
+| `castBlankVote`         | `votationId: String!`                                   | `String`                     | Eligible + not voted + votation OPEN   |
+| `castStvVote`           | `votationId, alternatives: [StvVoteAlternativeInput!]!` | `String`                     | Eligible + not voted + votation OPEN   |
+| `reviewVotation`        | `votationId, approved: Boolean!`                        | `String`                     | Admin or Counter of votation's meeting |
+| `deleteMe`              | —                                                       | `String`                     | Authenticated                          |
 
 ### 3.3 Subscriptions
 
-| Subscription | Input | Payload | Purpose |
-|---|---|---|---|
-| `votationOpenedForMeeting` | `meetingId` | `String` (votation ID) | Notify when admin opens a votation |
-| `votationStatusUpdated` | `id` (votation ID) | `{votationId, votationStatus, reason}` | Notify on any status change |
-| `newVoteRegistered` | `votationId` | `{votationId, voteCount, votingEligibleCount}` | Live vote count updates |
-| `reviewAdded` | `votationId` | `{approved, disapproved}` | Live review count updates |
-| `votationsUpdated` | `meetingId` | `[VotationWithAlternative]` | Notify when votations are modified |
-| `votationDeleted` | `meetingId` | `String` (votation ID) | Notify when a votation is deleted |
-| `participantUpdated` | `meetingId, userId` | `{role, isVotingEligible}` | Notify when role/eligibility changes |
+| Subscription               | Input               | Payload                                        | Purpose                              |
+| -------------------------- | ------------------- | ---------------------------------------------- | ------------------------------------ |
+| `votationOpenedForMeeting` | `meetingId`         | `String` (votation ID)                         | Notify when admin opens a votation   |
+| `votationStatusUpdated`    | `id` (votation ID)  | `{votationId, votationStatus, reason}`         | Notify on any status change          |
+| `newVoteRegistered`        | `votationId`        | `{votationId, voteCount, votingEligibleCount}` | Live vote count updates              |
+| `reviewAdded`              | `votationId`        | `{approved, disapproved}`                      | Live review count updates            |
+| `votationsUpdated`         | `meetingId`         | `[VotationWithAlternative]`                    | Notify when votations are modified   |
+| `votationDeleted`          | `meetingId`         | `String` (votation ID)                         | Notify when a votation is deleted    |
+| `participantUpdated`       | `meetingId, userId` | `{role, isVotingEligible}`                     | Notify when role/eligibility changes |
 
 ### 3.4 Input Types
 
@@ -290,6 +298,7 @@ input StvVoteAlternativeInput {
 ```
 
 **Valid transitions:**
+
 - `UPCOMING` → `OPEN` (via `startNextVotation` only)
 - `OPEN` → `CHECKING_RESULT` (admin closes voting, results computed)
 - `OPEN` → `INVALID` (admin invalidates, or participant deletes account)
@@ -297,6 +306,7 @@ input StvVoteAlternativeInput {
 - `CHECKING_RESULT` → `INVALID` (admin invalidates)
 
 **Invalid transitions:**
+
 - Cannot go back to `UPCOMING`
 - Cannot directly open (must use `startNextVotation`)
 - Cannot go from `PUBLISHED_RESULT` or `INVALID` to any other status
@@ -306,18 +316,21 @@ input StvVoteAlternativeInput {
 ## 5. Voting Algorithm Details
 
 ### 5.1 Simple Majority
+
 ```
 Winner = alternative with the most votes
 If tied → no single winner declared
 ```
 
 ### 5.2 Qualified Majority
+
 ```
 Winner = alternative where votes > (votingEligibleCount × majorityThreshold / 100)
 If no alternative exceeds threshold → no winner
 ```
 
 **Threshold values used in frontend:**
+
 - 50% (`majorityThreshold = 50`)
 - 67% (`majorityThreshold = 67`)
 
@@ -349,6 +362,7 @@ If no alternative exceeds threshold → no winner
 ## 6. Real-time Event Flow
 
 ### 6.1 Voting Session Flow
+
 ```
 Admin clicks "Start Next Votation"
     │
@@ -389,6 +403,7 @@ Admin clicks "Start Next Votation" (cycle repeats)
 ```
 
 ### 6.2 Participant Management Flow
+
 ```
 Admin changes participant role/eligibility
     │
@@ -474,27 +489,28 @@ App
 
 ### 7.2 Shared Components
 
-| Component | Usage |
-|---|---|
-| `Loading` | Spinner overlay for async operations |
-| `CustomAlertDialog` | Reusable confirmation dialog (7 variants) |
-| `CustomTag` | Colored status/role labels |
-| `DateTimePicker` | Norwegian-locale date+time picker |
-| `AutoResizeTextArea` | Growing textarea |
-| `InformationModal` | Info icon with popup explanation |
-| `PageContainer` | Full-width page wrapper |
-| `ResponsiveHStack` | Responsive horizontal/vertical stack |
-| `CopyLinkButton` | Copy to clipboard with toast |
-| `DeleteButton` | Trash icon with tooltip |
-| `DownloadButton` | CSV download trigger |
-| `BackButton` | Navigation back arrow |
-| `DownloadLink` | Anchor with download attribute |
+| Component            | Usage                                     |
+| -------------------- | ----------------------------------------- |
+| `Loading`            | Spinner overlay for async operations      |
+| `CustomAlertDialog`  | Reusable confirmation dialog (7 variants) |
+| `CustomTag`          | Colored status/role labels                |
+| `DateTimePicker`     | Norwegian-locale date+time picker         |
+| `AutoResizeTextArea` | Growing textarea                          |
+| `InformationModal`   | Info icon with popup explanation          |
+| `PageContainer`      | Full-width page wrapper                   |
+| `ResponsiveHStack`   | Responsive horizontal/vertical stack      |
+| `CopyLinkButton`     | Copy to clipboard with toast              |
+| `DeleteButton`       | Trash icon with tooltip                   |
+| `DownloadButton`     | CSV download trigger                      |
+| `BackButton`         | Navigation back arrow                     |
+| `DownloadLink`       | Anchor with download attribute            |
 
 ---
 
 ## 8. Tech Stack Recommendations for Rebuild
 
 ### 8.1 What to Keep (Proven Patterns)
+
 - **GraphQL API** — well-structured schema, good separation of concerns
 - **Prisma ORM** — clean data model, good migration support
 - **PostgreSQL** — reliable relational database
@@ -503,19 +519,21 @@ App
 - **STV algorithm** — complex but well-implemented
 
 ### 8.2 Potential Upgrades
-| Current | Potential Replacement | Reason |
-|---|---|---|
-| React 17 (CRA) | React 19 / Next.js / Vite | CRA is deprecated |
-| Chakra UI v1 | Chakra UI v3 / Radix / shadcn/ui | Modernize UI |
-| Apollo Client | urql / TanStack Query + graphql-request | Lighter alternatives |
-| Apollo Server + Express | Apollo Server v4 / Yoga / Mercurius | Modern GraphQL servers |
-| Nexus (code-first) | Pothos / gql.tada | More active maintenance |
-| `subscriptions-transport-ws` | `graphql-ws` | Deprecated library |
-| `graphql-shield` | Pothos auth plugin / custom middleware | Tighter integration |
-| Turborepo | Nx / Turborepo (keep) | Either works |
-| Docker Compose | Docker Compose (keep) / Kubernetes | Depends on scale |
+
+| Current                      | Potential Replacement                   | Reason                  |
+| ---------------------------- | --------------------------------------- | ----------------------- |
+| React 17 (CRA)               | React 19 / Next.js / Vite               | CRA is deprecated       |
+| Chakra UI v1                 | Chakra UI v3 / Radix / shadcn/ui        | Modernize UI            |
+| Apollo Client                | urql / TanStack Query + graphql-request | Lighter alternatives    |
+| Apollo Server + Express      | Apollo Server v4 / Yoga / Mercurius     | Modern GraphQL servers  |
+| Nexus (code-first)           | Pothos / gql.tada                       | More active maintenance |
+| `subscriptions-transport-ws` | `graphql-ws`                            | Deprecated library      |
+| `graphql-shield`             | Pothos auth plugin / custom middleware  | Tighter integration     |
+| Turborepo                    | Nx / Turborepo (keep)                   | Either works            |
+| Docker Compose               | Docker Compose (keep) / Kubernetes      | Depends on scale        |
 
 ### 8.3 Architecture Patterns to Preserve
+
 1. **Role-based authorization** with fine-grained permission rules
 2. **Ballot secrecy** — HasVoted separate from Vote
 3. **Real-time subscriptions** for all state changes

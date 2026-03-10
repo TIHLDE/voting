@@ -1,13 +1,13 @@
-import { Button } from '#/components/ui/button'
+import { Button } from '#/components/ui/button';
 
 interface AdminBarProps {
-  activeTab: string
-  onTabChange: (tab: string) => void
-  tabs: { id: string; label: string }[]
-  presentationMode: boolean
-  onTogglePresentationMode: () => void
-  onStartNextVotation?: () => void
-  startingVotation?: boolean
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+  tabs: { id: string; label: string }[];
+  presentationMode: boolean;
+  onTogglePresentationMode: () => void;
+  onStartNextVotation?: () => void;
+  startingVotation?: boolean;
 }
 
 export default function AdminBar({
@@ -19,7 +19,7 @@ export default function AdminBar({
   onStartNextVotation,
   startingVotation,
 }: AdminBarProps) {
-  if (presentationMode) return null
+  if (presentationMode) return null;
 
   return (
     <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2">
@@ -29,9 +29,7 @@ export default function AdminBar({
           type="button"
           onClick={() => onTabChange(tab.id)}
           className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${
-            activeTab === tab.id
-              ? 'bg-accent text-foreground'
-              : 'text-muted-foreground hover:text-foreground'
+            activeTab === tab.id ? 'bg-accent text-foreground' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           {tab.label}
@@ -40,11 +38,7 @@ export default function AdminBar({
 
       <div className="ml-auto flex items-center gap-2">
         {onStartNextVotation && (
-          <Button
-            size="sm"
-            onClick={onStartNextVotation}
-            disabled={startingVotation}
-          >
+          <Button size="sm" onClick={onStartNextVotation} disabled={startingVotation}>
             {startingVotation ? 'Starter...' : 'Start neste votering'}
           </Button>
         )}
@@ -57,5 +51,5 @@ export default function AdminBar({
         </button>
       </div>
     </div>
-  )
+  );
 }
