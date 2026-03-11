@@ -103,7 +103,10 @@ export function runStvAlgorithm(
             winners.add(altId);
         }
 
-        // If no winners this round, eliminate the lowest-ranked candidate.
+        // If no winners this round, eliminate exactly one candidate.
+        // Bulk elimination is avoided: removing multiple tied candidates at once
+        // skips rounds where one of them might have risen above the others after
+        // transfers, potentially changing who the legitimate loser is.
         if (roundWinners.length === 0) {
             let minVotes = Infinity;
             for (const [, votes] of voteCounts) {
@@ -115,15 +118,16 @@ export function runStvAlgorithm(
                 .map(([id]) => id);
 
             const seatsLeft = numberOfWinners - winners.size;
-            const remainingAfterElim = remaining.length - lowestAlts.length;
 
-            if (remainingAfterElim >= seatsLeft) {
-                // Safe to eliminate all tied candidates.
-                for (const id of lowestAlts) {
-                    eliminated.add(id);
-                }
-            } else if (lowestAlts.length > 1) {
-                // Eliminating all tied candidates would leave too few; try history.
+            if (remaining.length - 1 < seatsLeft) {
+                // Eliminating anyone would leave too few candidates for remaining seats.
+                break;
+            }
+
+            if (lowestAlts.length === 1) {
+                eliminated.add(lowestAlts[0]);
+            } else {
+                // Multiple candidates tied for lowest — use history to pick one.
                 const toEliminate = breakTieByHistory(lowestAlts, roundHistory);
                 if (toEliminate) {
                     eliminated.add(toEliminate);
@@ -131,9 +135,6 @@ export function runStvAlgorithm(
                     // Unbreakable tie → no winner.
                     break;
                 }
-            } else {
-                // Single candidate at the bottom but can't be safely eliminated.
-                break;
             }
         }
 

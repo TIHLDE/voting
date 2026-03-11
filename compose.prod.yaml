@@ -5,5 +5,5 @@ services:
             context: .
         restart: unless-stopped
         ports:
-          - ${BIND_IP_ADDRESS:-127.0.0.1}:3000:3000
+            - ${BIND_IP_ADDRESS:-127.0.0.1}:3000:3000
         env_file: .env

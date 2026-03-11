@@ -1376,6 +1376,166 @@ describe('Scenario 10: Dark-horse winner — 4th place on first-choice votes win
 });
 
 // ---------------------------------------------------------------------------
+// Scenario 11: Tied-for-lowest eliminated one at a time via history —
+//              proves bulk elimination would have crowned the wrong winner
+// ---------------------------------------------------------------------------
+
+describe('Scenario 11: History breaks the tie — sequential elimination changes the winner', () => {
+    // C and D tie for lowest in round 1. The old bulk approach would eliminate
+    // both simultaneously, letting D's supporters skip C and land on B — giving
+    // B an unearned windfall and the win. The correct sequential approach
+    // consults history (D had fewer votes in round 0), eliminates D first,
+    // D's 90 votes flow to C (their stated second choice), C survives the
+    // round, B then becomes the new lowest and is eliminated, and A wins.
+    //
+    // 5 candidates, 475 ballots, 0 blank → quota = floor(475/2)+1 = 238
+    //
+    //   200 voters: A > B > C > D > E  (A core — never receive a transfer)
+    //    95 voters: B > A > C > D > E  (B core → A if eliminated)
+    //    90 voters: C > B > A > D > E  (C → B when eliminated)
+    //    80 voters: D > C > B > A > E  (D → C when eliminated)
+    //    10 voters: E > D > C > B > A  (trigger — E → D)
+    //
+    // Round 0: A=200, B=95, C=90, D=80, E=10 → E eliminated (sole lowest)
+    //          E(10) → D  (establishes history: D had 80, C had 90)
+    //
+    // Round 1: A=200, B=95, C=90, D=90 — C and D tied for lowest! (B=95 is above them)
+    //          breakTieByHistory: round 0 had D=80 < C=90 → D eliminated
+    //          D(90) → C  ← transfer that bulk elimination would have skipped
+    //
+    // Round 2: A=200, B=95, C=180 → B eliminated (sole lowest: 95)
+    //          B(95) → A
+    //
+    // Round 3: A=295, C=180 → A=295 ≥ 238 → A WINS
+    //
+    // What the OLD bulk algorithm would have done instead:
+    //   Round 1: C and D both eliminated simultaneously.
+    //   C(90) → B  (C's second choice is B)
+    //   D(90) → B  (D's second choice is C, but C also eliminated → next is B)
+    //   Round 2: A=200, B=95+90+90=275 → B=275 ≥ 238 → B wins.
+    //   B wins only because it captured both groups' votes in one swoop —
+    //   a round that should never have happened with C still in the race.
+
+    const candidates = ['optionA', 'optionB', 'optionC', 'optionD', 'optionE'];
+
+    const ballots: StvBallot[] = [
+        // 200 voters: A > B > C > D > E
+        ...Array.from({ length: 200 }, (_, i) =>
+            ballot(
+                `g1v${i}`,
+                'optionA',
+                'optionB',
+                'optionC',
+                'optionD',
+                'optionE',
+            ),
+        ),
+        // 95 voters: B > A > C > D > E
+        ...Array.from({ length: 95 }, (_, i) =>
+            ballot(
+                `g2v${i}`,
+                'optionB',
+                'optionA',
+                'optionC',
+                'optionD',
+                'optionE',
+            ),
+        ),
+        // 90 voters: C > B > A > D > E
+        ...Array.from({ length: 90 }, (_, i) =>
+            ballot(
+                `g3v${i}`,
+                'optionC',
+                'optionB',
+                'optionA',
+                'optionD',
+                'optionE',
+            ),
+        ),
+        // 80 voters: D > C > B > A > E
+        ...Array.from({ length: 80 }, (_, i) =>
+            ballot(
+                `g4v${i}`,
+                'optionD',
+                'optionC',
+                'optionB',
+                'optionA',
+                'optionE',
+            ),
+        ),
+        // 10 voters: E > D > C > B > A
+        ...Array.from({ length: 10 }, (_, i) =>
+            ballot(
+                `g5v${i}`,
+                'optionE',
+                'optionD',
+                'optionC',
+                'optionB',
+                'optionA',
+            ),
+        ),
+    ];
+
+    test('475 real ballots, 0 blank', () => {
+        expect(ballots.length).toBe(475);
+    });
+
+    test('quota is 238 (floor(475/2)+1)', () => {
+        const { quota } = runStvAlgorithm(ballots, candidates, 1, 0);
+        expect(quota).toBe(238);
+    });
+
+    test('round 0: E eliminated, establishing D=80 < C=90 in history', () => {
+        const { rounds } = runStvAlgorithm(ballots, candidates, 1, 0);
+        const vc = rounds[0]?.voteCounts;
+        expect(vc?.get('optionA')).toBe(200);
+        expect(vc?.get('optionB')).toBe(95);
+        expect(vc?.get('optionC')).toBe(90);
+        expect(vc?.get('optionD')).toBe(80); // D had fewer than C — history records this
+        expect(vc?.get('optionE')).toBe(10);
+    });
+
+    test('round 1: C and D both at 90 — the tie — D absent in round 2 (eliminated by history)', () => {
+        const { rounds } = runStvAlgorithm(ballots, candidates, 1, 0);
+        const r1 = rounds[1]?.voteCounts;
+        expect(r1?.get('optionC')).toBe(90);
+        expect(r1?.get('optionD')).toBe(90); // tied — history will break it
+        const r2 = rounds[2]?.voteCounts;
+        expect(r2?.get('optionD')).toBeUndefined(); // D eliminated (had 80 < C's 90 in round 0)
+        expect(r2?.get('optionC')).toBe(180); // C absorbed D's 90 votes
+    });
+
+    test('round 2: D gone, C boosted to 180, B exposed as the new lowest at 95', () => {
+        const { rounds } = runStvAlgorithm(ballots, candidates, 1, 0);
+        const vc = rounds[2]?.voteCounts;
+        expect(vc?.get('optionA')).toBe(200);
+        expect(vc?.get('optionB')).toBe(95); // now the lowest — next to go
+        expect(vc?.get('optionC')).toBe(180);
+        expect(vc?.get('optionD')).toBeUndefined();
+    });
+
+    test('round 3: B eliminated, A wins with 295 — not B as bulk elimination would have given', () => {
+        const { rounds } = runStvAlgorithm(ballots, candidates, 1, 0);
+        const vc = rounds[3]?.voteCounts;
+        expect(vc?.get('optionA')).toBe(295); // 200 + 95 from B
+        expect(vc?.get('optionC')).toBe(180);
+        expect(vc?.get('optionB')).toBeUndefined();
+    });
+
+    test('4 rounds total — sequential elimination, one per round', () => {
+        const { rounds } = runStvAlgorithm(ballots, candidates, 1, 0);
+        expect(rounds.length).toBe(4);
+    });
+
+    test('optionA wins — not optionB, which bulk elimination would have declared winner', () => {
+        const { winners } = runStvAlgorithm(ballots, candidates, 1, 0);
+        expect(winners.has('optionA')).toBe(true);
+        expect(winners.has('optionB')).toBe(false);
+        expect(winners.size).toBe(1);
+    });
+});
+
+// ---------------------------------------------------------------------------
 // Sanity check: normal IRV where a winner exists
 // ---------------------------------------------------------------------------
 
