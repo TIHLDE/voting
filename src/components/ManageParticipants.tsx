@@ -168,6 +168,7 @@ export default function ManageParticipants({
               role: p.role,
               isVotingEligible: p.isVotingEligible,
               isParticipant: false,
+              isOwner: false,
           }))
         : [
               ...(data?.participants ?? []).map((p) => ({
@@ -177,6 +178,7 @@ export default function ManageParticipants({
                   isVotingEligible: p.isVotingEligible,
                   isParticipant: true,
                   name: p.user.name,
+                  isOwner: p.userId === data?.ownerId,
               })),
               ...(data?.invites ?? []).map((inv) => ({
                   id: `invite-${inv.email}`,
@@ -184,6 +186,7 @@ export default function ManageParticipants({
                   role: inv.role,
                   isVotingEligible: inv.isVotingEligible,
                   isParticipant: false,
+                  isOwner: false,
               })),
           ];
 
@@ -311,35 +314,41 @@ export default function ManageParticipants({
                             </div>
                             {!isLocal && p.isParticipant ? (
                                 <>
-                                    <Select
-                                        value={p.role}
-                                        onValueChange={(role) =>
-                                            updateMutation.mutate({
-                                                participantId: p.id,
-                                                role: role as
-                                                    | 'ADMIN'
-                                                    | 'COUNTER'
-                                                    | 'PARTICIPANT',
-                                            })
-                                        }
-                                    >
-                                        <SelectTrigger className="w-32">
-                                            <SelectValue>
-                                                {ROLE_LABELS[p.role]}
-                                            </SelectValue>
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="ADMIN">
-                                                Admin
-                                            </SelectItem>
-                                            <SelectItem value="COUNTER">
-                                                Teller
-                                            </SelectItem>
-                                            <SelectItem value="PARTICIPANT">
-                                                Deltaker
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    {p.isOwner ? (
+                                        <span className="text-xs font-medium text-muted-foreground">
+                                            {ROLE_LABELS[p.role]}
+                                        </span>
+                                    ) : (
+                                        <Select
+                                            value={p.role}
+                                            onValueChange={(role) =>
+                                                updateMutation.mutate({
+                                                    participantId: p.id,
+                                                    role: role as
+                                                        | 'ADMIN'
+                                                        | 'COUNTER'
+                                                        | 'PARTICIPANT',
+                                                })
+                                            }
+                                        >
+                                            <SelectTrigger className="w-32">
+                                                <SelectValue>
+                                                    {ROLE_LABELS[p.role]}
+                                                </SelectValue>
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="ADMIN">
+                                                    Admin
+                                                </SelectItem>
+                                                <SelectItem value="COUNTER">
+                                                    Teller
+                                                </SelectItem>
+                                                <SelectItem value="PARTICIPANT">
+                                                    Deltaker
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    )}
                                     <div className="flex items-center gap-2">
                                         <Switch
                                             checked={p.isVotingEligible}

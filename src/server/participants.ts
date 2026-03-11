@@ -12,6 +12,11 @@ export const getParticipants = createServerFn({ method: 'GET' })
     .handler(async ({ data }) => {
         await requireAdmin(data.meetingId);
 
+        const [m] = await db
+            .select()
+            .from(meeting)
+            .where(eq(meeting.id, data.meetingId));
+
         const participants = await db.query.participant.findMany({
             where: and(
                 eq(participant.meetingId, data.meetingId),
@@ -24,7 +29,7 @@ export const getParticipants = createServerFn({ method: 'GET' })
             where: eq(invite.meetingId, data.meetingId),
         });
 
-        return { participants, invites };
+        return { participants, invites, ownerId: m?.ownerId };
     });
 
 export const getPendingParticipants = createServerFn({ method: 'GET' })
@@ -167,7 +172,7 @@ export const updateParticipant = createServerFn({ method: 'POST' })
             .from(meeting)
             .where(eq(meeting.id, data.meetingId));
 
-        if (m && p.userId === m.ownerId) {
+        if (m && p.userId === m.ownerId && data.role !== undefined) {
             throw new Error('Kan ikke endre eierens rolle');
         }
 
