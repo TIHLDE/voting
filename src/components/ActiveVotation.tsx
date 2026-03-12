@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useMemo } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { getVotationById } from '#/server/votations.ts';
 import {
@@ -9,6 +10,7 @@ import {
     getVoteCount,
     getHasVoted,
     updateVotationStatus,
+    getNotVotedParticipants,
 } from '#/server/voting.ts';
 import { Button } from '#/components/ui/button';
 import { useWsSubscription } from '#/hooks/useWsSubscription';
@@ -84,6 +86,7 @@ export default function ActiveVotation({
                     alternatives={votation.alternatives}
                     blankVotes={votation.blankVotes}
                     isAdmin={isAdmin}
+                    isAdminOrCounter={isAdminOrCounter}
                     canVote={canVote}
                 />
             )}
@@ -124,6 +127,7 @@ function VotingInterface({
     alternatives,
     blankVotes,
     isAdmin,
+    isAdminOrCounter,
     canVote,
 }: {
     votationId: string;
@@ -132,6 +136,7 @@ function VotingInterface({
     alternatives: Array<{ id: string; text: string }>;
     blankVotes: boolean;
     isAdmin: boolean;
+    isAdminOrCounter: boolean;
     canVote: boolean;
 }) {
     const [selectedAlt, setSelectedAlt] = useState<string | null>(null);
@@ -247,6 +252,7 @@ function VotingInterface({
                     </p>
                 </div>
                 <VoteCountDisplay voteCount={voteCount} />
+                {isAdminOrCounter && <NotVotedList votationId={votationId} />}
                 {isAdmin && (
                     <AdminVotingControls
                         onClose={() => closeMutation.mutate()}
@@ -268,6 +274,7 @@ function VotingInterface({
                     </p>
                 </div>
                 <VoteCountDisplay voteCount={voteCount} />
+                {isAdminOrCounter && <NotVotedList votationId={votationId} />}
                 {isAdmin && (
                     <AdminVotingControls
                         onClose={() => closeMutation.mutate()}
@@ -383,6 +390,7 @@ function VotingInterface({
                 </div>
 
                 <VoteCountDisplay voteCount={voteCount} />
+                {isAdminOrCounter && <NotVotedList votationId={votationId} />}
                 {isAdmin && (
                     <AdminVotingControls
                         onClose={() => closeMutation.mutate()}
@@ -435,6 +443,7 @@ function VotingInterface({
             </div>
 
             <VoteCountDisplay voteCount={voteCount} />
+            {isAdminOrCounter && <NotVotedList votationId={votationId} />}
             {isAdmin && (
                 <AdminVotingControls
                     onClose={() => closeMutation.mutate()}
@@ -496,6 +505,52 @@ function AdminVotingControls({
             >
                 {invalidating ? 'Avbryter...' : 'Avbryt votering'}
             </Button>
+        </div>
+    );
+}
+
+function NotVotedList({ votationId }: { votationId: string }) {
+    const [open, setOpen] = useState(false);
+
+    const { data: notVoted } = useQuery({
+        queryKey: ['notVoted', votationId],
+        queryFn: () => getNotVotedParticipants({ data: { votationId } }),
+        refetchInterval: 10000,
+    });
+
+    useWsSubscription(`votation:${votationId}:votes`, {
+        invalidate: [['notVoted', votationId]],
+    });
+
+    if (!notVoted || notVoted.length === 0) return null;
+
+    return (
+        <div className="rounded-lg border bg-muted/30 p-4">
+            <button
+                type="button"
+                className="flex w-full items-center gap-2 text-sm font-semibold text-foreground"
+                onClick={() => setOpen(!open)}
+            >
+                <ChevronDown
+                    className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`}
+                />
+                Har ikke stemt enn\u00e5 ({notVoted.length})
+            </button>
+            {open && (
+                <div className="mt-2 space-y-1">
+                    {notVoted.map((p) => (
+                        <div
+                            key={p.id}
+                            className="flex items-center justify-between rounded border bg-background px-3 py-2 text-sm"
+                        >
+                            <span>{p.name}</span>
+                            <span className="text-muted-foreground">
+                                {p.email}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
