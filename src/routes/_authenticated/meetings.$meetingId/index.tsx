@@ -152,7 +152,7 @@ function MeetingLobby() {
             label: 'Deltakere',
             badge: pendingCount > 0 ? pendingCount : undefined,
         },
-        ...(isAdmin ? [{ id: 'selfregistration', label: 'Registrering' }] : []),
+        { id: 'selfregistration', label: 'Registrering' },
     ];
 
     return (
@@ -242,7 +242,7 @@ function MeetingLobby() {
                 />
             )}
 
-            {activeTab === 'selfregistration' && isAdmin && (
+            {activeTab === 'selfregistration' && isAdminOrCounter && (
                 <SelfRegistrationPanel
                     meetingId={meetingId}
                     allowSelfRegistration={meeting.allowSelfRegistration}
