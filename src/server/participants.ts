@@ -190,6 +190,27 @@ export const updateParticipant = createServerFn({ method: 'POST' })
         return updated;
     });
 
+const bulkUpdateVotingEligibilitySchema = z.object({
+    meetingId: z.string(),
+    participantIds: z.array(z.string()),
+    isVotingEligible: z.boolean(),
+});
+
+export const bulkUpdateVotingEligibility = createServerFn({ method: 'POST' })
+    .inputValidator(bulkUpdateVotingEligibilitySchema)
+    .handler(async ({ data }) => {
+        await requireAdmin(data.meetingId);
+
+        for (const pid of data.participantIds) {
+            await db
+                .update(participant)
+                .set({ isVotingEligible: data.isVotingEligible })
+                .where(eq(participant.id, pid));
+        }
+
+        return { updatedCount: data.participantIds.length };
+    });
+
 export const deleteParticipants = createServerFn({ method: 'POST' })
     .inputValidator(
         z.object({
