@@ -549,7 +549,7 @@ export const getNotVotedParticipants = createServerFn({ method: 'GET' })
         const voters = await db.query.hasVoted.findMany({
             where: eq(hasVoted.votationId, data.votationId),
         });
-        const votedUserIds = new Set(voters.map((v) => v.userId));
+        const votedUserIds = new Set(voters.map((voter) => voter.userId));
 
         // Return those who haven't voted
         const notVoted = nonAdminEligible.filter(

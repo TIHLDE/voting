@@ -322,8 +322,8 @@ function VotingInterface({
                                                     .filter(
                                                         (_, idx) => idx !== i,
                                                     )
-                                                    .map((r, idx) => ({
-                                                        ...r,
+                                                    .map((item, idx) => ({
+                                                        ...item,
                                                         ranking: idx + 1,
                                                     })),
                                             )
