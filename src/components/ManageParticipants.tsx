@@ -5,6 +5,7 @@ import {
     addParticipants,
     updateParticipant,
     deleteParticipants,
+    bulkUpdateVotingEligibility,
 } from '#/server/participants.ts';
 import { Button } from '#/components/ui/button';
 import { Input } from '#/components/ui/input';
@@ -48,6 +49,9 @@ export default function ManageParticipants({
         'PARTICIPANT',
     );
     const [search, setSearch] = useState('');
+    const [filter, setFilter] = useState<'all' | 'eligible' | 'not_eligible'>(
+        'all',
+    );
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [csvText, setCsvText] = useState('');
     const [csvErrors, setCsvErrors] = useState<string[]>([]);
@@ -94,6 +98,22 @@ export default function ManageParticipants({
                     meetingId: meetingId!,
                     participantIds: Array.from(selected),
                 },
+            }),
+        onSuccess: () => {
+            setSelected(new Set());
+            void queryClient.invalidateQueries({
+                queryKey: ['participants', meetingId],
+            });
+        },
+    });
+
+    const bulkVotingMutation = useMutation({
+        mutationFn: (params: {
+            participantIds: string[];
+            isVotingEligible: boolean;
+        }) =>
+            bulkUpdateVotingEligibility({
+                data: { meetingId: meetingId!, ...params },
             }),
         onSuccess: () => {
             setSelected(new Set());
@@ -192,15 +212,16 @@ export default function ManageParticipants({
               })),
           ];
 
-    const filtered = search
-        ? displayParticipants.filter((p) => {
-              const term = search.toLowerCase();
-              const name = p.name ? p.name.toLowerCase() : '';
-              return (
-                  name.includes(term) || p.email.toLowerCase().includes(term)
-              );
-          })
-        : displayParticipants;
+    const filtered = displayParticipants.filter((p) => {
+        if (filter === 'eligible' && !p.isVotingEligible) return false;
+        if (filter === 'not_eligible' && p.isVotingEligible) return false;
+        if (search) {
+            const term = search.toLowerCase();
+            const name = p.name ? p.name.toLowerCase() : '';
+            return name.includes(term) || p.email.toLowerCase().includes(term);
+        }
+        return true;
+    });
 
     return (
         <div className="space-y-6">
@@ -270,24 +291,100 @@ export default function ManageParticipants({
             </div>
 
             <div>
-                <div className="mb-3 flex items-center gap-3">
-                    <h3 className="text-lg font-semibold text-foreground">
-                        Deltakere ({displayParticipants.length})
-                    </h3>
-                    <Input
-                        placeholder="Sok..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="max-w-xs"
-                    />
-                    {selected.size > 0 && !isLocal && (
-                        <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => deleteMutation.mutate()}
-                        >
-                            Slett valgte ({selected.size})
-                        </Button>
+                <div className="mb-3 space-y-2">
+                    <div className="flex items-center gap-3">
+                        <h3 className="text-lg font-semibold text-foreground">
+                            Deltakere ({displayParticipants.length})
+                        </h3>
+                        <Input
+                            placeholder="Sok..."
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            className="max-w-xs"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                            Filter:
+                        </span>
+                        {(
+                            [
+                                ['all', 'Alle'],
+                                ['eligible', 'Stemmerett'],
+                                ['not_eligible', 'Uten stemmerett'],
+                            ] as const
+                        ).map(([value, label]) => (
+                            <Button
+                                key={value}
+                                type="button"
+                                size="sm"
+                                variant={
+                                    filter === value ? 'default' : 'outline'
+                                }
+                                onClick={() => setFilter(value)}
+                            >
+                                {label}
+                            </Button>
+                        ))}
+                    </div>
+                    {!isLocal && (
+                        <div className="flex items-center gap-2">
+                            <Checkbox
+                                checked={
+                                    filtered.length > 0 &&
+                                    filtered.every((p) => selected.has(p.id))
+                                }
+                                onCheckedChange={(checked) => {
+                                    if (checked) {
+                                        setSelected(
+                                            new Set(filtered.map((p) => p.id)),
+                                        );
+                                    } else {
+                                        setSelected(new Set());
+                                    }
+                                }}
+                            />
+                            <span className="text-xs text-muted-foreground">
+                                Velg alle ({filtered.length})
+                            </span>
+                            {selected.size > 0 && (
+                                <>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() =>
+                                            bulkVotingMutation.mutate({
+                                                participantIds:
+                                                    Array.from(selected),
+                                                isVotingEligible: true,
+                                            })
+                                        }
+                                    >
+                                        Gi stemmerett ({selected.size})
+                                    </Button>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() =>
+                                            bulkVotingMutation.mutate({
+                                                participantIds:
+                                                    Array.from(selected),
+                                                isVotingEligible: false,
+                                            })
+                                        }
+                                    >
+                                        Fjern stemmerett ({selected.size})
+                                    </Button>
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => deleteMutation.mutate()}
+                                    >
+                                        Slett valgte ({selected.size})
+                                    </Button>
+                                </>
+                            )}
+                        </div>
                     )}
                 </div>
 
