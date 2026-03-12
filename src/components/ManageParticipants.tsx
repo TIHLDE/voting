@@ -195,7 +195,7 @@ export default function ManageParticipants({
               ...(data?.participants ?? []).map((p) => ({
                   id: p.id,
                   email: p.user.email,
-                  name: p.user.name as string | undefined,
+                  name: p.user.name,
                   role: p.role,
                   isVotingEligible: p.isVotingEligible,
                   isParticipant: true,
