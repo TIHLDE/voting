@@ -1,4 +1,4 @@
-# Vedtatt
+# TIHLDE Voting
 
 A real-time democratic voting platform for organizations. Conduct formal voting sessions with support for simple majority, qualified majority, and Single Transferable Vote (STV) methods.
 
@@ -49,6 +49,7 @@ Create a `.env.local` file:
 ```bash
 DATABASE_URL="postgresql://vedtatt:vedtatt@localhost:5432/vedtatt"
 BETTER_AUTH_SECRET="<your-secret>"
+VITE_APP_NAME="TIHLDE Voting"  # Optional, defaults to "TIHLDE Voting"
 ```
 
 Generate the auth secret:

@@ -11,9 +11,11 @@ export const env = createEnv({
     clientPrefix: 'VITE_',
 
     client: {
-        VITE_APP_TITLE: z.string().min(1).optional(),
+        VITE_APP_NAME: z.string().min(1).optional(),
     },
 
     runtimeEnv: import.meta.env,
     emptyStringAsUndefined: true,
 });
+
+export const APP_NAME = env.VITE_APP_NAME ?? 'TIHLDE Voting';

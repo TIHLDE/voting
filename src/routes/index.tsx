@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { buttonVariants } from '#/components/ui/button';
+import { APP_NAME } from '../env';
 
 export const Route = createFileRoute('/')({ component: LandingPage });
 
@@ -8,15 +9,16 @@ function LandingPage() {
         <main className="mx-auto max-w-5xl px-4 pb-8 pt-14">
             <section className="rounded-xl border bg-card p-8 shadow-sm sm:p-12">
                 <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                    Vedtatt
+                    {APP_NAME}
                 </p>
                 <h1 className="mb-5 max-w-3xl text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
                     Demokratiske avstemninger, enkelt og trygt.
                 </h1>
                 <p className="mb-8 max-w-2xl text-base text-muted-foreground sm:text-lg">
-                    Gjennomfor effektive og gode demokratiske prosesser. Vedtatt
-                    tilbyr sanntidsavstemninger med flere valgmetoder, inkludert
-                    preferansevalg (STV), for organisasjoner av alle storrelser.
+                    Gjennomfor effektive og gode demokratiske prosesser.{' '}
+                    {APP_NAME} tilbyr sanntidsavstemninger med flere
+                    valgmetoder, inkludert preferansevalg (STV), for
+                    organisasjoner av alle storrelser.
                 </p>
                 <div className="flex flex-wrap gap-3">
                     <Link

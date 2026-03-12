@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import BetterAuthHeader from '../integrations/better-auth/header-user.tsx';
 import ThemeToggle from './ThemeToggle';
+import { APP_NAME } from '../env';
 
 export default function Header() {
     return (
@@ -10,7 +11,7 @@ export default function Header() {
                     to="/"
                     className="text-base font-bold tracking-tight text-foreground no-underline"
                 >
-                    Vedtatt
+                    {APP_NAME}
                 </Link>
 
                 <div className="flex items-center gap-4 text-sm font-medium">
