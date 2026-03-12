@@ -165,6 +165,7 @@ export default function ManageParticipants({
         ? (localParticipants ?? []).map((p, i) => ({
               id: String(i),
               email: p.email,
+              name: undefined as string | undefined,
               role: p.role,
               isVotingEligible: p.isVotingEligible,
               isParticipant: false,
@@ -174,15 +175,16 @@ export default function ManageParticipants({
               ...(data?.participants ?? []).map((p) => ({
                   id: p.id,
                   email: p.user.email,
+                  name: p.user.name as string | undefined,
                   role: p.role,
                   isVotingEligible: p.isVotingEligible,
                   isParticipant: true,
-                  name: p.user.name,
                   isOwner: p.userId === data?.ownerId,
               })),
               ...(data?.invites ?? []).map((inv) => ({
                   id: `invite-${inv.email}`,
                   email: inv.email,
+                  name: undefined as string | undefined,
                   role: inv.role,
                   isVotingEligible: inv.isVotingEligible,
                   isParticipant: false,
@@ -191,9 +193,13 @@ export default function ManageParticipants({
           ];
 
     const filtered = search
-        ? displayParticipants.filter((p) =>
-              p.email.toLowerCase().includes(search.toLowerCase()),
-          )
+        ? displayParticipants.filter((p) => {
+              const term = search.toLowerCase();
+              const name = p.name ? p.name.toLowerCase() : '';
+              return (
+                  name.includes(term) || p.email.toLowerCase().includes(term)
+              );
+          })
         : displayParticipants;
 
     return (
@@ -304,6 +310,9 @@ export default function ManageParticipants({
                             )}
                             <div className="flex-1">
                                 <p className="text-sm font-medium text-foreground">
+                                    {p.name ?? p.email}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
                                     {p.email}
                                 </p>
                                 {!p.isParticipant && (
