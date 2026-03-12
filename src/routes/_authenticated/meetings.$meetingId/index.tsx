@@ -50,6 +50,8 @@ function MeetingLobby() {
         (p) => p.userId === session.user.id,
     );
     const isAdmin = myParticipant?.role === 'ADMIN';
+    const isCounter = myParticipant?.role === 'COUNTER';
+    const isAdminOrCounter = isAdmin || isCounter;
     const canVote = myParticipant
         ? myParticipant.role !== 'ADMIN' && myParticipant.isVotingEligible
         : false;
@@ -57,7 +59,7 @@ function MeetingLobby() {
     const { data: pendingParticipants } = useQuery({
         queryKey: ['pendingParticipants', meetingId],
         queryFn: () => getPendingParticipants({ data: { meetingId } }),
-        enabled: !!isAdmin,
+        enabled: isAdminOrCounter,
     });
 
     const pendingCount = pendingParticipants?.length ?? 0;
@@ -76,14 +78,14 @@ function MeetingLobby() {
     });
 
     useWsSubscription(
-        isAdmin ? `meeting:${meetingId}:participant-pending` : '',
+        isAdminOrCounter ? `meeting:${meetingId}:participant-pending` : '',
         {
             invalidate: [['pendingParticipants', meetingId]],
         },
     );
 
     useWsSubscription(
-        isAdmin ? `meeting:${meetingId}:participants-updated` : '',
+        isAdminOrCounter ? `meeting:${meetingId}:participants-updated` : '',
         {
             invalidate: [
                 ['pendingParticipants', meetingId],
@@ -142,7 +144,7 @@ function MeetingLobby() {
 
     if (!meeting) return null;
 
-    const adminTabs = [
+    const manageTabs = [
         { id: 'votations', label: 'Voteringer' },
         { id: 'active', label: 'Aktiv votering' },
         {
@@ -150,7 +152,7 @@ function MeetingLobby() {
             label: 'Deltakere',
             badge: pendingCount > 0 ? pendingCount : undefined,
         },
-        { id: 'selfregistration', label: 'Registrering' },
+        ...(isAdmin ? [{ id: 'selfregistration', label: 'Registrering' }] : []),
     ];
 
     return (
@@ -160,9 +162,9 @@ function MeetingLobby() {
                     {meeting.title}
                 </h1>
                 <StatusBadge status={meeting.status} />
-                {isAdmin && (
+                {isAdminOrCounter && (
                     <div className="ml-auto flex gap-2">
-                        {meeting.status === 'ONGOING' && (
+                        {isAdmin && meeting.status === 'ONGOING' && (
                             <Button
                                 size="sm"
                                 variant="outline"
@@ -172,14 +174,16 @@ function MeetingLobby() {
                                 Avslutt møte
                             </Button>
                         )}
-                        <Link
-                            to="/meetings/$meetingId/edit"
-                            params={{ meetingId }}
-                        >
-                            <Button size="sm" variant="outline">
-                                Rediger
-                            </Button>
-                        </Link>
+                        {isAdmin && (
+                            <Link
+                                to="/meetings/$meetingId/edit"
+                                params={{ meetingId }}
+                            >
+                                <Button size="sm" variant="outline">
+                                    Rediger
+                                </Button>
+                            </Link>
+                        )}
                         <Link
                             to="/meetings/$meetingId/present"
                             params={{ meetingId }}
@@ -199,12 +203,14 @@ function MeetingLobby() {
                 </p>
             )}
 
-            {isAdmin && (
+            {isAdminOrCounter && (
                 <AdminBar
                     activeTab={activeTab}
                     onTabChange={setActiveTab}
-                    tabs={adminTabs}
-                    onStartNextVotation={() => startMutation.mutate()}
+                    tabs={manageTabs}
+                    onStartNextVotation={
+                        isAdmin ? () => startMutation.mutate() : undefined
+                    }
                     startingVotation={startMutation.isPending}
                 />
             )}
@@ -224,11 +230,12 @@ function MeetingLobby() {
                     meetingId={meetingId}
                     activeVotationId={activeVotationId ?? null}
                     isAdmin={!!isAdmin}
+                    isAdminOrCounter={isAdminOrCounter}
                     canVote={canVote}
                 />
             )}
 
-            {activeTab === 'participants' && isAdmin && (
+            {activeTab === 'participants' && isAdminOrCounter && (
                 <ParticipantsPanel
                     meetingId={meetingId}
                     pendingParticipants={pendingParticipants ?? []}

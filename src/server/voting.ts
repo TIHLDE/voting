@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start';
-import { eq, and, asc } from 'drizzle-orm';
+import { eq, and, asc, count, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import {
     votation,
@@ -10,12 +10,14 @@ import {
     votationResultReview,
     votationResult,
     meeting,
+    participant,
 } from '#/db/schema.ts';
 import { validateStatusTransition } from './votation-state.ts';
 import { publish } from './sse/emitter.ts';
 import { db } from '#/db/index.ts';
 import {
     requireAdmin,
+    requireAdminOrCounter,
     requireParticipant,
     requireVotingEligible,
 } from './permissions.server.ts';
@@ -405,7 +407,7 @@ export const getReviews = createServerFn({ method: 'GET' })
         });
         if (!v) throw new Error('Voteringen finnes ikke');
 
-        await requireAdmin(v.meetingId);
+        await requireAdminOrCounter(v.meetingId);
 
         const reviews = await db.query.votationResultReview.findMany({
             where: eq(votationResultReview.votationId, data.votationId),
@@ -448,7 +450,7 @@ export const getVoteAudit = createServerFn({ method: 'GET' })
         });
         if (!v) throw new Error('Voteringen finnes ikke');
 
-        await requireAdmin(v.meetingId);
+        await requireAdminOrCounter(v.meetingId);
 
         // Get who voted
         const voters = await db.query.hasVoted.findMany({
@@ -516,4 +518,23 @@ export const getMyReview = createServerFn({ method: 'GET' })
             );
 
         return review ?? null;
+    });
+
+export const getReviewerCount = createServerFn({ method: 'GET' })
+    .inputValidator(z.object({ meetingId: z.string() }))
+    .handler(async ({ data }) => {
+        await requireAdminOrCounter(data.meetingId);
+
+        const [result] = await db
+            .select({ count: count() })
+            .from(participant)
+            .where(
+                and(
+                    eq(participant.meetingId, data.meetingId),
+                    eq(participant.isApproved, true),
+                    inArray(participant.role, ['ADMIN', 'COUNTER']),
+                ),
+            );
+
+        return { total: result.count };
     });

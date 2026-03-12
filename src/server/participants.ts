@@ -4,13 +4,17 @@ import { z } from 'zod';
 import { participant, invite, user, meeting } from '#/db/schema.ts';
 import { db } from '#/db/index.ts';
 import { requireAuth } from './auth-session.server.ts';
-import { requireAdmin, requireParticipant } from './permissions.server.ts';
+import {
+    requireAdmin,
+    requireAdminOrCounter,
+    requireParticipant,
+} from './permissions.server.ts';
 import { publish } from './sse/emitter.ts';
 
 export const getParticipants = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ meetingId: z.string() }))
     .handler(async ({ data }) => {
-        await requireAdmin(data.meetingId);
+        await requireAdminOrCounter(data.meetingId);
 
         const [m] = await db
             .select()
@@ -35,7 +39,7 @@ export const getParticipants = createServerFn({ method: 'GET' })
 export const getPendingParticipants = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ meetingId: z.string() }))
     .handler(async ({ data }) => {
-        await requireAdmin(data.meetingId);
+        await requireAdminOrCounter(data.meetingId);
 
         return db.query.participant.findMany({
             where: and(
@@ -157,7 +161,14 @@ const updateParticipantSchema = z.object({
 export const updateParticipant = createServerFn({ method: 'POST' })
     .inputValidator(updateParticipantSchema)
     .handler(async ({ data }) => {
-        await requireAdmin(data.meetingId);
+        const { participant: caller } = await requireAdminOrCounter(
+            data.meetingId,
+        );
+
+        // Counters can only change voting eligibility, not roles
+        if (caller.role === 'COUNTER' && data.role !== undefined) {
+            throw new Error('Tellekorps kan ikke endre roller');
+        }
 
         // Check owner protection
         const [p] = await db
@@ -199,7 +210,7 @@ const bulkUpdateVotingEligibilitySchema = z.object({
 export const bulkUpdateVotingEligibility = createServerFn({ method: 'POST' })
     .inputValidator(bulkUpdateVotingEligibilitySchema)
     .handler(async ({ data }) => {
-        await requireAdmin(data.meetingId);
+        await requireAdminOrCounter(data.meetingId);
 
         for (const pid of data.participantIds) {
             await db
@@ -220,7 +231,7 @@ export const deleteParticipants = createServerFn({ method: 'POST' })
         }),
     )
     .handler(async ({ data }) => {
-        await requireAdmin(data.meetingId);
+        await requireAdminOrCounter(data.meetingId);
 
         const [m] = await db
             .select()
@@ -307,7 +318,7 @@ export const approveParticipant = createServerFn({ method: 'POST' })
         z.object({ meetingId: z.string(), participantId: z.string() }),
     )
     .handler(async ({ data }) => {
-        await requireAdmin(data.meetingId);
+        await requireAdminOrCounter(data.meetingId);
 
         const [updated] = await db
             .update(participant)
@@ -330,7 +341,7 @@ export const denyParticipant = createServerFn({ method: 'POST' })
         z.object({ meetingId: z.string(), participantId: z.string() }),
     )
     .handler(async ({ data }) => {
-        await requireAdmin(data.meetingId);
+        await requireAdminOrCounter(data.meetingId);
 
         const [p] = await db
             .select()

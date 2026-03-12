@@ -3,7 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { getMeetingById } from '#/server/meetings.ts';
 import { getActiveVotationId, getVotationById } from '#/server/votations.ts';
-import { getVoteCount } from '#/server/voting.ts';
+import {
+    getVoteCount,
+    getReviewCounts,
+    getReviewerCount,
+} from '#/server/voting.ts';
 import { getVotationResults } from '#/server/results.ts';
 import { Progress } from '#/components/ui/progress';
 import { useWsSubscription } from '#/hooks/useWsSubscription';
@@ -135,12 +139,10 @@ function PresentVotation({
             )}
 
             {votation.status === 'CHECKING_RESULT' && (
-                <div className="flex flex-col items-center gap-6">
-                    <div className="h-14 w-14 animate-spin rounded-full border-4 border-muted border-t-primary" />
-                    <p className="text-3xl text-muted-foreground">
-                        Kontrollerer resultater...
-                    </p>
-                </div>
+                <CheckingResultsPresentation
+                    votationId={votationId}
+                    meetingId={meetingId}
+                />
             )}
 
             {votation.status === 'PUBLISHED_RESULT' && (
@@ -283,6 +285,45 @@ function PresentResults({ votationId }: { votationId: string }) {
                         </p>
                     )}
                 </>
+            )}
+        </div>
+    );
+}
+
+function CheckingResultsPresentation({
+    votationId,
+    meetingId,
+}: {
+    votationId: string;
+    meetingId: string;
+}) {
+    const { data: reviewCounts } = useQuery({
+        queryKey: ['reviewCounts', votationId],
+        queryFn: () => getReviewCounts({ data: { votationId } }),
+    });
+
+    const { data: reviewerCount } = useQuery({
+        queryKey: ['reviewerCount', meetingId],
+        queryFn: () => getReviewerCount({ data: { meetingId } }),
+    });
+
+    useWsSubscription(`votation:${votationId}:reviews`, {
+        setQueryData: ['reviewCounts', votationId],
+    });
+
+    const approved = reviewCounts?.approved ?? 0;
+    const total = reviewerCount?.total ?? 0;
+
+    return (
+        <div className="flex flex-col items-center gap-6">
+            <div className="h-14 w-14 animate-spin rounded-full border-4 border-muted border-t-primary" />
+            <p className="text-3xl text-muted-foreground">
+                Kontrollerer resultater...
+            </p>
+            {total > 0 && (
+                <p className="text-2xl tabular-nums text-foreground">
+                    {approved} / {total} har godkjent
+                </p>
             )}
         </div>
     );

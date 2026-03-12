@@ -19,6 +19,7 @@ interface ActiveVotationProps {
     meetingId: string;
     activeVotationId: string | null;
     isAdmin: boolean;
+    isAdminOrCounter: boolean;
     canVote: boolean;
 }
 
@@ -26,6 +27,7 @@ export default function ActiveVotation({
     meetingId,
     activeVotationId,
     isAdmin,
+    isAdminOrCounter,
     canVote,
 }: ActiveVotationProps) {
     const queryClient = useQueryClient();
@@ -91,6 +93,7 @@ export default function ActiveVotation({
                     votationId={votation.id}
                     meetingId={meetingId}
                     isAdmin={isAdmin}
+                    isAdminOrCounter={isAdminOrCounter}
                 />
             )}
 
@@ -99,6 +102,7 @@ export default function ActiveVotation({
                     votationId={votation.id}
                     meetingId={meetingId}
                     isAdmin={isAdmin}
+                    isAdminOrCounter={isAdminOrCounter}
                 />
             )}
 

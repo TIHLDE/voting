@@ -9,12 +9,14 @@ interface VotationResultProps {
     votationId: string;
     meetingId: string;
     isAdmin: boolean;
+    isAdminOrCounter: boolean;
 }
 
 export default function VotationResultView({
     votationId,
     meetingId,
     isAdmin,
+    isAdminOrCounter,
 }: VotationResultProps) {
     const queryClient = useQueryClient();
 
@@ -190,7 +192,7 @@ export default function VotationResultView({
                 </>
             )}
 
-            {isAdmin && <VoteAudit votationId={votationId} />}
+            {isAdminOrCounter && <VoteAudit votationId={votationId} />}
 
             {isAdmin && (
                 <div className="border-t pt-4">
