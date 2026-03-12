@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Check Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+
+      - name: Setup Tools
+        uses: tihlde/tihlde-workflows/.github/setup-bun@v1
+
+      - name: Check linting
+        run: bun run lint
+
+      - name: Check formatting
+        run: bun run format:check
+
+      - name: Run tests
+        run: bun test
+
+      - name: Check building
+        run: bun run build
