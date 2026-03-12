@@ -520,6 +520,49 @@ export const getMyReview = createServerFn({ method: 'GET' })
         return review ?? null;
     });
 
+export const getNotVotedParticipants = createServerFn({ method: 'GET' })
+    .inputValidator(z.object({ votationId: z.string() }))
+    .handler(async ({ data }) => {
+        const v = await db.query.votation.findFirst({
+            where: eq(votation.id, data.votationId),
+        });
+        if (!v) throw new Error('Voteringen finnes ikke');
+
+        await requireAdminOrCounter(v.meetingId);
+
+        // Get all voting-eligible participants
+        const eligibleParticipants = await db.query.participant.findMany({
+            where: and(
+                eq(participant.meetingId, v.meetingId),
+                eq(participant.isVotingEligible, true),
+                eq(participant.isApproved, true),
+            ),
+            with: { user: true },
+        });
+
+        // Filter out admins (they can't vote)
+        const nonAdminEligible = eligibleParticipants.filter(
+            (p) => p.role !== 'ADMIN',
+        );
+
+        // Get who has voted
+        const voters = await db.query.hasVoted.findMany({
+            where: eq(hasVoted.votationId, data.votationId),
+        });
+        const votedUserIds = new Set(voters.map((v) => v.userId));
+
+        // Return those who haven't voted
+        const notVoted = nonAdminEligible.filter(
+            (p) => !votedUserIds.has(p.userId),
+        );
+
+        return notVoted.map((p) => ({
+            id: p.id,
+            name: p.user.name,
+            email: p.user.email,
+        }));
+    });
+
 export const getReviewerCount = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ meetingId: z.string() }))
     .handler(async ({ data }) => {
