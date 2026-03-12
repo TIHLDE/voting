@@ -1,11 +1,11 @@
 import dotenv from 'dotenv';
-dotenv.config({ path: '.env.local' });
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { eq } from 'drizzle-orm';
 import pg from 'pg';
 import * as schema from '../src/db/schema';
+dotenv.config({ path: '.env.local' });
 
 const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL,
