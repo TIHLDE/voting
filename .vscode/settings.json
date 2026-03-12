@@ -1,7 +1,14 @@
 {
     "prettier.enable": false,
     "eslint.enable": false,
+    "biome.enabled": false,
+
+    "oxc.enable": true,
+
     "editor.defaultFormatter": "oxc.oxc-vscode",
+    "[javascript][javascriptreact][typescript][typescriptreact][json][jsonc][yaml][css]": {
+        "editor.defaultFormatter": "oxc.oxc-vscode"
+    },
 
     "files.watcherExclude": {
         "**/routeTree.gen.ts": true
