@@ -1,14 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
-import { getMeetingById } from '#/server/meetings.ts';
-import { getActiveVotationId, getVotationById } from '#/server/votations.ts';
+import { getMeetingById } from '#/server/meetings';
+import { getActiveVotationId, getVotationById } from '#/server/votations';
 import {
     getVoteCount,
     getReviewCounts,
     getReviewerCount,
-} from '#/server/voting.ts';
-import { getVotationResults } from '#/server/results.ts';
+} from '#/server/voting';
+import { getVotationResults } from '#/server/results';
 import { Progress } from '#/components/ui/progress';
 import { useWsSubscription } from '#/hooks/useWsSubscription';
 

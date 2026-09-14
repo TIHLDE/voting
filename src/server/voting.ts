@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start';
-import { eq, and, asc, count, inArray } from 'drizzle-orm';
+import { eq, and, count, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import {
     votation,
@@ -11,31 +11,31 @@ import {
     votationResult,
     meeting,
     participant,
-} from '#/db/schema.ts';
-import { validateStatusTransition } from './votation-state.ts';
-import { publish } from './sse/emitter.ts';
-import { db } from '#/db/index.ts';
+} from '#/db/schema';
+import { validateStatusTransition } from './votation-state';
+import { publish } from './sse/emitter';
+import { db } from '#/db/index';
 import {
     requireAdmin,
     requireAdminOrCounter,
     requireParticipant,
     requireVotingEligible,
-} from './permissions.server.ts';
-import { setWinner } from './results.server.ts';
+} from './permissions.server';
+import { setWinner } from './results.server';
 import {
     ensureNotVoted,
     ensureVotationOpen,
     getVoteCountData,
-} from './voting.server.ts';
-import { requireAuth } from './auth-session.server.ts';
+} from './voting.server';
+import { requireAuth } from './auth-session.server';
 
-export { getOpenVotation } from './votations.ts';
+export { getOpenVotation } from './votations';
 
 export const getHasVoted = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
-            where: eq(votation.id, data.votationId),
+            where: { id: data.votationId },
         });
         if (!v) throw new Error('Voteringen finnes ikke');
 
@@ -56,7 +56,7 @@ export const castVote = createServerFn({ method: 'POST' })
     .inputValidator(z.object({ alternativeId: z.string() }))
     .handler(async ({ data }) => {
         const alt = await db.query.alternative.findFirst({
-            where: eq(alternative.id, data.alternativeId),
+            where: { id: data.alternativeId },
             with: { votation: true },
         });
         if (!alt) throw new Error('Alternativet finnes ikke');
@@ -163,10 +163,7 @@ export const startNextVotation = createServerFn({ method: 'POST' })
 
         // Check no votation is currently open
         const openVotation = await db.query.votation.findFirst({
-            where: and(
-                eq(votation.meetingId, data.meetingId),
-                eq(votation.status, 'OPEN'),
-            ),
+            where: { meetingId: data.meetingId, status: 'OPEN' },
         });
         if (openVotation) {
             throw new Error('Det er allerede en åpen votering');
@@ -174,11 +171,8 @@ export const startNextVotation = createServerFn({ method: 'POST' })
 
         // Find next UPCOMING votation
         const next = await db.query.votation.findFirst({
-            where: and(
-                eq(votation.meetingId, data.meetingId),
-                eq(votation.status, 'UPCOMING'),
-            ),
-            orderBy: [asc(votation.index)],
+            where: { meetingId: data.meetingId, status: 'UPCOMING' },
+            orderBy: { index: 'asc' },
             with: { alternatives: true },
         });
 
@@ -192,7 +186,7 @@ export const startNextVotation = createServerFn({ method: 'POST' })
 
         // Auto-start meeting if still UPCOMING
         const m = await db.query.meeting.findFirst({
-            where: eq(meeting.id, data.meetingId),
+            where: { id: data.meetingId },
         });
         if (m?.status === 'UPCOMING') {
             await db
@@ -228,7 +222,7 @@ export const updateVotationStatus = createServerFn({ method: 'POST' })
     )
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
-            where: eq(votation.id, data.votationId),
+            where: { id: data.votationId },
         });
         if (!v) throw new Error('Voteringen finnes ikke');
 
@@ -262,7 +256,7 @@ export const resetVotation = createServerFn({ method: 'POST' })
     .inputValidator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
-            where: eq(votation.id, data.votationId),
+            where: { id: data.votationId },
         });
         if (!v) throw new Error('Voteringen finnes ikke');
         if (v.status !== 'CHECKING_RESULT') {
@@ -275,7 +269,7 @@ export const resetVotation = createServerFn({ method: 'POST' })
         await db.transaction(async (tx) => {
             // Delete votes for alternatives in this votation
             const alts = await tx.query.alternative.findMany({
-                where: eq(alternative.votationId, data.votationId),
+                where: { votationId: data.votationId },
             });
             const altIds = alts.map((a) => a.id);
 
@@ -336,7 +330,7 @@ export const getVoteCount = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
-            where: eq(votation.id, data.votationId),
+            where: { id: data.votationId },
         });
         if (!v) throw new Error('Voteringen finnes ikke');
 
@@ -353,7 +347,7 @@ export const reviewVotation = createServerFn({ method: 'POST' })
     )
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
-            where: eq(votation.id, data.votationId),
+            where: { id: data.votationId },
         });
         if (!v) throw new Error('Voteringen finnes ikke');
         if (v.status !== 'CHECKING_RESULT') {
@@ -385,7 +379,7 @@ export const reviewVotation = createServerFn({ method: 'POST' })
 
         // Get review counts
         const reviews = await db.query.votationResultReview.findMany({
-            where: eq(votationResultReview.votationId, data.votationId),
+            where: { votationId: data.votationId },
         });
 
         const approved = reviews.filter((r) => r.approved).length;
@@ -403,14 +397,14 @@ export const getReviews = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
-            where: eq(votation.id, data.votationId),
+            where: { id: data.votationId },
         });
         if (!v) throw new Error('Voteringen finnes ikke');
 
         await requireAdminOrCounter(v.meetingId);
 
         const reviews = await db.query.votationResultReview.findMany({
-            where: eq(votationResultReview.votationId, data.votationId),
+            where: { votationId: data.votationId },
             with: { participant: { with: { user: true } } },
         });
 
@@ -421,14 +415,14 @@ export const getReviewCounts = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
-            where: eq(votation.id, data.votationId),
+            where: { id: data.votationId },
         });
         if (!v) throw new Error('Voteringen finnes ikke');
 
         await requireParticipant(v.meetingId);
 
         const reviews = await db.query.votationResultReview.findMany({
-            where: eq(votationResultReview.votationId, data.votationId),
+            where: { votationId: data.votationId },
         });
 
         return {
@@ -441,10 +435,10 @@ export const getVoteAudit = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
-            where: eq(votation.id, data.votationId),
+            where: { id: data.votationId },
             with: {
                 alternatives: {
-                    orderBy: [asc(alternative.index)],
+                    orderBy: { index: 'asc' },
                 },
             },
         });
@@ -454,7 +448,7 @@ export const getVoteAudit = createServerFn({ method: 'GET' })
 
         // Get who voted
         const voters = await db.query.hasVoted.findMany({
-            where: eq(hasVoted.votationId, data.votationId),
+            where: { votationId: data.votationId },
             with: { user: true },
         });
 
@@ -466,11 +460,11 @@ export const getVoteAudit = createServerFn({ method: 'GET' })
 
         if (v.type === 'STV') {
             const stvVotes = await db.query.stvVote.findMany({
-                where: eq(stvVote.votationId, data.votationId),
+                where: { votationId: data.votationId },
                 with: {
                     votes: {
                         with: { alternative: true },
-                        orderBy: [asc(vote.ranking)],
+                        orderBy: { ranking: 'asc' },
                     },
                 },
             });
@@ -501,7 +495,7 @@ export const getMyReview = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
-            where: eq(votation.id, data.votationId),
+            where: { id: data.votationId },
         });
         if (!v) throw new Error('Voteringen finnes ikke');
 
@@ -524,7 +518,7 @@ export const getNotVotedParticipants = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
-            where: eq(votation.id, data.votationId),
+            where: { id: data.votationId },
         });
         if (!v) throw new Error('Voteringen finnes ikke');
 
@@ -532,11 +526,11 @@ export const getNotVotedParticipants = createServerFn({ method: 'GET' })
 
         // Get all voting-eligible participants
         const eligibleParticipants = await db.query.participant.findMany({
-            where: and(
-                eq(participant.meetingId, v.meetingId),
-                eq(participant.isVotingEligible, true),
-                eq(participant.isApproved, true),
-            ),
+            where: {
+                meetingId: v.meetingId,
+                isVotingEligible: true,
+                isApproved: true,
+            },
             with: { user: true },
         });
 
@@ -547,7 +541,7 @@ export const getNotVotedParticipants = createServerFn({ method: 'GET' })
 
         // Get who has voted
         const voters = await db.query.hasVoted.findMany({
-            where: eq(hasVoted.votationId, data.votationId),
+            where: { votationId: data.votationId },
         });
         const votedUserIds = new Set(voters.map((voter) => voter.userId));
 

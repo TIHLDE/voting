@@ -17,7 +17,8 @@ A real-time democratic voting platform for organizations. Conduct formal voting 
 - **Runtime / Package Manager / Test Runner**: [Bun](https://bun.sh)
 - **Framework**: [TanStack Start](https://tanstack.com/start) (React 19, Vite, Nitro)
 - **Database**: PostgreSQL 17 with [Drizzle ORM](https://orm.drizzle.team)
-- **Auth**: [Better Auth](https://www.better-auth.com) (email/password)
+- **Auth**: [Better Auth](https://www.better-auth.com) — Photon (TIHLDE) OAuth
+  login, plus email/password for external administrators
 - **Styling**: [Tailwind CSS](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com)
 - **Linting / Formatting**: [oxlint](https://oxc.rs) + [oxfmt](https://oxc.rs)
 
@@ -50,6 +51,14 @@ Create a `.env.local` file:
 DATABASE_URL="postgresql://vedtatt:vedtatt@localhost:5432/vedtatt"
 BETTER_AUTH_SECRET="<your-secret>"
 VITE_APP_NAME="TIHLDE Voting"  # Optional, defaults to "TIHLDE Voting"
+```
+
+For Photon (TIHLDE) login, register an OAuth
+
+```bash
+PHOTON_CLIENT_ID="<client-id>"
+PHOTON_CLIENT_SECRET="<client-secret>"
+PHOTON_ISSUER="https://photon.tihlde.org/api/auth"  # Optional, this is the default
 ```
 
 Generate the auth secret:

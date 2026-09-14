@@ -1,17 +1,14 @@
-import { eq, and, count, asc, ne } from 'drizzle-orm';
+import { eq, and, count, ne } from 'drizzle-orm';
 import {
-    votation,
     alternative,
-    vote,
-    stvVote,
     participant,
     hasVoted,
     votationResult,
     stvRoundResult,
     alternativeRoundVoteCount,
-} from '#/db/schema.ts';
-import { db } from '#/db/index.ts';
-import { runStvAlgorithm } from '#/server/stv.ts';
+} from '#/db/schema';
+import { db } from '#/db/index';
+import { runStvAlgorithm } from '#/server/stv';
 
 // ---------------------------------------------------------------------------
 // Simple majority
@@ -19,7 +16,7 @@ import { runStvAlgorithm } from '#/server/stv.ts';
 
 async function computeSimpleResult(votationId: string) {
     const alts = await db.query.alternative.findMany({
-        where: eq(alternative.votationId, votationId),
+        where: { votationId },
         with: { votes: true },
     });
 
@@ -50,7 +47,7 @@ async function computeQualifiedResult(
     eligibleCount: number,
 ) {
     const alts = await db.query.alternative.findMany({
-        where: eq(alternative.votationId, votationId),
+        where: { votationId },
         with: { votes: true },
     });
 
@@ -78,10 +75,10 @@ async function computeStvResult(
 ) {
     // Load all STV ballots
     const stvVotes = await db.query.stvVote.findMany({
-        where: eq(stvVote.votationId, votationId),
+        where: { votationId },
         with: {
             votes: {
-                orderBy: [asc(vote.ranking)],
+                orderBy: { ranking: 'asc' },
             },
         },
     });
@@ -96,7 +93,7 @@ async function computeStvResult(
     }));
 
     const alts = await db.query.alternative.findMany({
-        where: eq(alternative.votationId, votationId),
+        where: { votationId },
     });
 
     const { winners, quota, rounds } = runStvAlgorithm(
@@ -159,13 +156,13 @@ async function saveRound(
 
 export async function setWinner(votationId: string) {
     const v = await db.query.votation.findFirst({
-        where: eq(votation.id, votationId),
+        where: { id: votationId },
     });
     if (!v) throw new Error('Voteringen finnes ikke');
 
     // Skip if already computed
     const existingResult = await db.query.votationResult.findFirst({
-        where: eq(votationResult.votationId, votationId),
+        where: { votationId },
     });
     if (existingResult) return;
 

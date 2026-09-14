@@ -1,10 +1,10 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { getMeetingPublicInfo } from '#/server/meetings.ts';
+import { getMeetingPublicInfo } from '#/server/meetings';
 import {
     getMyRegistrationStatus,
     registerAsParticipant,
-} from '#/server/participants.ts';
+} from '#/server/participants';
 import { Button } from '#/components/ui/button';
 import { useSSE } from '#/hooks/useSSE';
 

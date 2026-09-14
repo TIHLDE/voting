@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vite-plus/test';
-import { runStvAlgorithm, breakTieByHistory } from './stv.ts';
-import type { StvBallot } from './stv.ts';
+import { runStvAlgorithm, breakTieByHistory } from './stv';
+import type { StvBallot } from './stv';
 
 // ---------------------------------------------------------------------------
 // Helpers

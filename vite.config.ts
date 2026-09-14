@@ -8,6 +8,7 @@ const ignorePatterns = [
     '**/dist/**',
     '**/snap/**',
     '**/vite.config.*.timestamp-*.*',
+    'drizzle/**',
     'src/routeTree.gen.ts',
 ];
 

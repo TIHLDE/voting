@@ -1,10 +1,12 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { z } from 'zod';
 import { authClient } from '#/lib/auth-client';
 import { Button } from '#/components/ui/button';
 import { Input } from '#/components/ui/input';
 import { Label } from '#/components/ui/label';
+import { Separator } from '#/components/ui/separator';
 
 const searchSchema = z.object({
     redirect: z.string().optional(),
@@ -21,57 +23,90 @@ function AuthPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
-    const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
-    async function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setError(null);
-        setLoading(true);
-
-        try {
-            if (isSignUp) {
-                const result = await authClient.signUp.email({
-                    email,
-                    password,
-                    name,
-                });
-                if (result.error) {
-                    setError(
-                        result.error.message ??
-                            'Noe gikk galt ved registrering',
-                    );
-                    return;
-                }
-            } else {
-                const result = await authClient.signIn.email({
-                    email,
-                    password,
-                });
-                if (result.error) {
-                    setError(
-                        result.error.message ?? 'Feil e-post eller passord',
-                    );
-                    return;
-                }
+    // better-auth returns { data, error } instead of throwing, so surface
+    // errors by throwing inside mutationFn to feed mutation.error
+    const oauthMutation = useMutation({
+        mutationFn: async () => {
+            const result = await authClient.signIn.social({
+                provider: 'photon',
+                callbackURL: redirectTo || '/meetings',
+            });
+            if (result.error) {
+                throw new Error(
+                    result.error.message ?? 'Inlogging med TIHLDE feilet',
+                );
             }
+        },
+    });
+
+    const authMutation = useMutation({
+        mutationFn: async () => {
+            const result = isSignUp
+                ? await authClient.signUp.email({ email, password, name })
+                : await authClient.signIn.email({ email, password });
+            if (result.error) {
+                throw new Error(
+                    result.error.message ??
+                        (isSignUp
+                            ? 'Noe gikk galt ved registrering'
+                            : 'Feil e-post eller passord'),
+                );
+            }
+        },
+        onSuccess: () => {
             void navigate({ to: redirectTo || '/meetings' });
-        } catch {
-            setError('Noe gikk galt. Vennligst prov igjen.');
-        } finally {
-            setLoading(false);
-        }
+        },
+    });
+
+    function switchMode() {
+        setIsSignUp((s) => !s);
+        authMutation.reset();
     }
 
     return (
         <main className="mx-auto max-w-md px-4 py-12">
             <div className="rounded-xl border bg-card p-6 shadow-sm sm:p-8">
-                <h1 className="mb-6 text-center text-2xl font-bold text-foreground">
+                <h1 className="mb-2 text-center text-2xl font-bold text-foreground">
                     {isSignUp ? 'Opprett konto' : 'Logg inn'}
                 </h1>
+                <p className="mb-6 text-center text-sm text-muted-foreground">
+                    TIHLDE-medlemmer logger inn med TIHLDE-kontoen sin.
+                </p>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <Button
+                    type="button"
+                    className="w-full"
+                    disabled={oauthMutation.isPending || authMutation.isPending}
+                    onClick={() => oauthMutation.mutate()}
+                >
+                    {oauthMutation.isPending
+                        ? 'Sender deg til tihlde.org...'
+                        : 'Logg inn med TIHLDE'}
+                </Button>
+
+                <div className="relative my-6">
+                    <Separator />
+                    <span className="absolute inset-0 flex items-center justify-center">
+                        <span className="bg-card px-2 text-xs text-muted-foreground">
+                            ELLER
+                        </span>
+                    </span>
+                </div>
+
+                <p className="mb-4 text-center text-sm text-muted-foreground">
+                    Eksterne administratorer kan logge inn eller opprette konto
+                    med e-post.
+                </p>
+
+                <form
+                    onSubmit={(e) => {
+                        e.preventDefault();
+                        authMutation.mutate();
+                    }}
+                    className="space-y-4"
+                >
                     {isSignUp && (
                         <div className="space-y-2">
                             <Label htmlFor="name">Navn</Label>
@@ -111,12 +146,23 @@ function AuthPage() {
                         />
                     </div>
 
-                    {error && (
-                        <p className="text-sm text-destructive">{error}</p>
+                    {oauthMutation.error && (
+                        <p className="text-sm text-destructive">
+                            {oauthMutation.error.message}
+                        </p>
+                    )}
+                    {authMutation.error && (
+                        <p className="text-sm text-destructive">
+                            {authMutation.error.message}
+                        </p>
                     )}
 
-                    <Button type="submit" className="w-full" disabled={loading}>
-                        {loading
+                    <Button
+                        type="submit"
+                        className="w-full"
+                        disabled={authMutation.isPending}
+                    >
+                        {authMutation.isPending
                             ? 'Vennligst vent...'
                             : isSignUp
                               ? 'Opprett konto'
@@ -130,10 +176,7 @@ function AuthPage() {
                             Har du allerede en konto?{' '}
                             <button
                                 type="button"
-                                onClick={() => {
-                                    setIsSignUp(false);
-                                    setError(null);
-                                }}
+                                onClick={switchMode}
                                 className="font-semibold text-foreground hover:underline"
                             >
                                 Logg inn
@@ -144,10 +187,7 @@ function AuthPage() {
                             Har du ikke en konto?{' '}
                             <button
                                 type="button"
-                                onClick={() => {
-                                    setIsSignUp(true);
-                                    setError(null);
-                                }}
+                                onClick={switchMode}
                                 className="font-semibold text-foreground hover:underline"
                             >
                                 Opprett konto

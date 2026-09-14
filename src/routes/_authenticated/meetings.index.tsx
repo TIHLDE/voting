@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { getMyMeetings } from '#/server/meetings.ts';
+import { getMyMeetings } from '#/server/meetings';
 import MeetingCard from '#/components/MeetingCard';
 import { buttonVariants } from '#/components/ui/button';
 import { Skeleton } from '#/components/ui/skeleton';

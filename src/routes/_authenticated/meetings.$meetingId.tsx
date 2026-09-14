@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { getMeetingById } from '#/server/meetings.ts';
+import { getMeetingById } from '#/server/meetings';
 import { Skeleton } from '#/components/ui/skeleton';
 
 export const Route = createFileRoute('/_authenticated/meetings/$meetingId')({

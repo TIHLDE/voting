@@ -2,17 +2,17 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { getMeetingById, updateMeeting } from '#/server/meetings.ts';
+import { getMeetingById, updateMeeting } from '#/server/meetings';
 import {
     getVotationsForMeeting,
     getActiveVotationId,
-} from '#/server/votations.ts';
-import { startNextVotation } from '#/server/voting.ts';
+} from '#/server/votations';
+import { startNextVotation } from '#/server/voting';
 import {
     getPendingParticipants,
     approveParticipant,
     denyParticipant,
-} from '#/server/participants.ts';
+} from '#/server/participants';
 import AdminBar from '#/components/AdminBar';
 import VotationList from '#/components/VotationList';
 import ActiveVotation from '#/components/ActiveVotation';

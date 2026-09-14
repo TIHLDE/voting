@@ -1,5 +1,5 @@
 import { getRequest } from '@tanstack/react-start/server';
-import { auth } from '#/lib/auth.ts';
+import { auth } from '#/lib/auth';
 
 export async function getServerSession() {
     const request = getRequest();

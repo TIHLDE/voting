@@ -1,15 +1,15 @@
 import { createServerFn } from '@tanstack/react-start';
 import { eq, and } from 'drizzle-orm';
 import { z } from 'zod';
-import { participant, invite, user, meeting } from '#/db/schema.ts';
-import { db } from '#/db/index.ts';
-import { requireAuth } from './auth-session.server.ts';
+import { participant, invite, user, meeting } from '#/db/schema';
+import { db } from '#/db/index';
+import { requireAuth } from './auth-session.server';
 import {
     requireAdmin,
     requireAdminOrCounter,
     requireParticipant,
-} from './permissions.server.ts';
-import { publish } from './sse/emitter.ts';
+} from './permissions.server';
+import { publish } from './sse/emitter';
 
 export const getParticipants = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ meetingId: z.string() }))
@@ -22,15 +22,12 @@ export const getParticipants = createServerFn({ method: 'GET' })
             .where(eq(meeting.id, data.meetingId));
 
         const participants = await db.query.participant.findMany({
-            where: and(
-                eq(participant.meetingId, data.meetingId),
-                eq(participant.isApproved, true),
-            ),
+            where: { meetingId: data.meetingId, isApproved: true },
             with: { user: true },
         });
 
         const invites = await db.query.invite.findMany({
-            where: eq(invite.meetingId, data.meetingId),
+            where: { meetingId: data.meetingId },
         });
 
         return { participants, invites, ownerId: m?.ownerId };
@@ -42,10 +39,7 @@ export const getPendingParticipants = createServerFn({ method: 'GET' })
         await requireAdminOrCounter(data.meetingId);
 
         return db.query.participant.findMany({
-            where: and(
-                eq(participant.meetingId, data.meetingId),
-                eq(participant.isApproved, false),
-            ),
+            where: { meetingId: data.meetingId, isApproved: false },
             with: { user: true },
         });
     });

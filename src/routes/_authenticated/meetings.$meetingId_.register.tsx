@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useMutation } from '@tanstack/react-query';
-import { registerAsParticipant } from '#/server/participants.ts';
+import { registerAsParticipant } from '#/server/participants';
 import { Button } from '#/components/ui/button';
 
 export const Route = createFileRoute(

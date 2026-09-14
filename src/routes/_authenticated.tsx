@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, redirect } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
-import { getServerSession } from '#/server/auth-session.server.ts';
+import { getServerSession } from '#/server/auth-session.server';
 
 const getSessionFn = createServerFn({ method: 'GET' }).handler(async () => {
     const session = await getServerSession();

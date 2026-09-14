@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { getVotationResults } from '#/server/results.ts';
-import { startNextVotation } from '#/server/voting.ts';
+import { getVotationResults } from '#/server/results';
+import { startNextVotation } from '#/server/voting';
 import { Button } from '#/components/ui/button';
 import VoteAudit from './VoteAudit';
 

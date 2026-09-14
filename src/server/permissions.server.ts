@@ -1,7 +1,7 @@
 import { eq, and } from 'drizzle-orm';
-import { db } from '#/db/index.ts';
-import { participant, meeting } from '#/db/schema.ts';
-import { requireAuth } from './auth-session.server.ts';
+import { db } from '#/db/index';
+import { participant, meeting } from '#/db/schema';
+import { requireAuth } from './auth-session.server';
 
 export async function requireParticipant(meetingId: string) {
     const session = await requireAuth();

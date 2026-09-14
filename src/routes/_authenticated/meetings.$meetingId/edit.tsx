@@ -5,7 +5,7 @@ import {
     getMeetingById,
     updateMeeting,
     deleteMeeting,
-} from '#/server/meetings.ts';
+} from '#/server/meetings';
 import WizardShell from '#/components/WizardShell';
 import MeetingForm from '#/components/MeetingForm';
 import type { MeetingFormData } from '#/components/MeetingForm';

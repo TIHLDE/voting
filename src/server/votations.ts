@@ -1,9 +1,9 @@
 import { createServerFn } from '@tanstack/react-start';
-import { eq, and, asc, desc } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { votation, alternative } from '#/db/schema.ts';
-import { db } from '#/db/index.ts';
-import { requireAdmin, requireParticipant } from './permissions.server.ts';
+import { votation, alternative } from '#/db/schema';
+import { db } from '#/db/index';
+import { requireAdmin, requireParticipant } from './permissions.server';
 
 export const getVotationsForMeeting = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ meetingId: z.string() }))
@@ -11,13 +11,13 @@ export const getVotationsForMeeting = createServerFn({ method: 'GET' })
         await requireParticipant(data.meetingId);
 
         return db.query.votation.findMany({
-            where: eq(votation.meetingId, data.meetingId),
+            where: { meetingId: data.meetingId },
             with: {
                 alternatives: {
-                    orderBy: [asc(alternative.index)],
+                    orderBy: { index: 'asc' },
                 },
             },
-            orderBy: [asc(votation.index)],
+            orderBy: { index: 'asc' },
         });
     });
 
@@ -25,10 +25,10 @@ export const getVotationById = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
-            where: eq(votation.id, data.votationId),
+            where: { id: data.votationId },
             with: {
                 alternatives: {
-                    orderBy: [asc(alternative.index)],
+                    orderBy: { index: 'asc' },
                 },
                 result: true,
             },
@@ -130,7 +130,7 @@ export const updateVotations = createServerFn({ method: 'POST' })
         for (const v of data.votations) {
             // Verify votation is UPCOMING
             const existing = await db.query.votation.findFirst({
-                where: eq(votation.id, v.id),
+                where: { id: v.id },
             });
             if (!existing || existing.status !== 'UPCOMING') {
                 throw new Error('Kan kun redigere kommende voteringer');
@@ -190,7 +190,7 @@ export const deleteVotation = createServerFn({ method: 'POST' })
     .inputValidator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
-            where: eq(votation.id, data.votationId),
+            where: { id: data.votationId },
         });
         if (!v) throw new Error('Voteringen finnes ikke');
 
@@ -205,7 +205,7 @@ export const deleteAlternatives = createServerFn({ method: 'POST' })
     .handler(async ({ data }) => {
         for (const id of data.ids) {
             const alt = await db.query.alternative.findFirst({
-                where: eq(alternative.id, id),
+                where: { id },
                 with: { votation: true },
             });
             if (alt) {
@@ -223,10 +223,7 @@ export const getOpenVotation = createServerFn({ method: 'GET' })
         await requireParticipant(data.meetingId);
 
         const open = await db.query.votation.findFirst({
-            where: and(
-                eq(votation.meetingId, data.meetingId),
-                eq(votation.status, 'OPEN'),
-            ),
+            where: { meetingId: data.meetingId, status: 'OPEN' },
         });
 
         return open?.id ?? null;
@@ -243,11 +240,8 @@ export const getActiveVotationId = createServerFn({ method: 'GET' })
             'PUBLISHED_RESULT',
         ] as const) {
             const v = await db.query.votation.findFirst({
-                where: and(
-                    eq(votation.meetingId, data.meetingId),
-                    eq(votation.status, status),
-                ),
-                orderBy: [desc(votation.index)],
+                where: { meetingId: data.meetingId, status },
+                orderBy: { index: 'desc' },
             });
             if (v) return v.id;
         }

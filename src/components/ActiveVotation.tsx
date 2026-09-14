@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
-import { getVotationById } from '#/server/votations.ts';
+import { getVotationById } from '#/server/votations';
 import {
     castVote,
     castBlankVote,
@@ -11,7 +11,7 @@ import {
     getHasVoted,
     updateVotationStatus,
     getNotVotedParticipants,
-} from '#/server/voting.ts';
+} from '#/server/voting';
 import { Button } from '#/components/ui/button';
 import { useWsSubscription } from '#/hooks/useWsSubscription';
 import VotationResultView from './VotationResult';

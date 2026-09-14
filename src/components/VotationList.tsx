@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { Pencil, X, Check } from 'lucide-react';
 import { Badge } from '#/components/ui/badge';
 import { Button } from '#/components/ui/button';
-import { updateVotations } from '#/server/votations.ts';
+import { updateVotations } from '#/server/votations';
 
 interface VotationItem {
     id: string;

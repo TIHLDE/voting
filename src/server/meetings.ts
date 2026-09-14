@@ -1,21 +1,21 @@
 import { createServerFn } from '@tanstack/react-start';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
-import { meeting, participant } from '#/db/schema.ts';
-import { db } from '#/db/index.ts';
-import { requireAuth } from './auth-session.server.ts';
+import { meeting, participant } from '#/db/schema';
+import { db } from '#/db/index';
+import { requireAuth } from './auth-session.server';
 import {
     requireAdmin,
     requireOwner,
     requireParticipant,
-} from './permissions.server.ts';
+} from './permissions.server';
 
 export const getMyMeetings = createServerFn({ method: 'GET' }).handler(
     async () => {
         const session = await requireAuth();
 
         const myParticipations = await db.query.participant.findMany({
-            where: eq(participant.userId, session.user.id),
+            where: { userId: session.user.id },
             with: {
                 meeting: {
                     with: {
@@ -45,7 +45,7 @@ export const getMeetingById = createServerFn({ method: 'GET' })
         await requireParticipant(data.meetingId);
 
         const m = await db.query.meeting.findFirst({
-            where: eq(meeting.id, data.meetingId),
+            where: { id: data.meetingId },
             with: {
                 owner: true,
                 participants: {
@@ -129,7 +129,7 @@ export const getMeetingPublicInfo = createServerFn({ method: 'GET' })
         await requireAuth();
 
         const m = await db.query.meeting.findFirst({
-            where: eq(meeting.id, data.meetingId),
+            where: { id: data.meetingId },
             columns: {
                 id: true,
                 title: true,

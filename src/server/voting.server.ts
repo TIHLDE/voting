@@ -1,6 +1,6 @@
 import { eq, and, count, ne } from 'drizzle-orm';
-import { votation, hasVoted, participant } from '#/db/schema.ts';
-import { db } from '#/db/index.ts';
+import { hasVoted, participant } from '#/db/schema';
+import { db } from '#/db/index';
 
 export async function ensureNotVoted(userId: string, votationId: string) {
     const [existing] = await db
@@ -17,7 +17,7 @@ export async function ensureNotVoted(userId: string, votationId: string) {
 
 export async function ensureVotationOpen(votationId: string) {
     const v = await db.query.votation.findFirst({
-        where: eq(votation.id, votationId),
+        where: { id: votationId },
     });
     if (!v) throw new Error('Voteringen finnes ikke');
     if (v.status !== 'OPEN') throw new Error('Voteringen er ikke åpen');

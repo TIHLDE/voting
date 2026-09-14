@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { getVotationResults } from '#/server/results.ts';
+import { getVotationResults } from '#/server/results';
 import {
     updateVotationStatus,
     resetVotation,
@@ -8,7 +8,7 @@ import {
     getReviewCounts,
     getMyReview,
     getReviewerCount,
-} from '#/server/voting.ts';
+} from '#/server/voting';
 import { Button } from '#/components/ui/button';
 import { useWsSubscription } from '#/hooks/useWsSubscription';
 import VoteAudit from './VoteAudit';

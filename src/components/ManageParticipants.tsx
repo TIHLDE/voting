@@ -6,7 +6,7 @@ import {
     updateParticipant,
     deleteParticipants,
     bulkUpdateVotingEligibility,
-} from '#/server/participants.ts';
+} from '#/server/participants';
 import { Button } from '#/components/ui/button';
 import { Input } from '#/components/ui/input';
 import {

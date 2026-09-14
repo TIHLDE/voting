@@ -1,9 +1,7 @@
-import { eq, and, asc } from 'drizzle-orm';
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
-import { votation, alternative, stvRoundResult } from '#/db/schema.ts';
-import { db } from '#/db/index.ts';
-import { requireParticipant } from './permissions.server.ts';
+import { db } from '#/db/index';
+import { requireParticipant } from './permissions.server';
 
 // ---------------------------------------------------------------------------
 // Result queries
@@ -13,11 +11,11 @@ export const getVotationResults = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
-            where: eq(votation.id, data.votationId),
+            where: { id: data.votationId },
             with: {
                 alternatives: {
                     with: { votes: true },
-                    orderBy: [asc(alternative.index)],
+                    orderBy: { index: 'asc' },
                 },
                 result: {
                     with: {
@@ -25,7 +23,7 @@ export const getVotationResults = createServerFn({ method: 'GET' })
                             with: {
                                 alternativeVoteCounts: true,
                             },
-                            orderBy: [asc(stvRoundResult.index)],
+                            orderBy: { index: 'asc' },
                         },
                     },
                 },
@@ -69,17 +67,14 @@ export const getWinnerOfVotation = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
-            where: eq(votation.id, data.votationId),
+            where: { id: data.votationId },
         });
         if (!v) throw new Error('Voteringen finnes ikke');
 
         await requireParticipant(v.meetingId);
 
         const winners = await db.query.alternative.findMany({
-            where: and(
-                eq(alternative.votationId, data.votationId),
-                eq(alternative.isWinner, true),
-            ),
+            where: { votationId: data.votationId, isWinner: true },
         });
 
         return winners;

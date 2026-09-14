@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { betterAuth } from 'better-auth';
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { eq } from 'drizzle-orm';
 import pg from 'pg';
@@ -10,7 +10,7 @@ dotenv.config({ path: '.env.local' });
 const pool = new pg.Pool({
     connectionString: process.env.DATABASE_URL,
 });
-const db = drizzle(pool, { schema });
+const db = drizzle({ client: pool });
 
 const auth = betterAuth({
     database: drizzleAdapter(db, { provider: 'pg', schema }),
@@ -21,9 +21,10 @@ async function seed() {
     console.log('Cleaning existing seed data...');
     // Clean up in reverse dependency order
     for (const email of ['a@a.com', 'b@b.com']) {
-        const existing = await db.query.user.findFirst({
-            where: eq(schema.user.email, email),
-        });
+        const [existing] = await db
+            .select()
+            .from(schema.user)
+            .where(eq(schema.user.email, email));
         if (existing) {
             await db.delete(schema.user).where(eq(schema.user.id, existing.id));
         }

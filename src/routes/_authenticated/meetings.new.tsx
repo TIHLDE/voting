@@ -1,9 +1,9 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { createMeeting } from '#/server/meetings.ts';
-import { createVotations } from '#/server/votations.ts';
-import { addParticipants } from '#/server/participants.ts';
+import { createMeeting } from '#/server/meetings';
+import { createVotations } from '#/server/votations';
+import { addParticipants } from '#/server/participants';
 import WizardShell from '#/components/WizardShell';
 import MeetingForm from '#/components/MeetingForm';
 import type { MeetingFormData } from '#/components/MeetingForm';

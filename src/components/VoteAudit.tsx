@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getVoteAudit } from '#/server/voting.ts';
+import { getVoteAudit } from '#/server/voting';
 import { ChevronDown } from 'lucide-react';
 
 export default function VoteAudit({ votationId }: { votationId: string }) {

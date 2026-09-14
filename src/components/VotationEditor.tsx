@@ -23,7 +23,7 @@ import {
     deleteVotation,
     createVotations,
     updateVotationIndexes,
-} from '#/server/votations.ts';
+} from '#/server/votations';
 import { Button } from '#/components/ui/button';
 import { Input } from '#/components/ui/input';
 import { Label } from '#/components/ui/label';
