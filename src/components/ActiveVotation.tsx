@@ -32,8 +32,6 @@ export default function ActiveVotation({
     isAdminOrCounter,
     canVote,
 }: ActiveVotationProps) {
-    const queryClient = useQueryClient();
-
     const { data: votation } = useQuery({
         queryKey: ['votation', activeVotationId],
         queryFn: () =>
@@ -81,7 +79,6 @@ export default function ActiveVotation({
             {votation.status === 'OPEN' && (
                 <VotingInterface
                     votationId={votation.id}
-                    meetingId={meetingId}
                     type={votation.type}
                     alternatives={votation.alternatives}
                     blankVotes={votation.blankVotes}
@@ -122,7 +119,6 @@ export default function ActiveVotation({
 
 function VotingInterface({
     votationId,
-    meetingId,
     type,
     alternatives,
     blankVotes,
@@ -131,7 +127,6 @@ function VotingInterface({
     canVote,
 }: {
     votationId: string;
-    meetingId: string;
     type: string;
     alternatives: Array<{ id: string; text: string }>;
     blankVotes: boolean;
