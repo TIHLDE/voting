@@ -1,8 +1,6 @@
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
 const ignorePatterns = [
-    '**/.nx/**',
-    '**/.svelte-kit/**',
     '**/build/**',
     '**/coverage/**',
     '**/dist/**',
@@ -13,6 +11,9 @@ const ignorePatterns = [
 ];
 
 export default defineConfig(({ mode }) => ({
+    resolve: {
+        tsconfigPaths: true,
+    },
     fmt: {
         semi: true,
         singleQuote: true,
@@ -96,19 +97,17 @@ export default defineConfig(({ mode }) => ({
     },
     plugins: lazyPlugins(async () => {
         // App plugins (nitro, TanStack Start) hang the vitest server and
-        // break CJS deps under the module runner — skip them for tests.
+        // break CJS deps under the module runner - skip them for tests.
         if (mode === 'test') return [];
 
         const [
             { devtools },
-            { default: tsconfigPaths },
             { tanstackStart },
             { default: viteReact },
             { default: tailwindcss },
             { nitro },
         ] = await Promise.all([
             import('@tanstack/devtools-vite'),
-            import('vite-tsconfig-paths'),
             import('@tanstack/react-start/plugin/vite'),
             import('@vitejs/plugin-react'),
             import('@tailwindcss/vite'),
@@ -117,7 +116,6 @@ export default defineConfig(({ mode }) => ({
 
         return [
             devtools(),
-            tsconfigPaths({ projects: ['./tsconfig.json'] }),
             tailwindcss(),
             tanstackStart(),
             nitro(),

@@ -9,66 +9,61 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ApiSseRouteImport } from './routes/api/sse'
-import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedMeetingsRouteImport } from './routes/_authenticated/meetings'
-import { Route as AuthenticatedMeetingsIndexRouteImport } from './routes/_authenticated/meetings.index'
-import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as AuthenticatedMeetingsNewRouteImport } from './routes/_authenticated/meetings.new'
-import { Route as AuthenticatedMeetingsMeetingIdRouteImport } from './routes/_authenticated/meetings.$meetingId'
+import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as ApiSseRouteImport } from './routes/api/sse'
 import { Route as AuthenticatedJoinMeetingIdRouteImport } from './routes/_authenticated/join.$meetingId'
+import { Route as AuthenticatedMeetingsIndexRouteImport } from './routes/_authenticated/meetings.index'
+import { Route as AuthenticatedMeetingsMeetingIdRouteImport } from './routes/_authenticated/meetings.$meetingId'
+import { Route as AuthenticatedMeetingsNewRouteImport } from './routes/_authenticated/meetings.new'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthenticatedMeetingsMeetingIdIndexRouteImport } from './routes/_authenticated/meetings.$meetingId/index'
-import { Route as AuthenticatedMeetingsMeetingIdRegisterRouteImport } from './routes/_authenticated/meetings.$meetingId_.register'
-import { Route as AuthenticatedMeetingsMeetingIdPresentRouteImport } from './routes/_authenticated/meetings.$meetingId/present'
 import { Route as AuthenticatedMeetingsMeetingIdEditRouteImport } from './routes/_authenticated/meetings.$meetingId/edit'
+import { Route as AuthenticatedMeetingsMeetingIdPresentRouteImport } from './routes/_authenticated/meetings.$meetingId/present'
+import { Route as AuthenticatedMeetingsMeetingIdRegisterRouteImport } from './routes/_authenticated/meetings.$meetingId_.register'
 
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
-} as any)
-const ApiSseRoute = ApiSseRouteImport.update({
-  id: '/api/sse',
-  path: '/api/sse',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedMeetingsRoute = AuthenticatedMeetingsRouteImport.update({
   id: '/meetings',
   path: '/meetings',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const ApiSseRoute = ApiSseRouteImport.update({
+  id: '/api/sse',
+  path: '/api/sse',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedJoinMeetingIdRoute =
+  AuthenticatedJoinMeetingIdRouteImport.update({
+    id: '/join/$meetingId',
+    path: '/join/$meetingId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMeetingsIndexRoute =
   AuthenticatedMeetingsIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => AuthenticatedMeetingsRoute,
-  } as any)
-const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: '/api/auth/$',
-  path: '/api/auth/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthenticatedMeetingsNewRoute =
-  AuthenticatedMeetingsNewRouteImport.update({
-    id: '/new',
-    path: '/new',
     getParentRoute: () => AuthenticatedMeetingsRoute,
   } as any)
 const AuthenticatedMeetingsMeetingIdRoute =
@@ -77,28 +72,21 @@ const AuthenticatedMeetingsMeetingIdRoute =
     path: '/$meetingId',
     getParentRoute: () => AuthenticatedMeetingsRoute,
   } as any)
-const AuthenticatedJoinMeetingIdRoute =
-  AuthenticatedJoinMeetingIdRouteImport.update({
-    id: '/join/$meetingId',
-    path: '/join/$meetingId',
-    getParentRoute: () => AuthenticatedRoute,
+const AuthenticatedMeetingsNewRoute =
+  AuthenticatedMeetingsNewRouteImport.update({
+    id: '/new',
+    path: '/new',
+    getParentRoute: () => AuthenticatedMeetingsRoute,
   } as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedMeetingsMeetingIdIndexRoute =
   AuthenticatedMeetingsMeetingIdIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => AuthenticatedMeetingsMeetingIdRoute,
-  } as any)
-const AuthenticatedMeetingsMeetingIdRegisterRoute =
-  AuthenticatedMeetingsMeetingIdRegisterRouteImport.update({
-    id: '/$meetingId_/register',
-    path: '/$meetingId/register',
-    getParentRoute: () => AuthenticatedMeetingsRoute,
-  } as any)
-const AuthenticatedMeetingsMeetingIdPresentRoute =
-  AuthenticatedMeetingsMeetingIdPresentRouteImport.update({
-    id: '/present',
-    path: '/present',
     getParentRoute: () => AuthenticatedMeetingsMeetingIdRoute,
   } as any)
 const AuthenticatedMeetingsMeetingIdEditRoute =
@@ -106,6 +94,18 @@ const AuthenticatedMeetingsMeetingIdEditRoute =
     id: '/edit',
     path: '/edit',
     getParentRoute: () => AuthenticatedMeetingsMeetingIdRoute,
+  } as any)
+const AuthenticatedMeetingsMeetingIdPresentRoute =
+  AuthenticatedMeetingsMeetingIdPresentRouteImport.update({
+    id: '/present',
+    path: '/present',
+    getParentRoute: () => AuthenticatedMeetingsMeetingIdRoute,
+  } as any)
+const AuthenticatedMeetingsMeetingIdRegisterRoute =
+  AuthenticatedMeetingsMeetingIdRegisterRouteImport.update({
+    id: '/$meetingId_/register',
+    path: '/$meetingId/register',
+    getParentRoute: () => AuthenticatedMeetingsRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -216,11 +216,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -230,19 +230,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/sse': {
-      id: '/api/sse'
-      path: '/api/sse'
-      fullPath: '/api/sse'
-      preLoaderRoute: typeof ApiSseRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/meetings': {
+      id: '/_authenticated/meetings'
+      path: '/meetings'
+      fullPath: '/meetings'
+      preLoaderRoute: typeof AuthenticatedMeetingsRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/profile': {
       id: '/_authenticated/profile'
@@ -251,11 +251,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/meetings': {
-      id: '/_authenticated/meetings'
-      path: '/meetings'
-      fullPath: '/meetings'
-      preLoaderRoute: typeof AuthenticatedMeetingsRouteImport
+    '/api/sse': {
+      id: '/api/sse'
+      path: '/api/sse'
+      fullPath: '/api/sse'
+      preLoaderRoute: typeof ApiSseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/join/$meetingId': {
+      id: '/_authenticated/join/$meetingId'
+      path: '/join/$meetingId'
+      fullPath: '/join/$meetingId'
+      preLoaderRoute: typeof AuthenticatedJoinMeetingIdRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/meetings/': {
@@ -265,12 +272,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMeetingsIndexRouteImport
       parentRoute: typeof AuthenticatedMeetingsRoute
     }
-    '/api/auth/$': {
-      id: '/api/auth/$'
-      path: '/api/auth/$'
-      fullPath: '/api/auth/$'
-      preLoaderRoute: typeof ApiAuthSplatRouteImport
-      parentRoute: typeof rootRouteImport
+    '/_authenticated/meetings/$meetingId': {
+      id: '/_authenticated/meetings/$meetingId'
+      path: '/$meetingId'
+      fullPath: '/meetings/$meetingId'
+      preLoaderRoute: typeof AuthenticatedMeetingsMeetingIdRouteImport
+      parentRoute: typeof AuthenticatedMeetingsRoute
     }
     '/_authenticated/meetings/new': {
       id: '/_authenticated/meetings/new'
@@ -279,19 +286,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMeetingsNewRouteImport
       parentRoute: typeof AuthenticatedMeetingsRoute
     }
-    '/_authenticated/meetings/$meetingId': {
-      id: '/_authenticated/meetings/$meetingId'
-      path: '/$meetingId'
-      fullPath: '/meetings/$meetingId'
-      preLoaderRoute: typeof AuthenticatedMeetingsMeetingIdRouteImport
-      parentRoute: typeof AuthenticatedMeetingsRoute
-    }
-    '/_authenticated/join/$meetingId': {
-      id: '/_authenticated/join/$meetingId'
-      path: '/join/$meetingId'
-      fullPath: '/join/$meetingId'
-      preLoaderRoute: typeof AuthenticatedJoinMeetingIdRouteImport
-      parentRoute: typeof AuthenticatedRoute
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_authenticated/meetings/$meetingId/': {
       id: '/_authenticated/meetings/$meetingId/'
@@ -300,12 +300,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMeetingsMeetingIdIndexRouteImport
       parentRoute: typeof AuthenticatedMeetingsMeetingIdRoute
     }
-    '/_authenticated/meetings/$meetingId_/register': {
-      id: '/_authenticated/meetings/$meetingId_/register'
-      path: '/$meetingId/register'
-      fullPath: '/meetings/$meetingId/register'
-      preLoaderRoute: typeof AuthenticatedMeetingsMeetingIdRegisterRouteImport
-      parentRoute: typeof AuthenticatedMeetingsRoute
+    '/_authenticated/meetings/$meetingId/edit': {
+      id: '/_authenticated/meetings/$meetingId/edit'
+      path: '/edit'
+      fullPath: '/meetings/$meetingId/edit'
+      preLoaderRoute: typeof AuthenticatedMeetingsMeetingIdEditRouteImport
+      parentRoute: typeof AuthenticatedMeetingsMeetingIdRoute
     }
     '/_authenticated/meetings/$meetingId/present': {
       id: '/_authenticated/meetings/$meetingId/present'
@@ -314,12 +314,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMeetingsMeetingIdPresentRouteImport
       parentRoute: typeof AuthenticatedMeetingsMeetingIdRoute
     }
-    '/_authenticated/meetings/$meetingId/edit': {
-      id: '/_authenticated/meetings/$meetingId/edit'
-      path: '/edit'
-      fullPath: '/meetings/$meetingId/edit'
-      preLoaderRoute: typeof AuthenticatedMeetingsMeetingIdEditRouteImport
-      parentRoute: typeof AuthenticatedMeetingsMeetingIdRoute
+    '/_authenticated/meetings/$meetingId_/register': {
+      id: '/_authenticated/meetings/$meetingId_/register'
+      path: '/$meetingId/register'
+      fullPath: '/meetings/$meetingId/register'
+      preLoaderRoute: typeof AuthenticatedMeetingsMeetingIdRegisterRouteImport
+      parentRoute: typeof AuthenticatedMeetingsRoute
     }
   }
 }
