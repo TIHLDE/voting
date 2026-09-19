@@ -2,24 +2,24 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { getMeetingById, updateMeeting } from '#/server/meetings';
-import {
-    getVotationsForMeeting,
-    getActiveVotationId,
-} from '#/server/votations';
+import { updateMeeting } from '#/server/meetings';
 import { startNextVotation } from '#/server/voting';
-import {
-    getPendingParticipants,
-    approveParticipant,
-    denyParticipant,
-} from '#/server/participants';
+import { approveParticipant, denyParticipant } from '#/server/participants';
 import AdminBar from '#/components/AdminBar';
 import VotationList from '#/components/VotationList';
 import ActiveVotation from '#/components/ActiveVotation';
 import ManageParticipants from '#/components/ManageParticipants';
 import StatusBadge from '#/components/StatusBadge';
 import { Button } from '#/components/ui/button';
-import { useWsSubscription } from '#/hooks/useWsSubscription';
+import { useLiveQuerySubscription } from '#/hooks/useLiveQuerySubscription';
+import { liveEvents } from '#/lib/live-events';
+import {
+    activeVotationQuery,
+    meetingQuery,
+    participantsQuery,
+    pendingParticipantsQuery,
+    votationsQuery,
+} from '#/queries/live';
 
 export const Route = createFileRoute('/_authenticated/meetings/$meetingId/')({
     component: MeetingLobby,
@@ -31,20 +31,11 @@ function MeetingLobby() {
     const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('votations');
 
-    const { data: meeting } = useQuery({
-        queryKey: ['meeting', meetingId],
-        queryFn: () => getMeetingById({ data: { meetingId } }),
-    });
+    const { data: meeting } = useQuery(meetingQuery(meetingId));
 
-    const { data: votations } = useQuery({
-        queryKey: ['votations', meetingId],
-        queryFn: () => getVotationsForMeeting({ data: { meetingId } }),
-    });
+    const { data: votations } = useQuery(votationsQuery(meetingId));
 
-    const { data: activeVotationId } = useQuery({
-        queryKey: ['activeVotation', meetingId],
-        queryFn: () => getActiveVotationId({ data: { meetingId } }),
-    });
+    const { data: activeVotationId } = useQuery(activeVotationQuery(meetingId));
 
     const myParticipant = meeting?.participants?.find(
         (p) => p.userId === session.user.id,
@@ -57,40 +48,41 @@ function MeetingLobby() {
         : false;
 
     const { data: pendingParticipants } = useQuery({
-        queryKey: ['pendingParticipants', meetingId],
-        queryFn: () => getPendingParticipants({ data: { meetingId } }),
+        ...pendingParticipantsQuery(meetingId),
         enabled: isAdminOrCounter,
     });
 
     const pendingCount = pendingParticipants?.length ?? 0;
 
-    useWsSubscription(`meeting:${meetingId}:votation-opened`, {
+    useLiveQuerySubscription(liveEvents.meetingVotationOpened(meetingId), {
         invalidate: [
-            ['activeVotation', meetingId],
-            ['votations', meetingId],
-            ['meeting', meetingId],
+            activeVotationQuery(meetingId),
+            votationsQuery(meetingId),
+            meetingQuery(meetingId),
         ],
         onMessage: () => setActiveTab('active'),
     });
 
-    useWsSubscription(`meeting:${meetingId}:votations-updated`, {
-        invalidate: [['votations', meetingId]],
+    useLiveQuerySubscription(liveEvents.meetingVotationsUpdated(meetingId), {
+        invalidate: [votationsQuery(meetingId)],
     });
 
-    useWsSubscription(
-        isAdminOrCounter ? `meeting:${meetingId}:participant-pending` : '',
-        {
-            invalidate: [['pendingParticipants', meetingId]],
-        },
+    useLiveQuerySubscription(
+        isAdminOrCounter
+            ? liveEvents.meetingParticipantPending(meetingId)
+            : null,
+        { invalidate: [pendingParticipantsQuery(meetingId)] },
     );
 
-    useWsSubscription(
-        isAdminOrCounter ? `meeting:${meetingId}:participants-updated` : '',
+    useLiveQuerySubscription(
+        isAdminOrCounter
+            ? liveEvents.meetingParticipantsUpdated(meetingId)
+            : null,
         {
             invalidate: [
-                ['pendingParticipants', meetingId],
-                ['participants', meetingId],
-                ['meeting', meetingId],
+                pendingParticipantsQuery(meetingId),
+                participantsQuery(meetingId),
+                meetingQuery(meetingId),
             ],
         },
     );

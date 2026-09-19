@@ -2,18 +2,23 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useMemo } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
-import { getVotationById } from '#/server/votations';
 import {
     castVote,
     castBlankVote,
     castStvVote,
-    getVoteCount,
-    getHasVoted,
     updateVotationStatus,
-    getNotVotedParticipants,
 } from '#/server/voting';
 import { Button } from '#/components/ui/button';
-import { useWsSubscription } from '#/hooks/useWsSubscription';
+import { useLiveQuerySubscription } from '#/hooks/useLiveQuerySubscription';
+import { liveEvents } from '#/lib/live-events';
+import {
+    hasVotedQuery,
+    notVotedQuery,
+    resultsQuery,
+    votationQuery,
+    votationsQuery,
+    voteCountQuery,
+} from '#/queries/live';
 import VotationResultView from './VotationResult';
 import CheckResults from './CheckResults';
 
@@ -33,22 +38,22 @@ export default function ActiveVotation({
     canVote,
 }: ActiveVotationProps) {
     const { data: votation } = useQuery({
-        queryKey: ['votation', activeVotationId],
-        queryFn: () =>
-            getVotationById({ data: { votationId: activeVotationId! } }),
+        ...votationQuery(activeVotationId ?? ''),
         enabled: !!activeVotationId,
     });
 
-    useWsSubscription(
-        activeVotationId ? `votation:${activeVotationId}:status` : '',
+    useLiveQuerySubscription(
+        activeVotationId ? liveEvents.votationStatus(activeVotationId) : null,
         {
-            invalidate: [
-                ['votation', activeVotationId],
-                ['votations', meetingId],
-                ['hasVoted', activeVotationId],
-                ['voteCount', activeVotationId],
-                ['results', activeVotationId],
-            ],
+            invalidate: activeVotationId
+                ? [
+                      votationQuery(activeVotationId),
+                      votationsQuery(meetingId),
+                      hasVotedQuery(activeVotationId),
+                      voteCountQuery(activeVotationId),
+                      resultsQuery(activeVotationId),
+                  ]
+                : [],
         },
     );
 
@@ -142,20 +147,16 @@ function VotingInterface({
 
     // Check if user already voted (survives page refresh)
     const { data: hasVotedData } = useQuery({
-        queryKey: ['hasVoted', votationId],
-        queryFn: () => getHasVoted({ data: { votationId } }),
+        ...hasVotedQuery(votationId),
         enabled: canVote,
     });
 
     const hasVoted = hasVotedData?.hasVoted ?? false;
 
-    const { data: voteCount } = useQuery({
-        queryKey: ['voteCount', votationId],
-        queryFn: () => getVoteCount({ data: { votationId } }),
-    });
+    const { data: voteCount } = useQuery(voteCountQuery(votationId));
 
-    useWsSubscription(`votation:${votationId}:votes`, {
-        setQueryData: ['voteCount', votationId],
+    useLiveQuerySubscription(liveEvents.votationVotes(votationId), {
+        setQueryData: voteCountQuery(votationId),
     });
 
     // Shuffle alternatives deterministically per session
@@ -169,7 +170,9 @@ function VotingInterface({
     }, [alternatives]);
 
     const onVoteSuccess = () => {
-        queryClient.setQueryData(['hasVoted', votationId], { hasVoted: true });
+        queryClient.setQueryData(hasVotedQuery(votationId).queryKey, {
+            hasVoted: true,
+        });
         toast.success('Din stemme er registrert!');
     };
 
@@ -508,13 +511,12 @@ function NotVotedList({ votationId }: { votationId: string }) {
     const [open, setOpen] = useState(false);
 
     const { data: notVoted } = useQuery({
-        queryKey: ['notVoted', votationId],
-        queryFn: () => getNotVotedParticipants({ data: { votationId } }),
+        ...notVotedQuery(votationId),
         refetchInterval: 10000,
     });
 
-    useWsSubscription(`votation:${votationId}:votes`, {
-        invalidate: [['notVoted', votationId]],
+    useLiveQuerySubscription(liveEvents.votationVotes(votationId), {
+        invalidate: [notVotedQuery(votationId)],
     });
 
     if (!notVoted || notVoted.length === 0) return null;

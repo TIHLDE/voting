@@ -10,6 +10,7 @@ import {
     requireParticipant,
 } from './permissions.server';
 import { publish } from './sse/emitter';
+import { liveEvents } from '#/lib/live-events';
 
 export const getParticipants = createServerFn({ method: 'GET' })
     .inputValidator(z.object({ meetingId: z.string() }))
@@ -299,7 +300,7 @@ export const registerAsParticipant = createServerFn({ method: 'POST' })
             })
             .returning();
 
-        publish(`meeting:${data.meetingId}:participant-pending`, {
+        publish(liveEvents.meetingParticipantPending(data.meetingId), {
             participantId: newParticipant.id,
             userName: session.user.name,
         });
@@ -322,10 +323,10 @@ export const approveParticipant = createServerFn({ method: 'POST' })
 
         if (!updated) throw new Error('Deltakeren finnes ikke');
 
-        publish(`participant:${updated.userId}:status:${data.meetingId}`, {
+        publish(liveEvents.participantStatus(updated.userId, data.meetingId), {
             approved: true,
         });
-        publish(`meeting:${data.meetingId}:participants-updated`, {});
+        publish(liveEvents.meetingParticipantsUpdated(data.meetingId), {});
 
         return updated;
     });
@@ -347,10 +348,10 @@ export const denyParticipant = createServerFn({ method: 'POST' })
             .delete(participant)
             .where(eq(participant.id, data.participantId));
 
-        publish(`participant:${p.userId}:status:${data.meetingId}`, {
+        publish(liveEvents.participantStatus(p.userId, data.meetingId), {
             denied: true,
         });
-        publish(`meeting:${data.meetingId}:participants-updated`, {});
+        publish(liveEvents.meetingParticipantsUpdated(data.meetingId), {});
 
         return { success: true };
     });

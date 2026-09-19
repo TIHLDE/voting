@@ -1,16 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { getVotationResults } from '#/server/results';
 import {
     updateVotationStatus,
     resetVotation,
     reviewVotation,
-    getReviewCounts,
-    getMyReview,
-    getReviewerCount,
 } from '#/server/voting';
 import { Button } from '#/components/ui/button';
-import { useWsSubscription } from '#/hooks/useWsSubscription';
+import { useLiveQuerySubscription } from '#/hooks/useLiveQuerySubscription';
+import { liveEvents } from '#/lib/live-events';
+import {
+    myReviewQuery,
+    reviewCountsQuery,
+    reviewerCountQuery,
+    resultsQuery,
+} from '#/queries/live';
 import VoteAudit from './VoteAudit';
 
 interface CheckResultsProps {
@@ -28,34 +31,26 @@ export default function CheckResults({
 }: CheckResultsProps) {
     const queryClient = useQueryClient();
 
-    const { data: results } = useQuery({
-        queryKey: ['results', votationId],
-        queryFn: () => getVotationResults({ data: { votationId } }),
-    });
+    const { data: results } = useQuery(resultsQuery(votationId));
 
     const { data: reviewCounts } = useQuery({
-        queryKey: ['reviewCounts', votationId],
-        queryFn: () => getReviewCounts({ data: { votationId } }),
+        ...reviewCountsQuery(votationId),
         enabled: isAdminOrCounter,
     });
 
     const { data: reviewerCount } = useQuery({
-        queryKey: ['reviewerCount', meetingId],
-        queryFn: () => getReviewerCount({ data: { meetingId } }),
+        ...reviewerCountQuery(meetingId),
         enabled: isAdminOrCounter,
     });
 
     const { data: myReview } = useQuery({
-        queryKey: ['myReview', votationId],
-        queryFn: () => getMyReview({ data: { votationId } }),
+        ...myReviewQuery(votationId),
         enabled: isAdminOrCounter,
     });
 
-    useWsSubscription(
-        isAdminOrCounter ? `votation:${votationId}:reviews` : '',
-        {
-            setQueryData: ['reviewCounts', votationId],
-        },
+    useLiveQuerySubscription(
+        isAdminOrCounter ? liveEvents.votationReviews(votationId) : null,
+        { setQueryData: reviewCountsQuery(votationId) },
     );
 
     const reviewMutation = useMutation({

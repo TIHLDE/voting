@@ -7,6 +7,7 @@ import {
 } from '#/server/participants';
 import { Button } from '#/components/ui/button';
 import { useSSE } from '#/hooks/useSSE';
+import { liveEvents } from '#/lib/live-events';
 
 export const Route = createFileRoute('/_authenticated/join/$meetingId')({
     component: JoinMeeting,
@@ -34,8 +35,8 @@ function JoinMeeting() {
 
     useSSE(
         status?.status === 'pending'
-            ? `participant:${session.user.id}:status:${meetingId}`
-            : '',
+            ? liveEvents.participantStatus(session.user.id, meetingId)
+            : null,
         () => {
             void refetch().then((result) => {
                 if (result.data?.status === 'approved') {

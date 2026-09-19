@@ -1,16 +1,19 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
-import { getMeetingById } from '#/server/meetings';
-import { getActiveVotationId, getVotationById } from '#/server/votations';
-import {
-    getVoteCount,
-    getReviewCounts,
-    getReviewerCount,
-} from '#/server/voting';
-import { getVotationResults } from '#/server/results';
 import { Progress } from '#/components/ui/progress';
-import { useWsSubscription } from '#/hooks/useWsSubscription';
+import { useLiveQuerySubscription } from '#/hooks/useLiveQuerySubscription';
+import { liveEvents } from '#/lib/live-events';
+import {
+    activeVotationQuery,
+    meetingQuery,
+    reviewCountsQuery,
+    reviewerCountQuery,
+    resultsQuery,
+    votationQuery,
+    votationsQuery,
+    voteCountQuery,
+} from '#/queries/live';
 
 export const Route = createFileRoute(
     '/_authenticated/meetings/$meetingId/present',
@@ -24,15 +27,9 @@ function PresentationView() {
         null,
     );
 
-    const { data: meeting } = useQuery({
-        queryKey: ['meeting', meetingId],
-        queryFn: () => getMeetingById({ data: { meetingId } }),
-    });
+    const { data: meeting } = useQuery(meetingQuery(meetingId));
 
-    const { data: activeVotationId } = useQuery({
-        queryKey: ['activeVotation', meetingId],
-        queryFn: () => getActiveVotationId({ data: { meetingId } }),
-    });
+    const { data: activeVotationId } = useQuery(activeVotationQuery(meetingId));
 
     useEffect(() => {
         if (activeVotationId) {
@@ -40,12 +37,9 @@ function PresentationView() {
         }
     }, [activeVotationId]);
 
-    useWsSubscription(`meeting:${meetingId}:votation-opened`, {
-        invalidate: [['activeVotation', meetingId]],
-        onMessage: (data) => {
-            const { votationId } = data as { votationId: string };
-            setCurrentVotationId(votationId);
-        },
+    useLiveQuerySubscription(liveEvents.meetingVotationOpened(meetingId), {
+        invalidate: [activeVotationQuery(meetingId)],
+        onMessage: ({ votationId }) => setCurrentVotationId(votationId),
     });
 
     if (!meeting) return null;
@@ -95,30 +89,26 @@ function PresentVotation({
     votationId: string;
     meetingId: string;
 }) {
-    const { data: votation } = useQuery({
-        queryKey: ['votation', votationId],
-        queryFn: () => getVotationById({ data: { votationId } }),
-    });
+    const { data: votation } = useQuery(votationQuery(votationId));
 
     const { data: voteCount } = useQuery({
-        queryKey: ['voteCount', votationId],
-        queryFn: () => getVoteCount({ data: { votationId } }),
+        ...voteCountQuery(votationId),
         enabled: votation?.status === 'OPEN',
     });
 
-    useWsSubscription(votationId ? `votation:${votationId}:status` : '', {
+    useLiveQuerySubscription(liveEvents.votationStatus(votationId), {
         invalidate: [
-            ['votation', votationId],
-            ['votations', meetingId],
-            ['activeVotation', meetingId],
+            votationQuery(votationId),
+            votationsQuery(meetingId),
+            activeVotationQuery(meetingId),
         ],
     });
 
-    useWsSubscription(
-        votation?.status === 'OPEN' ? `votation:${votationId}:votes` : '',
-        {
-            setQueryData: ['voteCount', votationId],
-        },
+    useLiveQuerySubscription(
+        votation?.status === 'OPEN'
+            ? liveEvents.votationVotes(votationId)
+            : null,
+        { setQueryData: voteCountQuery(votationId) },
     );
 
     if (!votation) return null;
@@ -199,10 +189,7 @@ function VoteProgress({
 }
 
 function PresentResults({ votationId }: { votationId: string }) {
-    const { data: results } = useQuery({
-        queryKey: ['results', votationId],
-        queryFn: () => getVotationResults({ data: { votationId } }),
-    });
+    const { data: results } = useQuery(resultsQuery(votationId));
 
     if (!results) return null;
 
@@ -297,18 +284,12 @@ function CheckingResultsPresentation({
     votationId: string;
     meetingId: string;
 }) {
-    const { data: reviewCounts } = useQuery({
-        queryKey: ['reviewCounts', votationId],
-        queryFn: () => getReviewCounts({ data: { votationId } }),
-    });
+    const { data: reviewCounts } = useQuery(reviewCountsQuery(votationId));
 
-    const { data: reviewerCount } = useQuery({
-        queryKey: ['reviewerCount', meetingId],
-        queryFn: () => getReviewerCount({ data: { meetingId } }),
-    });
+    const { data: reviewerCount } = useQuery(reviewerCountQuery(meetingId));
 
-    useWsSubscription(`votation:${votationId}:reviews`, {
-        setQueryData: ['reviewCounts', votationId],
+    useLiveQuerySubscription(liveEvents.votationReviews(votationId), {
+        setQueryData: reviewCountsQuery(votationId),
     });
 
     const approved = reviewCounts?.approved ?? 0;
