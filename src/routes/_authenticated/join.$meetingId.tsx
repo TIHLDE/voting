@@ -1,5 +1,6 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Navigate, useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation } from '@tanstack/react-query';
+
 import { getMeetingPublicInfo } from '#/server/meetings';
 import {
     getMyRegistrationStatus,
@@ -50,8 +51,7 @@ function JoinMeeting() {
     );
 
     if (status?.status === 'approved') {
-        void navigate({ to: '/meetings/$meetingId', params: { meetingId } });
-        return null;
+        return <Navigate to="/meetings/$meetingId" params={{ meetingId }} />;
     }
 
     if (status?.status === 'pending') {

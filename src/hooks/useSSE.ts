@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useEffectEvent } from 'react';
 import type { z } from 'zod';
 import type { LiveEvent } from '#/lib/live-events';
 import { sseManager } from '#/lib/sse-manager';
@@ -8,10 +8,8 @@ export function useSSE<TSchema extends z.ZodType>(
     onMessage: (data: z.output<TSchema>) => void,
     onReconnect?: () => void,
 ) {
-    const onMessageRef = useRef(onMessage);
-    const onReconnectRef = useRef(onReconnect);
-    onMessageRef.current = onMessage;
-    onReconnectRef.current = onReconnect;
+    const handleMessage = useEffectEvent(onMessage);
+    const handleReconnect = useEffectEvent(() => onReconnect?.());
 
     useEffect(() => {
         if (!event || !sseManager) return;
@@ -19,9 +17,9 @@ export function useSSE<TSchema extends z.ZodType>(
         return sseManager.subscribe(event.channel, {
             onMessage: (data) => {
                 const result = event.schema.safeParse(data);
-                if (result.success) onMessageRef.current(result.data);
+                if (result.success) handleMessage(result.data);
             },
-            onReconnect: () => onReconnectRef.current?.(),
+            onReconnect: handleReconnect,
         });
-    }, [event?.channel]);
+    }, [event?.channel, event?.schema]);
 }

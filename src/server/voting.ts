@@ -275,9 +275,9 @@ export const resetVotation = createServerFn({ method: 'POST' })
             const altIds = alts.map((a) => a.id);
 
             if (altIds.length > 0) {
-                for (const altId of altIds) {
-                    await tx.delete(vote).where(eq(vote.alternativeId, altId));
-                }
+                await tx
+                    .delete(vote)
+                    .where(inArray(vote.alternativeId, altIds));
             }
 
             // Delete STV votes
@@ -301,11 +301,11 @@ export const resetVotation = createServerFn({ method: 'POST' })
                 .where(eq(votationResultReview.votationId, data.votationId));
 
             // Reset alternatives
-            for (const altId of altIds) {
+            if (altIds.length > 0) {
                 await tx
                     .update(alternative)
                     .set({ isWinner: false })
-                    .where(eq(alternative.id, altId));
+                    .where(inArray(alternative.id, altIds));
             }
 
             // Reset votation and immediately re-open

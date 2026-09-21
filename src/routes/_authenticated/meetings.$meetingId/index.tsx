@@ -1,10 +1,16 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
-import { updateMeeting } from '#/server/meetings';
+import { getMeetingById, updateMeeting } from '#/server/meetings';
 import { startNextVotation } from '#/server/voting';
-import { approveParticipant, denyParticipant } from '#/server/participants';
+import { getVotationsForMeeting } from '#/server/votations';
+import {
+    approveParticipant,
+    denyParticipant,
+    getPendingParticipants,
+} from '#/server/participants';
 import AdminBar from '#/components/AdminBar';
 import VotationList from '#/components/VotationList';
 import ActiveVotation from '#/components/ActiveVotation';
@@ -28,7 +34,6 @@ export const Route = createFileRoute('/_authenticated/meetings/$meetingId/')({
 function MeetingLobby() {
     const { meetingId } = Route.useParams();
     const { session } = Route.useRouteContext();
-    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState('votations');
 
     const { data: meeting } = useQuery(meetingQuery(meetingId));
@@ -43,16 +48,10 @@ function MeetingLobby() {
     const isAdmin = myParticipant?.role === 'ADMIN';
     const isCounter = myParticipant?.role === 'COUNTER';
     const isAdminOrCounter = isAdmin || isCounter;
-    const canVote = myParticipant
-        ? myParticipant.role !== 'ADMIN' && myParticipant.isVotingEligible
-        : false;
-
     const { data: pendingParticipants } = useQuery({
         ...pendingParticipantsQuery(meetingId),
         enabled: isAdminOrCounter,
     });
-
-    const pendingCount = pendingParticipants?.length ?? 0;
 
     useLiveQuerySubscription(liveEvents.meetingVotationOpened(meetingId), {
         invalidate: [
@@ -87,161 +86,238 @@ function MeetingLobby() {
         },
     );
 
-    const startMutation = useMutation({
-        mutationFn: () => startNextVotation({ data: { meetingId } }),
-        onSuccess: () => {
-            void queryClient.invalidateQueries({
-                queryKey: ['activeVotation', meetingId],
-            });
-            void queryClient.invalidateQueries({
-                queryKey: ['votations', meetingId],
-            });
-            void queryClient.invalidateQueries({
-                queryKey: ['meeting', meetingId],
-            });
-            setActiveTab('active');
-        },
-        onError: (err) => {
-            toast.error(
-                err instanceof Error
-                    ? err.message
-                    : 'Kunne ikke starte votering',
-            );
-        },
-    });
-
-    const statusMutation = useMutation({
-        mutationFn: (status: 'ONGOING' | 'ENDED') =>
-            updateMeeting({ data: { meetingId, status } }),
-        onSuccess: () => {
-            void queryClient.invalidateQueries({
-                queryKey: ['meeting', meetingId],
-            });
-        },
-        onError: (err) => {
-            toast.error(
-                err instanceof Error
-                    ? err.message
-                    : 'Kunne ikke oppdatere møtestatus',
-            );
-        },
-    });
-
     // Auto-switch to active tab when a votation becomes active
     useEffect(() => {
-        if (activeVotationId && activeTab === 'votations') {
-            setActiveTab('active');
+        if (activeVotationId) {
+            setActiveTab((current) =>
+                current === 'votations' ? 'active' : current,
+            );
         }
     }, [activeVotationId]);
 
     if (!meeting) return null;
 
-    const manageTabs = [
-        { id: 'votations', label: 'Voteringer' },
-        { id: 'active', label: 'Aktiv votering' },
-        {
-            id: 'participants',
-            label: 'Deltakere',
-            badge: pendingCount > 0 ? pendingCount : undefined,
-        },
-        { id: 'selfregistration', label: 'Registrering' },
-    ];
-
     return (
         <main className="mx-auto max-w-5xl px-4 py-8">
-            <div className="mb-6 flex flex-wrap items-center gap-3">
-                <h1 className="text-3xl font-bold text-foreground">
-                    {meeting.title}
-                </h1>
-                <StatusBadge status={meeting.status} />
-                {isAdminOrCounter && (
-                    <div className="ml-auto flex gap-2">
-                        {isAdmin && meeting.status === 'ONGOING' && (
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => statusMutation.mutate('ENDED')}
-                                disabled={statusMutation.isPending}
-                            >
-                                Avslutt møte
-                            </Button>
-                        )}
-                        {isAdmin && (
-                            <Link
-                                to="/meetings/$meetingId/edit"
-                                params={{ meetingId }}
-                            >
-                                <Button size="sm" variant="outline">
-                                    Rediger
-                                </Button>
-                            </Link>
-                        )}
-                        <Link
-                            to="/meetings/$meetingId/present"
-                            params={{ meetingId }}
-                            target="_blank"
-                        >
-                            <Button size="sm" variant="outline">
-                                Presentasjon
-                            </Button>
-                        </Link>
-                    </div>
-                )}
-            </div>
-
+            <MeetingHeader
+                meeting={meeting}
+                meetingId={meetingId}
+                isAdmin={!!isAdmin}
+                isAdminOrCounter={isAdminOrCounter}
+            />
             {meeting.description && (
                 <p className="mb-6 text-muted-foreground">
                     {meeting.description}
                 </p>
             )}
-
             {isAdminOrCounter && (
-                <AdminBar
-                    activeTab={activeTab}
-                    onTabChange={setActiveTab}
-                    tabs={manageTabs}
-                    onStartNextVotation={
-                        isAdmin ? () => startMutation.mutate() : undefined
-                    }
-                    startingVotation={startMutation.isPending}
-                />
-            )}
-
-            {activeTab === 'votations' && (
-                <VotationList
-                    votations={votations ?? []}
+                <MeetingAdminBar
                     meetingId={meetingId}
-                    isAdmin={!!isAdmin}
-                    openVotationId={activeVotationId ?? null}
-                    onViewActive={() => setActiveTab('active')}
+                    activeTab={activeTab}
+                    pendingCount={pendingParticipants?.length ?? 0}
+                    canStartVotation={!!isAdmin}
+                    onTabChange={setActiveTab}
                 />
             )}
+            <MeetingContent
+                activeTab={activeTab}
+                meeting={meeting}
+                votations={votations ?? []}
+                pendingParticipants={pendingParticipants ?? []}
+                meetingId={meetingId}
+                activeVotationId={activeVotationId ?? null}
+                userId={session.user.id}
+                onTabChange={setActiveTab}
+            />
+        </main>
+    );
+}
 
-            {activeTab === 'active' && (
+type MeetingData = Awaited<ReturnType<typeof getMeetingById>>;
+type VotationsData = Awaited<ReturnType<typeof getVotationsForMeeting>>;
+type PendingParticipantsData = Awaited<
+    ReturnType<typeof getPendingParticipants>
+>;
+function MeetingHeader({
+    meeting,
+    meetingId,
+    isAdmin,
+    isAdminOrCounter,
+}: {
+    meeting: MeetingData;
+    meetingId: string;
+    isAdmin: boolean;
+    isAdminOrCounter: boolean;
+}) {
+    const queryClient = useQueryClient();
+    const endMeeting = useMutation({
+        mutationFn: () =>
+            updateMeeting({ data: { meetingId, status: 'ENDED' } }),
+        onSuccess: () => queryClient.invalidateQueries(meetingQuery(meetingId)),
+        onError: (error) =>
+            toast.error(error.message || 'Kunne ikke oppdatere møtestatus'),
+    });
+
+    return (
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+            <h1 className="text-3xl font-bold text-foreground">
+                {meeting.title}
+            </h1>
+            <StatusBadge status={meeting.status} />
+            {isAdminOrCounter && (
+                <div className="ml-auto flex gap-2">
+                    {isAdmin && meeting.status === 'ONGOING' && (
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => endMeeting.mutate()}
+                            disabled={endMeeting.isPending}
+                        >
+                            Avslutt møte
+                        </Button>
+                    )}
+                    {isAdmin && (
+                        <Link
+                            to="/meetings/$meetingId/edit"
+                            params={{ meetingId }}
+                        >
+                            <Button size="sm" variant="outline">
+                                Rediger
+                            </Button>
+                        </Link>
+                    )}
+                    <Link
+                        to="/meetings/$meetingId/present"
+                        params={{ meetingId }}
+                        target="_blank"
+                    >
+                        <Button size="sm" variant="outline">
+                            Presentasjon
+                        </Button>
+                    </Link>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function MeetingAdminBar({
+    meetingId,
+    activeTab,
+    pendingCount,
+    canStartVotation,
+    onTabChange,
+}: {
+    meetingId: string;
+    activeTab: string;
+    pendingCount: number;
+    canStartVotation: boolean;
+    onTabChange: (tab: string) => void;
+}) {
+    const queryClient = useQueryClient();
+    const startVotation = useMutation({
+        mutationFn: () => startNextVotation({ data: { meetingId } }),
+        onSuccess: () => {
+            void Promise.all([
+                queryClient.invalidateQueries(activeVotationQuery(meetingId)),
+                queryClient.invalidateQueries(votationsQuery(meetingId)),
+                queryClient.invalidateQueries(meetingQuery(meetingId)),
+            ]);
+            onTabChange('active');
+        },
+        onError: (error) =>
+            toast.error(error.message || 'Kunne ikke starte votering'),
+    });
+
+    return (
+        <AdminBar
+            activeTab={activeTab}
+            onTabChange={onTabChange}
+            tabs={[
+                { id: 'votations', label: 'Voteringer' },
+                { id: 'active', label: 'Aktiv votering' },
+                {
+                    id: 'participants',
+                    label: 'Deltakere',
+                    badge: pendingCount > 0 ? pendingCount : undefined,
+                },
+                { id: 'selfregistration', label: 'Registrering' },
+            ]}
+            onStartNextVotation={
+                canStartVotation ? () => startVotation.mutate() : undefined
+            }
+            startingVotation={startVotation.isPending}
+        />
+    );
+}
+
+function MeetingContent({
+    activeTab,
+    meeting,
+    votations,
+    pendingParticipants,
+    meetingId,
+    activeVotationId,
+    userId,
+    onTabChange,
+}: {
+    activeTab: string;
+    meeting: MeetingData;
+    votations: VotationsData;
+    pendingParticipants: PendingParticipantsData;
+    meetingId: string;
+    activeVotationId: string | null;
+    userId: string;
+    onTabChange: (tab: string) => void;
+}) {
+    const participant = meeting.participants.find(
+        (item) => item.userId === userId,
+    );
+    const isAdmin = participant?.role === 'ADMIN';
+    const isAdminOrCounter = isAdmin || participant?.role === 'COUNTER';
+
+    switch (activeTab) {
+        case 'votations':
+            return (
+                <VotationList
+                    votations={votations}
+                    meetingId={meetingId}
+                    isAdmin={isAdmin}
+                    openVotationId={activeVotationId}
+                    onViewActive={() => onTabChange('active')}
+                />
+            );
+        case 'active':
+            return (
                 <ActiveVotation
                     meetingId={meetingId}
-                    activeVotationId={activeVotationId ?? null}
-                    isAdmin={!!isAdmin}
+                    activeVotationId={activeVotationId}
+                    isAdmin={isAdmin}
                     isAdminOrCounter={isAdminOrCounter}
-                    canVote={canVote}
+                    canVote={
+                        !!participant &&
+                        participant.role !== 'ADMIN' &&
+                        participant.isVotingEligible
+                    }
                 />
-            )}
-
-            {activeTab === 'participants' && isAdminOrCounter && (
+            );
+        case 'participants':
+            return isAdminOrCounter ? (
                 <ParticipantsPanel
                     meetingId={meetingId}
-                    pendingParticipants={pendingParticipants ?? []}
+                    pendingParticipants={pendingParticipants}
                 />
-            )}
-
-            {activeTab === 'selfregistration' && isAdminOrCounter && (
+            ) : null;
+        case 'selfregistration':
+            return isAdminOrCounter ? (
                 <SelfRegistrationPanel
                     meetingId={meetingId}
                     allowSelfRegistration={meeting.allowSelfRegistration}
                 />
-            )}
-        </main>
-    );
+            ) : null;
+        default:
+            return null;
+    }
 }
 
 function ParticipantsPanel({
@@ -283,13 +359,17 @@ function ParticipantsPanel({
     });
 
     const approveAllMutation = useMutation({
-        mutationFn: async () => {
-            for (const p of pendingParticipants) {
-                await approveParticipant({
-                    data: { meetingId, participantId: p.id },
-                });
-            }
-        },
+        mutationFn: () =>
+            Promise.all(
+                pendingParticipants.map((participant) =>
+                    approveParticipant({
+                        data: {
+                            meetingId,
+                            participantId: participant.id,
+                        },
+                    }),
+                ),
+            ),
         onSuccess: () => {
             void queryClient.invalidateQueries({
                 queryKey: ['pendingParticipants', meetingId],
@@ -371,6 +451,16 @@ function ParticipantsPanel({
     );
 }
 
+const subscribeToOrigin = () => () => {};
+
+function useOrigin() {
+    return useSyncExternalStore(
+        subscribeToOrigin,
+        () => window.location.origin,
+        () => '',
+    );
+}
+
 function SelfRegistrationPanel({
     meetingId,
     allowSelfRegistration,
@@ -378,6 +468,8 @@ function SelfRegistrationPanel({
     meetingId: string;
     allowSelfRegistration: boolean;
 }) {
+    const origin = useOrigin();
+
     if (!allowSelfRegistration) {
         return (
             <div className="rounded-xl border bg-card p-6 text-center shadow-sm">
@@ -389,10 +481,7 @@ function SelfRegistrationPanel({
         );
     }
 
-    const regUrl =
-        typeof window !== 'undefined'
-            ? `${window.location.origin}/join/${meetingId}`
-            : '';
+    const regUrl = origin ? `${origin}/join/${meetingId}` : '';
 
     return (
         <div className="rounded-xl border bg-card p-6 shadow-sm">
@@ -420,39 +509,12 @@ function SelfRegistrationPanel({
                 </Button>
             </div>
             <div className="flex justify-center">
-                <QRCode meetingId={meetingId} />
+                {regUrl ? (
+                    <QRCodeSVG value={regUrl} size={200} />
+                ) : (
+                    <div className="h-[200px] w-[200px] animate-pulse rounded bg-muted" />
+                )}
             </div>
         </div>
     );
-}
-
-function QRCode({ meetingId }: { meetingId: string }) {
-    const url =
-        typeof window !== 'undefined'
-            ? `${window.location.origin}/join/${meetingId}`
-            : '';
-
-    if (!url) return null;
-
-    return <QRCodeDisplay value={url} />;
-}
-
-function QRCodeDisplay({ value }: { value: string }) {
-    const [QRCodeSVG, setQRCodeSVG] = useState<React.ComponentType<{
-        value: string;
-        size: number;
-    }> | null>(null);
-
-    useEffect(() => {
-        void import('qrcode.react').then((mod) => {
-            setQRCodeSVG(() => mod.QRCodeSVG);
-        });
-    }, []);
-
-    if (!QRCodeSVG)
-        return (
-            <div className="h-[200px] w-[200px] animate-pulse rounded bg-muted" />
-        );
-
-    return <QRCodeSVG value={value} size={200} />;
 }

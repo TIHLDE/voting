@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { votation, alternative } from '#/db/schema';
 import { db } from '#/db/index';
@@ -66,32 +66,30 @@ export const createVotations = createServerFn({ method: 'POST' })
     .handler(async ({ data }) => {
         await requireAdmin(data.meetingId);
 
-        const created = [];
+        return Promise.all(
+            data.votations.map(async (item) => {
+                const { alternatives: alts, ...votationData } = item;
+                const [newVotation] = await db
+                    .insert(votation)
+                    .values({
+                        ...votationData,
+                        meetingId: data.meetingId,
+                    })
+                    .returning();
 
-        for (const v of data.votations) {
-            const { alternatives: alts, ...votationData } = v;
-            const [newVotation] = await db
-                .insert(votation)
-                .values({
-                    ...votationData,
-                    meetingId: data.meetingId,
-                })
-                .returning();
+                if (alts && alts.length > 0) {
+                    await db.insert(alternative).values(
+                        alts.map((alternativeItem) => ({
+                            text: alternativeItem.text,
+                            index: alternativeItem.index,
+                            votationId: newVotation.id,
+                        })),
+                    );
+                }
 
-            if (alts && alts.length > 0) {
-                await db.insert(alternative).values(
-                    alts.map((a) => ({
-                        text: a.text,
-                        index: a.index,
-                        votationId: newVotation.id,
-                    })),
-                );
-            }
-
-            created.push(newVotation);
-        }
-
-        return created;
+                return newVotation;
+            }),
+        );
     });
 
 const updateVotationSchema = z.object({
@@ -125,45 +123,43 @@ export const updateVotations = createServerFn({ method: 'POST' })
     .handler(async ({ data }) => {
         await requireAdmin(data.meetingId);
 
-        const updated = [];
-
-        for (const v of data.votations) {
-            // Verify votation is UPCOMING
-            const existing = await db.query.votation.findFirst({
-                where: { id: v.id },
-            });
-            if (!existing || existing.status !== 'UPCOMING') {
-                throw new Error('Kan kun redigere kommende voteringer');
-            }
-
-            const { id, alternatives: alts, ...updateData } = v;
-            const [updatedVotation] = await db
-                .update(votation)
-                .set(updateData)
-                .where(eq(votation.id, id))
-                .returning();
-
-            if (alts) {
-                // Delete existing alternatives and recreate
-                await db
-                    .delete(alternative)
-                    .where(eq(alternative.votationId, id));
-
-                if (alts.length > 0) {
-                    await db.insert(alternative).values(
-                        alts.map((a) => ({
-                            text: a.text,
-                            index: a.index,
-                            votationId: id,
-                        })),
-                    );
+        return Promise.all(
+            data.votations.map(async (item) => {
+                // Verify votation is UPCOMING
+                const existing = await db.query.votation.findFirst({
+                    where: { id: item.id },
+                });
+                if (!existing || existing.status !== 'UPCOMING') {
+                    throw new Error('Kan kun redigere kommende voteringer');
                 }
-            }
 
-            updated.push(updatedVotation);
-        }
+                const { id, alternatives: alts, ...updateData } = item;
+                const [updatedVotation] = await db
+                    .update(votation)
+                    .set(updateData)
+                    .where(eq(votation.id, id))
+                    .returning();
 
-        return updated;
+                if (alts) {
+                    // Delete existing alternatives and recreate
+                    await db
+                        .delete(alternative)
+                        .where(eq(alternative.votationId, id));
+
+                    if (alts.length > 0) {
+                        await db.insert(alternative).values(
+                            alts.map((alternativeItem) => ({
+                                text: alternativeItem.text,
+                                index: alternativeItem.index,
+                                votationId: id,
+                            })),
+                        );
+                    }
+                }
+
+                return updatedVotation;
+            }),
+        );
     });
 
 export const updateVotationIndexes = createServerFn({ method: 'POST' })
@@ -176,13 +172,14 @@ export const updateVotationIndexes = createServerFn({ method: 'POST' })
     .handler(async ({ data }) => {
         await requireAdmin(data.meetingId);
 
-        for (const v of data.votations) {
-            await db
-                .update(votation)
-                .set({ index: v.index })
-                .where(eq(votation.id, v.id));
-        }
-
+        await Promise.all(
+            data.votations.map((item) =>
+                db
+                    .update(votation)
+                    .set({ index: item.index })
+                    .where(eq(votation.id, item.id)),
+            ),
+        );
         return { success: true };
     });
 
@@ -203,16 +200,19 @@ export const deleteVotation = createServerFn({ method: 'POST' })
 export const deleteAlternatives = createServerFn({ method: 'POST' })
     .inputValidator(z.object({ ids: z.array(z.string()) }))
     .handler(async ({ data }) => {
-        for (const id of data.ids) {
-            const alt = await db.query.alternative.findFirst({
-                where: { id },
-                with: { votation: true },
-            });
-            if (alt) {
-                await requireAdmin(alt.votation.meetingId);
-                await db.delete(alternative).where(eq(alternative.id, id));
-            }
-        }
+        if (data.ids.length === 0) return { success: true };
+
+        const alternatives = await db.query.alternative.findMany({
+            where: { id: { in: data.ids } },
+            with: { votation: true },
+        });
+        const meetingIds = Array.from(
+            new Set(alternatives.map((item) => item.votation.meetingId)),
+        );
+        await Promise.all(
+            meetingIds.map((meetingId) => requireAdmin(meetingId)),
+        );
+        await db.delete(alternative).where(inArray(alternative.id, data.ids));
 
         return { success: true };
     });

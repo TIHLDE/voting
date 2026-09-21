@@ -25,22 +25,23 @@ export async function ensureVotationOpen(votationId: string) {
 }
 
 export async function getVoteCountData(votationId: string, meetingId: string) {
-    const [voteCountResult] = await db
-        .select({ count: count() })
-        .from(hasVoted)
-        .where(eq(hasVoted.votationId, votationId));
-
-    const [eligibleResult] = await db
-        .select({ count: count() })
-        .from(participant)
-        .where(
-            and(
-                eq(participant.meetingId, meetingId),
-                eq(participant.isVotingEligible, true),
-                eq(participant.isApproved, true),
-                ne(participant.role, 'ADMIN'),
+    const [[voteCountResult], [eligibleResult]] = await Promise.all([
+        db
+            .select({ count: count() })
+            .from(hasVoted)
+            .where(eq(hasVoted.votationId, votationId)),
+        db
+            .select({ count: count() })
+            .from(participant)
+            .where(
+                and(
+                    eq(participant.meetingId, meetingId),
+                    eq(participant.isVotingEligible, true),
+                    eq(participant.isApproved, true),
+                    ne(participant.role, 'ADMIN'),
+                ),
             ),
-        );
+    ]);
 
     return {
         voteCount: voteCountResult.count,

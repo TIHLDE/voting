@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start';
-import { eq, and } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { participant, invite, user, meeting } from '#/db/schema';
 import { db } from '#/db/index';
@@ -88,62 +88,88 @@ export const addParticipants = createServerFn({ method: 'POST' })
     .handler(async ({ data }) => {
         await requireAdmin(data.meetingId);
 
-        let addedCount = 0;
+        const requested = Array.from(
+            new Map(
+                data.participants.map((item) => [item.email, item]),
+            ).values(),
+        );
+        if (requested.length === 0) return { addedCount: 0 };
 
-        for (const p of data.participants) {
-            // Check if user exists
-            const [existingUser] = await db
+        const emails = requested.map((item) => item.email);
+        const existingUsers = await db
+            .select()
+            .from(user)
+            .where(inArray(user.email, emails));
+        const usersByEmail = new Map(
+            existingUsers.map((existingUser) => [
+                existingUser.email,
+                existingUser,
+            ]),
+        );
+        const userIds = existingUsers.map((existingUser) => existingUser.id);
+
+        const [existingParticipants, existingInvites] = await Promise.all([
+            userIds.length > 0
+                ? db
+                      .select()
+                      .from(participant)
+                      .where(
+                          and(
+                              eq(participant.meetingId, data.meetingId),
+                              inArray(participant.userId, userIds),
+                          ),
+                      )
+                : Promise.resolve([]),
+            db
                 .select()
-                .from(user)
-                .where(eq(user.email, p.email));
+                .from(invite)
+                .where(
+                    and(
+                        eq(invite.meetingId, data.meetingId),
+                        inArray(invite.email, emails),
+                    ),
+                ),
+        ]);
 
-            if (existingUser) {
-                // Check if already a participant
-                const [existing] = await db
-                    .select()
-                    .from(participant)
-                    .where(
-                        and(
-                            eq(participant.userId, existingUser.id),
-                            eq(participant.meetingId, data.meetingId),
-                        ),
-                    );
-
-                if (!existing) {
-                    await db.insert(participant).values({
-                        role: p.role,
-                        isVotingEligible: p.isVotingEligible,
-                        isApproved: true,
-                        userId: existingUser.id,
-                        meetingId: data.meetingId,
-                    });
-                    addedCount++;
-                }
-            } else {
-                // Create invite
-                const [existing] = await db
-                    .select()
-                    .from(invite)
-                    .where(
-                        and(
-                            eq(invite.email, p.email),
-                            eq(invite.meetingId, data.meetingId),
-                        ),
-                    );
-
-                if (!existing) {
-                    await db.insert(invite).values({
-                        email: p.email,
-                        role: p.role,
-                        isVotingEligible: p.isVotingEligible,
-                        meetingId: data.meetingId,
-                    });
-                    addedCount++;
-                }
+        const participantUserIds = new Set(
+            existingParticipants.map((item) => item.userId),
+        );
+        const inviteEmails = new Set(existingInvites.map((item) => item.email));
+        const participantsToAdd = requested.flatMap((item) => {
+            const existingUser = usersByEmail.get(item.email);
+            if (!existingUser || participantUserIds.has(existingUser.id)) {
+                return [];
             }
-        }
+            return [
+                {
+                    role: item.role,
+                    isVotingEligible: item.isVotingEligible,
+                    isApproved: true,
+                    userId: existingUser.id,
+                    meetingId: data.meetingId,
+                },
+            ];
+        });
+        const invitesToAdd = requested
+            .filter(
+                (item) =>
+                    !usersByEmail.has(item.email) &&
+                    !inviteEmails.has(item.email),
+            )
+            .map((item) => ({ ...item, meetingId: data.meetingId }));
 
-        return { addedCount };
+        await Promise.all([
+            participantsToAdd.length > 0
+                ? db.insert(participant).values(participantsToAdd)
+                : Promise.resolve(),
+            invitesToAdd.length > 0
+                ? db.insert(invite).values(invitesToAdd)
+                : Promise.resolve(),
+        ]);
+
+        return {
+            addedCount: participantsToAdd.length + invitesToAdd.length,
+        };
     });
 
 const updateParticipantSchema = z.object({
@@ -166,17 +192,15 @@ export const updateParticipant = createServerFn({ method: 'POST' })
         }
 
         // Check owner protection
-        const [p] = await db
-            .select()
-            .from(participant)
-            .where(eq(participant.id, data.participantId));
+        const [[p], [m]] = await Promise.all([
+            db
+                .select()
+                .from(participant)
+                .where(eq(participant.id, data.participantId)),
+            db.select().from(meeting).where(eq(meeting.id, data.meetingId)),
+        ]);
 
         if (!p) throw new Error('Deltakeren finnes ikke');
-
-        const [m] = await db
-            .select()
-            .from(meeting)
-            .where(eq(meeting.id, data.meetingId));
 
         if (m && p.userId === m.ownerId && data.role !== undefined) {
             throw new Error('Kan ikke endre eierens rolle');
@@ -207,11 +231,11 @@ export const bulkUpdateVotingEligibility = createServerFn({ method: 'POST' })
     .handler(async ({ data }) => {
         await requireAdminOrCounter(data.meetingId);
 
-        for (const pid of data.participantIds) {
+        if (data.participantIds.length > 0) {
             await db
                 .update(participant)
                 .set({ isVotingEligible: data.isVotingEligible })
-                .where(eq(participant.id, pid));
+                .where(inArray(participant.id, data.participantIds));
         }
 
         return { updatedCount: data.participantIds.length };
@@ -233,31 +257,38 @@ export const deleteParticipants = createServerFn({ method: 'POST' })
             .from(meeting)
             .where(eq(meeting.id, data.meetingId));
 
-        for (const pid of data.participantIds) {
-            const [p] = await db
-                .select()
-                .from(participant)
-                .where(eq(participant.id, pid));
+        const participantsToDelete =
+            data.participantIds.length > 0
+                ? await db
+                      .select()
+                      .from(participant)
+                      .where(inArray(participant.id, data.participantIds))
+                : [];
 
-            if (p && m && p.userId === m.ownerId) {
-                throw new Error('Kan ikke fjerne eieren av møtet');
-            }
-
-            await db.delete(participant).where(eq(participant.id, pid));
+        if (
+            m &&
+            participantsToDelete.some((item) => item.userId === m.ownerId)
+        ) {
+            throw new Error('Kan ikke fjerne eieren av møtet');
         }
 
-        if (data.inviteEmails) {
-            for (const email of data.inviteEmails) {
-                await db
-                    .delete(invite)
-                    .where(
-                        and(
-                            eq(invite.email, email),
-                            eq(invite.meetingId, data.meetingId),
-                        ),
-                    );
-            }
-        }
+        await Promise.all([
+            data.participantIds.length > 0
+                ? db
+                      .delete(participant)
+                      .where(inArray(participant.id, data.participantIds))
+                : Promise.resolve(),
+            data.inviteEmails?.length
+                ? db
+                      .delete(invite)
+                      .where(
+                          and(
+                              inArray(invite.email, data.inviteEmails),
+                              eq(invite.meetingId, data.meetingId),
+                          ),
+                      )
+                : Promise.resolve(),
+        ]);
 
         return { success: true };
     });

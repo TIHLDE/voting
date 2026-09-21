@@ -48,11 +48,6 @@ export default function ManageParticipants({
     const [newRole, setNewRole] = useState<'ADMIN' | 'COUNTER' | 'PARTICIPANT'>(
         'PARTICIPANT',
     );
-    const [search, setSearch] = useState('');
-    const [filter, setFilter] = useState<'all' | 'eligible' | 'not_eligible'>(
-        'all',
-    );
-    const [selected, setSelected] = useState<Set<string>>(new Set());
     const [csvText, setCsvText] = useState('');
     const [csvErrors, setCsvErrors] = useState<string[]>([]);
     const queryClient = useQueryClient();
@@ -85,38 +80,6 @@ export default function ManageParticipants({
                 data: { meetingId: meetingId!, ...params },
             }),
         onSuccess: () => {
-            void queryClient.invalidateQueries({
-                queryKey: ['participants', meetingId],
-            });
-        },
-    });
-
-    const deleteMutation = useMutation({
-        mutationFn: () =>
-            deleteParticipants({
-                data: {
-                    meetingId: meetingId!,
-                    participantIds: Array.from(selected),
-                },
-            }),
-        onSuccess: () => {
-            setSelected(new Set());
-            void queryClient.invalidateQueries({
-                queryKey: ['participants', meetingId],
-            });
-        },
-    });
-
-    const bulkVotingMutation = useMutation({
-        mutationFn: (params: {
-            participantIds: string[];
-            isVotingEligible: boolean;
-        }) =>
-            bulkUpdateVotingEligibility({
-                data: { meetingId: meetingId!, ...params },
-            }),
-        onSuccess: () => {
-            setSelected(new Set());
             void queryClient.invalidateQueries({
                 queryKey: ['participants', meetingId],
             });
@@ -212,282 +175,459 @@ export default function ManageParticipants({
               })),
           ];
 
-    const filtered = displayParticipants.filter((p) => {
-        if (filter === 'eligible' && !p.isVotingEligible) return false;
-        if (filter === 'not_eligible' && p.isVotingEligible) return false;
-        if (search) {
-            const term = search.toLowerCase();
-            const name = p.name ? p.name.toLowerCase() : '';
-            return name.includes(term) || p.email.toLowerCase().includes(term);
-        }
-        return true;
+    return (
+        <div className="space-y-6">
+            <AddParticipantSection
+                email={newEmail}
+                role={newRole}
+                onEmailChange={setNewEmail}
+                onRoleChange={setNewRole}
+                onAdd={handleAddParticipant}
+            />
+            <CsvUploadSection
+                value={csvText}
+                errors={csvErrors}
+                onChange={setCsvText}
+                onUpload={handleCSVUpload}
+            />
+            <ParticipantDirectory
+                participants={displayParticipants}
+                meetingId={meetingId}
+                onUpdate={(params) => updateMutation.mutate(params)}
+            />
+        </div>
+    );
+}
+
+type Role = ParticipantInput['role'];
+type ParticipantFilter = 'all' | 'eligible' | 'not_eligible';
+type DisplayParticipant = {
+    id: string;
+    email: string;
+    name?: string;
+    role: Role;
+    isVotingEligible: boolean;
+    isParticipant: boolean;
+    isOwner: boolean;
+};
+
+function AddParticipantSection({
+    email,
+    role,
+    onEmailChange,
+    onRoleChange,
+    onAdd,
+}: {
+    email: string;
+    role: Role;
+    onEmailChange: (email: string) => void;
+    onRoleChange: (role: Role) => void;
+    onAdd: () => void;
+}) {
+    return (
+        <div>
+            <h3 className="mb-3 text-lg font-semibold text-foreground">
+                Legg til deltaker
+            </h3>
+            <div className="flex gap-2">
+                <Input
+                    placeholder="E-postadresse"
+                    value={email}
+                    onChange={(event) => onEmailChange(event.target.value)}
+                    type="email"
+                    className="flex-1"
+                />
+                <Select
+                    value={role}
+                    onValueChange={(value) => onRoleChange(value as Role)}
+                >
+                    <SelectTrigger className="w-40">
+                        <SelectValue>{ROLE_LABELS[role]}</SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                        <SelectItem value="COUNTER">Teller</SelectItem>
+                        <SelectItem value="PARTICIPANT">Deltaker</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Button type="button" onClick={onAdd}>
+                    Legg til
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+function CsvUploadSection({
+    value,
+    errors,
+    onChange,
+    onUpload,
+}: {
+    value: string;
+    errors: string[];
+    onChange: (value: string) => void;
+    onUpload: () => void;
+}) {
+    return (
+        <div>
+            <h3 className="mb-3 text-lg font-semibold text-foreground">
+                Last opp CSV
+            </h3>
+            <Textarea
+                rows={4}
+                placeholder="epost@eksempel.no, PARTICIPANT&#10;epost2@eksempel.no, ADMIN"
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+            />
+            {errors.length > 0 && (
+                <div className="mt-2 space-y-1">
+                    {errors.map((error) => (
+                        <p key={error} className="text-sm text-destructive">
+                            {error}
+                        </p>
+                    ))}
+                </div>
+            )}
+            <Button
+                type="button"
+                variant="outline"
+                className="mt-2"
+                onClick={onUpload}
+                disabled={!value.trim()}
+            >
+                Last opp
+            </Button>
+        </div>
+    );
+}
+
+function ParticipantDirectory({
+    participants,
+    meetingId,
+    onUpdate,
+}: {
+    participants: DisplayParticipant[];
+    meetingId?: string;
+    onUpdate: (params: {
+        participantId: string;
+        role?: Role;
+        isVotingEligible?: boolean;
+    }) => void;
+}) {
+    const queryClient = useQueryClient();
+    const [search, setSearch] = useState('');
+    const [filter, setFilter] = useState<ParticipantFilter>('all');
+    const [selected, setSelected] = useState<Set<string>>(new Set());
+    const isLocal = !meetingId;
+
+    const deleteMutation = useMutation({
+        mutationFn: () =>
+            deleteParticipants({
+                data: {
+                    meetingId: meetingId!,
+                    participantIds: Array.from(selected),
+                },
+            }),
+        onSuccess: () => {
+            setSelected(new Set());
+            void queryClient.invalidateQueries({
+                queryKey: ['participants', meetingId],
+            });
+        },
+    });
+    const bulkVotingMutation = useMutation({
+        mutationFn: (isVotingEligible: boolean) =>
+            bulkUpdateVotingEligibility({
+                data: {
+                    meetingId: meetingId!,
+                    participantIds: Array.from(selected),
+                    isVotingEligible,
+                },
+            }),
+        onSuccess: () => {
+            setSelected(new Set());
+            void queryClient.invalidateQueries({
+                queryKey: ['participants', meetingId],
+            });
+        },
+    });
+
+    const filtered = participants.filter((participant) => {
+        if (filter === 'eligible' && !participant.isVotingEligible)
+            return false;
+        if (filter === 'not_eligible' && participant.isVotingEligible)
+            return false;
+        const term = search.toLowerCase();
+        return (
+            !term ||
+            participant.name?.toLowerCase().includes(term) ||
+            participant.email.toLowerCase().includes(term)
+        );
     });
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h3 className="mb-3 text-lg font-semibold text-foreground">
-                    Legg til deltaker
-                </h3>
-                <div className="flex gap-2">
-                    <Input
-                        placeholder="E-postadresse"
-                        value={newEmail}
-                        onChange={(e) => setNewEmail(e.target.value)}
-                        type="email"
-                        className="flex-1"
-                    />
-                    <Select
-                        value={newRole}
-                        onValueChange={(v) =>
-                            setNewRole(v as 'ADMIN' | 'COUNTER' | 'PARTICIPANT')
-                        }
-                    >
-                        <SelectTrigger className="w-40">
-                            <SelectValue>{ROLE_LABELS[newRole]}</SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="ADMIN">Admin</SelectItem>
-                            <SelectItem value="COUNTER">Teller</SelectItem>
-                            <SelectItem value="PARTICIPANT">
-                                Deltaker
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Button type="button" onClick={handleAddParticipant}>
-                        Legg til
-                    </Button>
-                </div>
-            </div>
-
-            <div>
-                <h3 className="mb-3 text-lg font-semibold text-foreground">
-                    Last opp CSV
-                </h3>
-                <Textarea
-                    rows={4}
-                    placeholder="epost@eksempel.no, PARTICIPANT&#10;epost2@eksempel.no, ADMIN"
-                    value={csvText}
-                    onChange={(e) => setCsvText(e.target.value)}
+        <div>
+            <ParticipantFilters
+                count={participants.length}
+                search={search}
+                filter={filter}
+                onSearchChange={setSearch}
+                onFilterChange={setFilter}
+            />
+            {!isLocal && (
+                <BulkParticipantActions
+                    filtered={filtered}
+                    selected={selected}
+                    onSelectedChange={setSelected}
+                    onSetVotingEligibility={(eligible) =>
+                        bulkVotingMutation.mutate(eligible)
+                    }
+                    onDelete={() => deleteMutation.mutate()}
                 />
-                {csvErrors.length > 0 && (
-                    <div className="mt-2 space-y-1">
-                        {csvErrors.map((err) => (
-                            <p key={err} className="text-sm text-destructive">
-                                {err}
-                            </p>
-                        ))}
-                    </div>
+            )}
+            <div className="space-y-2">
+                {filtered.map((participant) => (
+                    <ParticipantRow
+                        key={participant.id}
+                        participant={participant}
+                        isLocal={isLocal}
+                        selected={selected.has(participant.id)}
+                        onSelectedChange={(checked) => {
+                            const next = new Set(selected);
+                            if (checked) next.add(participant.id);
+                            else next.delete(participant.id);
+                            setSelected(next);
+                        }}
+                        onUpdate={onUpdate}
+                    />
+                ))}
+                {filtered.length === 0 && (
+                    <p className="py-4 text-center text-sm text-muted-foreground">
+                        Ingen deltakere enna.
+                    </p>
                 )}
-                <Button
-                    type="button"
-                    variant="outline"
-                    className="mt-2"
-                    onClick={handleCSVUpload}
-                    disabled={!csvText.trim()}
-                >
-                    Last opp
-                </Button>
-            </div>
-
-            <div>
-                <div className="mb-3 space-y-2">
-                    <div className="flex items-center gap-3">
-                        <h3 className="text-lg font-semibold text-foreground">
-                            Deltakere ({displayParticipants.length})
-                        </h3>
-                        <Input
-                            placeholder="Sok..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="max-w-xs"
-                        />
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-xs text-muted-foreground">
-                            Filter:
-                        </span>
-                        {(
-                            [
-                                ['all', 'Alle'],
-                                ['eligible', 'Stemmerett'],
-                                ['not_eligible', 'Uten stemmerett'],
-                            ] as const
-                        ).map(([value, label]) => (
-                            <Button
-                                key={value}
-                                type="button"
-                                size="sm"
-                                variant={
-                                    filter === value ? 'default' : 'outline'
-                                }
-                                onClick={() => setFilter(value)}
-                            >
-                                {label}
-                            </Button>
-                        ))}
-                    </div>
-                    {!isLocal && (
-                        <div className="flex items-center gap-2">
-                            <Checkbox
-                                checked={
-                                    filtered.length > 0 &&
-                                    filtered.every((p) => selected.has(p.id))
-                                }
-                                onCheckedChange={(checked) => {
-                                    if (checked) {
-                                        setSelected(
-                                            new Set(filtered.map((p) => p.id)),
-                                        );
-                                    } else {
-                                        setSelected(new Set());
-                                    }
-                                }}
-                            />
-                            <span className="text-xs text-muted-foreground">
-                                Velg alle ({filtered.length})
-                            </span>
-                            {selected.size > 0 && (
-                                <>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() =>
-                                            bulkVotingMutation.mutate({
-                                                participantIds:
-                                                    Array.from(selected),
-                                                isVotingEligible: true,
-                                            })
-                                        }
-                                    >
-                                        Gi stemmerett ({selected.size})
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() =>
-                                            bulkVotingMutation.mutate({
-                                                participantIds:
-                                                    Array.from(selected),
-                                                isVotingEligible: false,
-                                            })
-                                        }
-                                    >
-                                        Fjern stemmerett ({selected.size})
-                                    </Button>
-                                    <Button
-                                        variant="destructive"
-                                        size="sm"
-                                        onClick={() => deleteMutation.mutate()}
-                                    >
-                                        Slett valgte ({selected.size})
-                                    </Button>
-                                </>
-                            )}
-                        </div>
-                    )}
-                </div>
-
-                <div className="space-y-2">
-                    {filtered.map((p) => (
-                        <div
-                            key={p.id}
-                            className="flex items-center gap-3 rounded-lg border bg-card p-3"
-                        >
-                            {!isLocal && (
-                                <Checkbox
-                                    checked={selected.has(p.id)}
-                                    onCheckedChange={(checked) => {
-                                        const next = new Set(selected);
-                                        if (checked) next.add(p.id);
-                                        else next.delete(p.id);
-                                        setSelected(next);
-                                    }}
-                                />
-                            )}
-                            <div className="flex-1">
-                                <p className="text-sm font-medium text-foreground">
-                                    {p.name ?? p.email}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                    {p.email}
-                                </p>
-                                {!p.isParticipant && (
-                                    <span className="text-xs text-muted-foreground">
-                                        Invitert
-                                    </span>
-                                )}
-                            </div>
-                            {!isLocal && p.isParticipant ? (
-                                <>
-                                    {p.isOwner ? (
-                                        <span className="text-xs font-medium text-muted-foreground">
-                                            {ROLE_LABELS[p.role]}
-                                        </span>
-                                    ) : (
-                                        <Select
-                                            value={p.role}
-                                            onValueChange={(role) =>
-                                                updateMutation.mutate({
-                                                    participantId: p.id,
-                                                    role: role as
-                                                        | 'ADMIN'
-                                                        | 'COUNTER'
-                                                        | 'PARTICIPANT',
-                                                })
-                                            }
-                                        >
-                                            <SelectTrigger className="w-32">
-                                                <SelectValue>
-                                                    {ROLE_LABELS[p.role]}
-                                                </SelectValue>
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="ADMIN">
-                                                    Admin
-                                                </SelectItem>
-                                                <SelectItem value="COUNTER">
-                                                    Teller
-                                                </SelectItem>
-                                                <SelectItem value="PARTICIPANT">
-                                                    Deltaker
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                    )}
-                                    <div className="flex items-center gap-2">
-                                        <Switch
-                                            checked={p.isVotingEligible}
-                                            onCheckedChange={(checked) =>
-                                                updateMutation.mutate({
-                                                    participantId: p.id,
-                                                    isVotingEligible: checked,
-                                                })
-                                            }
-                                        />
-                                        <span className="text-xs text-muted-foreground">
-                                            Stemmerett
-                                        </span>
-                                    </div>
-                                </>
-                            ) : (
-                                <span className="text-xs font-medium text-muted-foreground">
-                                    {p.role === 'ADMIN'
-                                        ? 'Admin'
-                                        : p.role === 'COUNTER'
-                                          ? 'Teller'
-                                          : 'Deltaker'}
-                                </span>
-                            )}
-                        </div>
-                    ))}
-                    {filtered.length === 0 && (
-                        <p className="py-4 text-center text-sm text-muted-foreground">
-                            Ingen deltakere enna.
-                        </p>
-                    )}
-                </div>
             </div>
         </div>
+    );
+}
+
+function ParticipantFilters({
+    count,
+    search,
+    filter,
+    onSearchChange,
+    onFilterChange,
+}: {
+    count: number;
+    search: string;
+    filter: ParticipantFilter;
+    onSearchChange: (value: string) => void;
+    onFilterChange: (value: ParticipantFilter) => void;
+}) {
+    return (
+        <div className="mb-3 space-y-2">
+            <div className="flex items-center gap-3">
+                <h3 className="text-lg font-semibold text-foreground">
+                    Deltakere ({count})
+                </h3>
+                <Input
+                    placeholder="Sok..."
+                    value={search}
+                    onChange={(event) => onSearchChange(event.target.value)}
+                    className="max-w-xs"
+                />
+            </div>
+            <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Filter:</span>
+                {(
+                    [
+                        ['all', 'Alle'],
+                        ['eligible', 'Stemmerett'],
+                        ['not_eligible', 'Uten stemmerett'],
+                    ] as const
+                ).map(([value, label]) => (
+                    <Button
+                        key={value}
+                        type="button"
+                        size="sm"
+                        variant={filter === value ? 'default' : 'outline'}
+                        onClick={() => onFilterChange(value)}
+                    >
+                        {label}
+                    </Button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function BulkParticipantActions({
+    filtered,
+    selected,
+    onSelectedChange,
+    onSetVotingEligibility,
+    onDelete,
+}: {
+    filtered: DisplayParticipant[];
+    selected: Set<string>;
+    onSelectedChange: (selected: Set<string>) => void;
+    onSetVotingEligibility: (eligible: boolean) => void;
+    onDelete: () => void;
+}) {
+    const allSelected =
+        filtered.length > 0 &&
+        filtered.every((participant) => selected.has(participant.id));
+
+    return (
+        <div className="mb-3 flex items-center gap-2">
+            <Checkbox
+                checked={allSelected}
+                onCheckedChange={(checked) =>
+                    onSelectedChange(
+                        checked
+                            ? new Set(
+                                  filtered.map((participant) => participant.id),
+                              )
+                            : new Set(),
+                    )
+                }
+            />
+            <span className="text-xs text-muted-foreground">
+                Velg alle ({filtered.length})
+            </span>
+            {selected.size > 0 && (
+                <>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onSetVotingEligibility(true)}
+                    >
+                        Gi stemmerett ({selected.size})
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onSetVotingEligibility(false)}
+                    >
+                        Fjern stemmerett ({selected.size})
+                    </Button>
+                    <Button variant="destructive" size="sm" onClick={onDelete}>
+                        Slett valgte ({selected.size})
+                    </Button>
+                </>
+            )}
+        </div>
+    );
+}
+
+function ParticipantRow({
+    participant,
+    isLocal,
+    selected,
+    onSelectedChange,
+    onUpdate,
+}: {
+    participant: DisplayParticipant;
+    isLocal: boolean;
+    selected: boolean;
+    onSelectedChange: (checked: boolean) => void;
+    onUpdate: (params: {
+        participantId: string;
+        role?: Role;
+        isVotingEligible?: boolean;
+    }) => void;
+}) {
+    return (
+        <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
+            {!isLocal && (
+                <Checkbox
+                    checked={selected}
+                    onCheckedChange={(checked) =>
+                        onSelectedChange(checked === true)
+                    }
+                />
+            )}
+            <div className="flex-1">
+                <p className="text-sm font-medium text-foreground">
+                    {participant.name ?? participant.email}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                    {participant.email}
+                </p>
+                {!participant.isParticipant && (
+                    <span className="text-xs text-muted-foreground">
+                        Invitert
+                    </span>
+                )}
+            </div>
+            {!isLocal && participant.isParticipant ? (
+                <ParticipantControls
+                    participant={participant}
+                    onUpdate={onUpdate}
+                />
+            ) : (
+                <span className="text-xs font-medium text-muted-foreground">
+                    {ROLE_LABELS[participant.role]}
+                </span>
+            )}
+        </div>
+    );
+}
+
+function ParticipantControls({
+    participant,
+    onUpdate,
+}: {
+    participant: DisplayParticipant;
+    onUpdate: (params: {
+        participantId: string;
+        role?: Role;
+        isVotingEligible?: boolean;
+    }) => void;
+}) {
+    return (
+        <>
+            {participant.isOwner ? (
+                <span className="text-xs font-medium text-muted-foreground">
+                    {ROLE_LABELS[participant.role]}
+                </span>
+            ) : (
+                <Select
+                    value={participant.role}
+                    onValueChange={(role) =>
+                        onUpdate({
+                            participantId: participant.id,
+                            role: role as Role,
+                        })
+                    }
+                >
+                    <SelectTrigger className="w-32">
+                        <SelectValue>
+                            {ROLE_LABELS[participant.role]}
+                        </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="ADMIN">Admin</SelectItem>
+                        <SelectItem value="COUNTER">Teller</SelectItem>
+                        <SelectItem value="PARTICIPANT">Deltaker</SelectItem>
+                    </SelectContent>
+                </Select>
+            )}
+            <div className="flex items-center gap-2">
+                <Switch
+                    checked={participant.isVotingEligible}
+                    onCheckedChange={(isVotingEligible) =>
+                        onUpdate({
+                            participantId: participant.id,
+                            isVotingEligible,
+                        })
+                    }
+                />
+                <span className="text-xs text-muted-foreground">
+                    Stemmerett
+                </span>
+            </div>
+        </>
     );
 }
