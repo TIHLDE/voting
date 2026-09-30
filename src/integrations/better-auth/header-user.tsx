@@ -1,9 +1,11 @@
 import { authClient } from '#/lib/auth-client';
+import { useSignOut } from '#/hooks/useSignOut';
 import { Link } from '@tanstack/react-router';
 import { Button, buttonVariants } from '#/components/ui/button';
 
 export default function BetterAuthHeader() {
     const { data: session, isPending } = authClient.useSession();
+    const signOut = useSignOut();
 
     if (isPending) {
         return <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />;
@@ -27,7 +29,7 @@ export default function BetterAuthHeader() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                        void authClient.signOut();
+                        void signOut();
                     }}
                 >
                     Logg ut

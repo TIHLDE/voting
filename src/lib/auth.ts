@@ -30,6 +30,9 @@ export const auth = betterAuth({
                               clientId: env.PHOTON_CLIENT_ID,
                               clientSecret: env.PHOTON_CLIENT_SECRET,
                               scopes: ['openid', 'profile', 'email'],
+                              // Signing out here must not end the user's
+                              // Photon session on tihlde.org.
+                              disableProviderLogout: true,
                           },
                       ]
                     : [],
