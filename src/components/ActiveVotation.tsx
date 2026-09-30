@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useMemo } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ArrowDownIcon, ArrowUpIcon, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import {
     castVote,
@@ -11,6 +11,8 @@ import {
 import { Button } from '#/components/ui/button';
 import { useLiveQuerySubscription } from '#/hooks/useLiveQuerySubscription';
 import { liveEvents } from '#/lib/live-events';
+import { moveRankingItem, renumberRanking } from '#/lib/stv-ranking';
+import type { StvRanking } from '#/lib/stv-ranking';
 import {
     hasVotedQuery,
     notVotedQuery,
@@ -221,7 +223,6 @@ function VoteSubmitted({ footer }: { footer: React.ReactNode }) {
     );
 }
 
-type Ranking = { alternativeId: string; ranking: number };
 type VotingAlternative = { id: string; text: string };
 
 function StvVotingForm({
@@ -235,7 +236,7 @@ function StvVotingForm({
     blankVotes: boolean;
     footer: React.ReactNode;
 }) {
-    const [ranking, setRanking] = useState<Ranking[]>([]);
+    const [ranking, setRanking] = useState<StvRanking[]>([]);
     const { onSuccess, onError } = useVoteCallbacks(votationId);
     const stvMutation = useMutation({
         mutationFn: () =>
@@ -253,13 +254,33 @@ function StvVotingForm({
         (alternative) =>
             !ranking.some((item) => item.alternativeId === alternative.id),
     );
+    const isComplete = ranking.length === alternatives.length;
 
     return (
         <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
                 Ranger alternativene etter preferanse. Klikk for å legge til i
-                rangeringen.
+                rangeringen, og bruk pilene for å endre rekkefølgen.
             </p>
+            <div
+                className={`rounded-lg border p-3 text-sm ${
+                    isComplete
+                        ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300'
+                        : 'bg-muted/50 text-foreground'
+                }`}
+                aria-live="polite"
+            >
+                <p className="font-medium">
+                    {isComplete
+                        ? 'Alle alternativene er rangert. Du kan nå avgi stemme.'
+                        : `Du må rangere alle alternativene før du kan avgi stemme${
+                              blankVotes ? ', eller stemme blankt' : ''
+                          }.`}
+                </p>
+                <p className="text-muted-foreground">
+                    {ranking.length} av {alternatives.length} rangert
+                </p>
+            </div>
             {ranking.length > 0 && (
                 <div className="space-y-2">
                     <h3 className="text-sm font-semibold">Din rangering:</h3>
@@ -280,58 +301,80 @@ function StvVotingForm({
                                     )?.text
                                 }
                             </span>
-                            <button
-                                type="button"
-                                className="ml-auto text-xs text-destructive hover:underline"
-                                onClick={() =>
-                                    setRanking((current) =>
-                                        current
-                                            .filter(
-                                                (_, currentIndex) =>
-                                                    currentIndex !== index,
-                                            )
-                                            .map(
-                                                (
-                                                    rankingItem,
-                                                    currentIndex,
-                                                ) => ({
-                                                    ...rankingItem,
-                                                    ranking: currentIndex + 1,
-                                                }),
+                            <div className="ml-auto flex items-center gap-1">
+                                <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    aria-label="Flytt opp"
+                                    disabled={index === 0}
+                                    onClick={() =>
+                                        setRanking((current) =>
+                                            moveRankingItem(current, index, -1),
+                                        )
+                                    }
+                                >
+                                    <ArrowUpIcon />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    aria-label="Flytt ned"
+                                    disabled={index === ranking.length - 1}
+                                    onClick={() =>
+                                        setRanking((current) =>
+                                            moveRankingItem(current, index, 1),
+                                        )
+                                    }
+                                >
+                                    <ArrowDownIcon />
+                                </Button>
+                                <button
+                                    type="button"
+                                    className="ml-1 text-xs text-destructive hover:underline"
+                                    onClick={() =>
+                                        setRanking((current) =>
+                                            renumberRanking(
+                                                current.filter(
+                                                    (_, currentIndex) =>
+                                                        currentIndex !== index,
+                                                ),
                                             ),
-                                    )
-                                }
-                            >
-                                Fjern
-                            </button>
+                                        )
+                                    }
+                                >
+                                    Fjern
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>
             )}
-            <div className="space-y-2">
-                <h3 className="text-sm font-semibold">Tilgjengelige:</h3>
-                {available.map((alternative) => (
-                    <button
-                        key={alternative.id}
-                        type="button"
-                        onClick={() =>
-                            setRanking((current) => [
-                                ...current,
-                                {
-                                    alternativeId: alternative.id,
-                                    ranking: current.length + 1,
-                                },
-                            ])
-                        }
-                        className="w-full rounded-lg border bg-card p-3 text-left text-sm transition hover:border-primary"
-                    >
-                        {alternative.text}
-                    </button>
-                ))}
-            </div>
+            {available.length > 0 && (
+                <div className="space-y-2">
+                    <h3 className="text-sm font-semibold">Tilgjengelige:</h3>
+                    {available.map((alternative) => (
+                        <button
+                            key={alternative.id}
+                            type="button"
+                            onClick={() =>
+                                setRanking((current) => [
+                                    ...current,
+                                    {
+                                        alternativeId: alternative.id,
+                                        ranking: current.length + 1,
+                                    },
+                                ])
+                            }
+                            className="w-full rounded-lg border bg-card p-3 text-left text-sm transition hover:border-primary"
+                        >
+                            {alternative.text}
+                        </button>
+                    ))}
+                </div>
+            )}
             <VoteButtons
                 blankVotes={blankVotes}
-                disabled={ranking.length === 0}
+                disabled={!isComplete}
                 submitting={stvMutation.isPending}
                 submittingBlank={blankMutation.isPending}
                 onSubmit={() => stvMutation.mutate()}
