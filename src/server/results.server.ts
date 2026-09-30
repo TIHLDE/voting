@@ -1,4 +1,4 @@
-import { eq, and, count, ne } from 'drizzle-orm';
+import { and, count, eq, inArray, ne } from 'drizzle-orm';
 import {
     alternative,
     participant,
@@ -53,13 +53,14 @@ async function computeQualifiedResult(
 
     const requiredVotes = (eligibleCount * threshold) / 100;
 
-    for (const alt of alts) {
-        if (alt.votes.length > requiredVotes) {
-            await db
-                .update(alternative)
-                .set({ isWinner: true })
-                .where(eq(alternative.id, alt.id));
-        }
+    const winnerIds = alts
+        .filter((alt) => alt.votes.length > requiredVotes)
+        .map((alt) => alt.id);
+    if (winnerIds.length > 0) {
+        await db
+            .update(alternative)
+            .set({ isWinner: true })
+            .where(inArray(alternative.id, winnerIds));
     }
 }
 
@@ -110,16 +111,18 @@ async function computeStvResult(
         .where(eq(votationResult.votationId, votationId));
 
     // Persist rounds
-    for (const { roundIndex, voteCounts } of rounds) {
-        await saveRound(resultId, roundIndex, alts, voteCounts);
-    }
+    await Promise.all(
+        rounds.map(({ roundIndex, voteCounts }) =>
+            saveRound(resultId, roundIndex, alts, voteCounts),
+        ),
+    );
 
     // Mark winners in alternatives
-    for (const winnerId of winners) {
+    if (winners.size > 0) {
         await db
             .update(alternative)
             .set({ isWinner: true })
-            .where(eq(alternative.id, winnerId));
+            .where(inArray(alternative.id, Array.from(winners)));
     }
 }
 
@@ -166,24 +169,25 @@ export async function setWinner(votationId: string) {
     });
     if (existingResult) return;
 
-    // Count eligible voters (exclude admins)
-    const [eligibleResult] = await db
-        .select({ count: count() })
-        .from(participant)
-        .where(
-            and(
-                eq(participant.meetingId, v.meetingId),
-                eq(participant.isVotingEligible, true),
-                eq(participant.isApproved, true),
-                ne(participant.role, 'ADMIN'),
+    const [[eligibleResult], [voteCountResult]] = await Promise.all([
+        // Count eligible voters (exclude admins)
+        db
+            .select({ count: count() })
+            .from(participant)
+            .where(
+                and(
+                    eq(participant.meetingId, v.meetingId),
+                    eq(participant.isVotingEligible, true),
+                    eq(participant.isApproved, true),
+                    ne(participant.role, 'ADMIN'),
+                ),
             ),
-        );
-
-    // Count votes
-    const [voteCountResult] = await db
-        .select({ count: count() })
-        .from(hasVoted)
-        .where(eq(hasVoted.votationId, votationId));
+        // Count votes
+        db
+            .select({ count: count() })
+            .from(hasVoted)
+            .where(eq(hasVoted.votationId, votationId)),
+    ]);
 
     // Create result snapshot
     const [result] = await db

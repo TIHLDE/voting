@@ -19,9 +19,9 @@ export default function VoteAudit({ votationId }: { votationId: string }) {
 
             <CollapsibleSection title={`Hvem har stemt (${audit.totalVoters})`}>
                 <div className="space-y-1">
-                    {audit.voters.map((v, i) => (
+                    {audit.voters.map((v) => (
                         <div
-                            key={i}
+                            key={v.email}
                             className="flex items-center justify-between rounded border bg-background px-3 py-2 text-sm"
                         >
                             <span>{v.name}</span>

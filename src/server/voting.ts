@@ -14,6 +14,7 @@ import {
 } from '#/db/schema';
 import { validateStatusTransition } from './votation-state';
 import { publish } from './sse/emitter';
+import { liveEvents } from '#/lib/live-events';
 import { db } from '#/db/index';
 import {
     requireAdmin,
@@ -77,7 +78,7 @@ export const castVote = createServerFn({ method: 'POST' })
         });
 
         const counts = await getVoteCountData(alt.votationId, v.meetingId);
-        publish(`votation:${alt.votationId}:votes`, counts);
+        publish(liveEvents.votationVotes(alt.votationId), counts);
 
         return { success: true };
     });
@@ -104,7 +105,7 @@ export const castBlankVote = createServerFn({ method: 'POST' })
         });
 
         const counts = await getVoteCountData(data.votationId, v.meetingId);
-        publish(`votation:${data.votationId}:votes`, counts);
+        publish(liveEvents.votationVotes(data.votationId), counts);
 
         return { success: true };
     });
@@ -151,7 +152,7 @@ export const castStvVote = createServerFn({ method: 'POST' })
         });
 
         const counts = await getVoteCountData(data.votationId, v.meetingId);
-        publish(`votation:${data.votationId}:votes`, counts);
+        publish(liveEvents.votationVotes(data.votationId), counts);
 
         return { success: true };
     });
@@ -200,7 +201,7 @@ export const startNextVotation = createServerFn({ method: 'POST' })
             .set({ status: 'OPEN' })
             .where(eq(votation.id, next.id));
 
-        publish(`meeting:${data.meetingId}:votation-opened`, {
+        publish(liveEvents.meetingVotationOpened(data.meetingId), {
             votationId: next.id,
         });
 
@@ -244,7 +245,7 @@ export const updateVotationStatus = createServerFn({ method: 'POST' })
             .set({ status: data.status })
             .where(eq(votation.id, data.votationId));
 
-        publish(`votation:${data.votationId}:status`, {
+        publish(liveEvents.votationStatus(data.votationId), {
             votationId: data.votationId,
             votationStatus: data.status,
         });
@@ -274,9 +275,9 @@ export const resetVotation = createServerFn({ method: 'POST' })
             const altIds = alts.map((a) => a.id);
 
             if (altIds.length > 0) {
-                for (const altId of altIds) {
-                    await tx.delete(vote).where(eq(vote.alternativeId, altId));
-                }
+                await tx
+                    .delete(vote)
+                    .where(inArray(vote.alternativeId, altIds));
             }
 
             // Delete STV votes
@@ -300,11 +301,11 @@ export const resetVotation = createServerFn({ method: 'POST' })
                 .where(eq(votationResultReview.votationId, data.votationId));
 
             // Reset alternatives
-            for (const altId of altIds) {
+            if (altIds.length > 0) {
                 await tx
                     .update(alternative)
                     .set({ isWinner: false })
-                    .where(eq(alternative.id, altId));
+                    .where(inArray(alternative.id, altIds));
             }
 
             // Reset votation and immediately re-open
@@ -315,11 +316,11 @@ export const resetVotation = createServerFn({ method: 'POST' })
         });
 
         // Notify all clients that voting restarted
-        publish(`votation:${data.votationId}:status`, {
+        publish(liveEvents.votationStatus(data.votationId), {
             votationId: data.votationId,
             votationStatus: 'OPEN',
         });
-        publish(`meeting:${v.meetingId}:votation-opened`, {
+        publish(liveEvents.meetingVotationOpened(v.meetingId), {
             votationId: data.votationId,
         });
 
@@ -385,7 +386,7 @@ export const reviewVotation = createServerFn({ method: 'POST' })
         const approved = reviews.filter((r) => r.approved).length;
         const disapproved = reviews.filter((r) => !r.approved).length;
 
-        publish(`votation:${data.votationId}:reviews`, {
+        publish(liveEvents.votationReviews(data.votationId), {
             approved,
             disapproved,
         });

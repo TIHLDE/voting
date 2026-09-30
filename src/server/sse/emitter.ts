@@ -1,3 +1,6 @@
+import type { z } from 'zod';
+import type { LiveEvent } from '#/lib/live-events';
+
 const KEY = '__sse_emitter__';
 
 interface SseState {
@@ -50,13 +53,17 @@ export function removeSubscriber(controller: ReadableStreamDefaultController) {
     controllerChannels.delete(controller);
 }
 
-export function publish(channel: string, data: unknown) {
+export function publish<TSchema extends z.ZodType>(
+    event: LiveEvent<TSchema>,
+    payload: z.input<TSchema>,
+) {
+    const data = event.schema.parse(payload);
     const { channels } = getState();
-    const set = channels.get(channel);
+    const set = channels.get(event.channel);
     if (!set || set.size === 0) return;
 
     const message = encoder.encode(
-        `data: ${JSON.stringify({ channel, data })}\n\n`,
+        `data: ${JSON.stringify({ channel: event.channel, data })}\n\n`,
     );
 
     for (const controller of set) {
@@ -67,5 +74,5 @@ export function publish(channel: string, data: unknown) {
         }
     }
 
-    if (set.size === 0) channels.delete(channel);
+    if (set.size === 0) channels.delete(event.channel);
 }

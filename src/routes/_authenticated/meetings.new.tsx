@@ -3,21 +3,18 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createMeeting } from '#/server/meetings';
 import { createVotations } from '#/server/votations';
-import { addParticipants } from '#/server/participants';
 import WizardShell from '#/components/WizardShell';
 import MeetingForm from '#/components/MeetingForm';
 import type { MeetingFormData } from '#/components/MeetingForm';
 import VotationEditor from '#/components/VotationEditor';
 import type { VotationFormData } from '#/components/VotationEditor';
-import ManageParticipants from '#/components/ManageParticipants';
-import type { ParticipantInput } from '#/components/ManageParticipants';
 import { Button } from '#/components/ui/button';
 
 export const Route = createFileRoute('/_authenticated/meetings/new')({
     component: NewMeetingWizard,
 });
 
-const STEPS = ['Møtedetaljer', 'Voteringer', 'Deltakere'];
+const STEPS = ['Møtedetaljer', 'Voteringer'];
 
 function NewMeetingWizard() {
     const [step, setStep] = useState(0);
@@ -25,7 +22,6 @@ function NewMeetingWizard() {
         null,
     );
     const [votations, setVotations] = useState<VotationFormData[]>([]);
-    const [participants, setParticipants] = useState<ParticipantInput[]>([]);
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 
@@ -43,15 +39,6 @@ function NewMeetingWizard() {
                             ...v,
                             index: i,
                         })),
-                    },
-                });
-            }
-
-            if (participants.length > 0) {
-                await addParticipants({
-                    data: {
-                        meetingId: newMeeting.id,
-                        participants,
                     },
                 });
             }
@@ -102,26 +89,6 @@ function NewMeetingWizard() {
                                 <Button
                                     variant="outline"
                                     onClick={() => setStep(0)}
-                                >
-                                    Tilbake
-                                </Button>
-                                <Button onClick={() => setStep(2)}>
-                                    Neste: Deltakere
-                                </Button>
-                            </div>
-                        </div>
-                    )}
-
-                    {step === 2 && (
-                        <div className="space-y-6">
-                            <ManageParticipants
-                                participants={participants}
-                                onChange={setParticipants}
-                            />
-                            <div className="flex justify-between">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setStep(1)}
                                 >
                                     Tilbake
                                 </Button>

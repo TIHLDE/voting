@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { z } from 'zod';
 import { authClient } from '#/lib/auth-client';
@@ -24,6 +24,7 @@ function AuthPage() {
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     // better-auth returns { data, error } instead of throwing, so surface
     // errors by throwing inside mutationFn to feed mutation.error
@@ -56,6 +57,7 @@ function AuthPage() {
             }
         },
         onSuccess: () => {
+            void queryClient.invalidateQueries();
             void navigate({ to: redirectTo || '/meetings' });
         },
     });

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { registerAsParticipant } from '#/server/participants';
 import { Button } from '#/components/ui/button';
 
@@ -12,10 +12,12 @@ export const Route = createFileRoute(
 function RegisterPage() {
     const { meetingId } = Route.useParams();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
     const registerMutation = useMutation({
         mutationFn: () => registerAsParticipant({ data: { meetingId } }),
         onSuccess: () => {
+            void queryClient.invalidateQueries();
             void navigate({
                 to: '/meetings/$meetingId',
                 params: { meetingId },

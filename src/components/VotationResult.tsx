@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { getVotationResults } from '#/server/results';
 import { startNextVotation } from '#/server/voting';
 import { Button } from '#/components/ui/button';
+import { ResultTable } from './ResultTable';
 import VoteAudit from './VoteAudit';
 
 interface VotationResultProps {
@@ -49,33 +50,42 @@ export default function VotationResultView({
 
     if (!results) return null;
 
-    const { result, alternatives, votation } = results;
-    const isSTV = votation.type === 'STV';
-    const winners = alternatives.filter((a) => a.isWinner);
-    const totalVotes = alternatives.reduce((sum, a) => sum + a.voteCount, 0);
+    return (
+        <VotationResultContent
+            results={results}
+            votationId={votationId}
+            isAdmin={isAdmin}
+            isAdminOrCounter={isAdminOrCounter}
+            startingNext={startNextMutation.isPending}
+            onStartNext={() => startNextMutation.mutate()}
+        />
+    );
+}
+
+type VotationResults = Awaited<ReturnType<typeof getVotationResults>>;
+
+function VotationResultContent({
+    results,
+    votationId,
+    isAdmin,
+    isAdminOrCounter,
+    startingNext,
+    onStartNext,
+}: {
+    results: VotationResults;
+    votationId: string;
+    isAdmin: boolean;
+    isAdminOrCounter: boolean;
+    startingNext: boolean;
+    onStartNext: () => void;
+}) {
+    const { alternatives, votation } = results;
+    const winners = alternatives.filter((alternative) => alternative.isWinner);
     const hideDetails = votation.hiddenVotes && !isAdmin;
 
     return (
         <div className="space-y-6">
-            {winners.length > 0 && (
-                <div className="rounded-xl border-2 border-green-600 bg-green-50 p-6 text-center dark:border-green-400 dark:bg-green-950">
-                    <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-green-700 dark:text-green-400">
-                        {winners.length > 1 ? 'Vinnere' : 'Vinner'}
-                    </p>
-                    <p className="text-2xl font-bold text-foreground">
-                        {winners.map((w) => w.text).join(', ')}
-                    </p>
-                </div>
-            )}
-
-            {winners.length === 0 && (
-                <div className="rounded-xl border bg-card p-6 text-center">
-                    <p className="text-lg font-semibold text-foreground">
-                        Ingen vinner
-                    </p>
-                </div>
-            )}
-
+            <WinnerSummary winners={winners} />
             {hideDetails ? (
                 <div className="rounded-lg border bg-muted/50 p-4 text-center">
                     <p className="text-sm text-muted-foreground">
@@ -83,130 +93,84 @@ export default function VotationResultView({
                     </p>
                 </div>
             ) : (
-                <>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead>
-                                <tr className="border-b">
-                                    <th className="p-2 text-left font-semibold">
-                                        Alternativ
-                                    </th>
-                                    <th className="p-2 text-right font-semibold">
-                                        {isSTV ? 'Førstevalg' : 'Stemmer'}
-                                    </th>
-                                    <th className="p-2 text-right font-semibold">
-                                        % av totalt
-                                    </th>
-                                    <th className="p-2 text-right font-semibold">
-                                        % av stemmeberettigede
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {alternatives.map((alt) => (
-                                    <tr
-                                        key={alt.id}
-                                        className={`border-b ${alt.isWinner ? 'font-semibold text-green-700 dark:text-green-400' : ''}`}
-                                    >
-                                        <td className="p-2">
-                                            {alt.text}
-                                            {alt.isWinner && ' *'}
-                                        </td>
-                                        <td className="p-2 text-right">
-                                            {alt.voteCount}
-                                        </td>
-                                        <td className="p-2 text-right">
-                                            {totalVotes > 0
-                                                ? (
-                                                      (alt.voteCount /
-                                                          totalVotes) *
-                                                      100
-                                                  ).toFixed(1)
-                                                : '0.0'}
-                                            %
-                                        </td>
-                                        <td className="p-2 text-right">
-                                            {result &&
-                                            result.votingEligibleCount > 0
-                                                ? (
-                                                      (alt.voteCount /
-                                                          result.votingEligibleCount) *
-                                                      100
-                                                  ).toFixed(1)
-                                                : '0.0'}
-                                            %
-                                        </td>
-                                    </tr>
-                                ))}
-                                {result?.blankVoteCount != null &&
-                                    result.blankVoteCount > 0 && (
-                                        <tr className="border-b italic">
-                                            <td className="p-2">
-                                                Blanke stemmer
-                                            </td>
-                                            <td className="p-2 text-right">
-                                                {result.blankVoteCount}
-                                            </td>
-                                            <td
-                                                className="p-2 text-right"
-                                                colSpan={2}
-                                            />
-                                        </tr>
-                                    )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {result && (
-                        <div className="text-sm text-muted-foreground">
-                            <p>
-                                Totalt {result.voteCount} av{' '}
-                                {result.votingEligibleCount} stemmeberettigede
-                                stemte.
-                            </p>
-                            {result.quota && (
-                                <p>
-                                    STV-kvote (Droop): {result.quota.toFixed(2)}
-                                </p>
-                            )}
-                        </div>
-                    )}
-
-                    {/* STV round-by-round results */}
-                    {votation.type === 'STV' &&
-                        result?.stvRoundResults &&
-                        result.stvRoundResults.length > 0 && (
-                            <StvRoundTable
-                                rounds={result.stvRoundResults}
-                                alternatives={alternatives}
-                                quota={result.quota ?? 0}
-                            />
-                        )}
-
-                    <div className="flex gap-2">
-                        <DownloadResultButton
-                            alternatives={alternatives}
-                            result={result}
-                        />
-                    </div>
-                </>
+                <ResultDetails results={results} />
             )}
-
             {isAdminOrCounter && <VoteAudit votationId={votationId} />}
-
             {isAdmin && (
                 <div className="border-t pt-4">
-                    <Button
-                        onClick={() => startNextMutation.mutate()}
-                        disabled={startNextMutation.isPending}
-                    >
-                        {startNextMutation.isPending
-                            ? 'Starter...'
-                            : 'Start neste votering'}
+                    <Button onClick={onStartNext} disabled={startingNext}>
+                        {startingNext ? 'Starter...' : 'Start neste votering'}
                     </Button>
                 </div>
             )}
         </div>
+    );
+}
+
+function WinnerSummary({
+    winners,
+}: {
+    winners: VotationResults['alternatives'];
+}) {
+    if (winners.length === 0) {
+        return (
+            <div className="rounded-xl border bg-card p-6 text-center">
+                <p className="text-lg font-semibold text-foreground">
+                    Ingen vinner
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="rounded-xl border-2 border-green-600 bg-green-50 p-6 text-center dark:border-green-400 dark:bg-green-950">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-green-700 dark:text-green-400">
+                {winners.length > 1 ? 'Vinnere' : 'Vinner'}
+            </p>
+            <p className="text-2xl font-bold text-foreground">
+                {winners.map((winner) => winner.text).join(', ')}
+            </p>
+        </div>
+    );
+}
+
+function ResultDetails({ results }: { results: VotationResults }) {
+    const { result, alternatives, votation } = results;
+
+    return (
+        <>
+            <ResultTable
+                alternatives={alternatives}
+                result={result}
+                isStv={votation.type === 'STV'}
+            />
+            {result && (
+                <div className="text-sm text-muted-foreground">
+                    <p>
+                        Totalt {result.voteCount} av{' '}
+                        {result.votingEligibleCount} stemmeberettigede stemte.
+                    </p>
+                    {result.quota && (
+                        <p>STV-kvote (Droop): {result.quota.toFixed(2)}</p>
+                    )}
+                </div>
+            )}
+            {votation.type === 'STV' &&
+                result?.stvRoundResults &&
+                result.stvRoundResults.length > 0 && (
+                    <StvRoundTable
+                        rounds={result.stvRoundResults}
+                        alternatives={alternatives}
+                        quota={result.quota ?? 0}
+                    />
+                )}
+            <div className="flex gap-2">
+                <DownloadResultButton
+                    alternatives={alternatives}
+                    result={result}
+                />
+            </div>
+        </>
     );
 }
 

@@ -198,7 +198,7 @@ function VotationCard({
     const [editing, setEditing] = useState(false);
     const [title, setTitle] = useState(votation.title);
     const [description, setDescription] = useState(votation.description ?? '');
-    const [alternatives, setAlternatives] = useState(
+    const [alternatives, setAlternatives] = useState(() =>
         votation.alternatives.map((a) => ({ id: a.id, text: a.text })),
     );
     const queryClient = useQueryClient();
@@ -258,6 +258,7 @@ function VotationCard({
                         <Button
                             size="sm"
                             variant="ghost"
+                            aria-label="Lagre votering"
                             onClick={() => editMutation.mutate()}
                             disabled={editMutation.isPending}
                         >
@@ -266,6 +267,7 @@ function VotationCard({
                         <Button
                             size="sm"
                             variant="ghost"
+                            aria-label="Avbryt redigering"
                             onClick={() => {
                                 setTitle(votation.title);
                                 setDescription(votation.description ?? '');
@@ -282,14 +284,20 @@ function VotationCard({
                         </Button>
                     </div>
                 </div>
+                <label htmlFor={`votation-title-${votation.id}`}>Tittel</label>
                 <input
+                    id={`votation-title-${votation.id}`}
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     className="w-full rounded-md border bg-background px-3 py-2 text-sm font-medium"
                     placeholder="Tittel"
                 />
+                <label htmlFor={`votation-description-${votation.id}`}>
+                    Beskrivelse (valgfritt)
+                </label>
                 <input
+                    id={`votation-description-${votation.id}`}
                     type="text"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
@@ -304,6 +312,7 @@ function VotationCard({
                         <div key={alt.id} className="flex items-center gap-2">
                             <input
                                 type="text"
+                                aria-label={`Alternativ ${i + 1}`}
                                 value={alt.text}
                                 onChange={(e) => {
                                     const updated = [...alternatives];
@@ -357,6 +366,7 @@ function VotationCard({
                 {canEdit && (
                     <button
                         type="button"
+                        aria-label="Rediger votering"
                         onClick={() => setEditing(true)}
                         className="ml-auto rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                         title="Rediger votering"

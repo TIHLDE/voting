@@ -1,16 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { getVotationResults } from '#/server/results';
 import {
     updateVotationStatus,
     resetVotation,
     reviewVotation,
-    getReviewCounts,
-    getMyReview,
-    getReviewerCount,
 } from '#/server/voting';
 import { Button } from '#/components/ui/button';
-import { useWsSubscription } from '#/hooks/useWsSubscription';
+import { useLiveQuerySubscription } from '#/hooks/useLiveQuerySubscription';
+import { liveEvents } from '#/lib/live-events';
+import {
+    myReviewQuery,
+    reviewCountsQuery,
+    reviewerCountQuery,
+    resultsQuery,
+} from '#/queries/live';
+import { ResultTable } from './ResultTable';
 import VoteAudit from './VoteAudit';
 
 interface CheckResultsProps {
@@ -28,34 +32,26 @@ export default function CheckResults({
 }: CheckResultsProps) {
     const queryClient = useQueryClient();
 
-    const { data: results } = useQuery({
-        queryKey: ['results', votationId],
-        queryFn: () => getVotationResults({ data: { votationId } }),
-    });
+    const { data: results } = useQuery(resultsQuery(votationId));
 
     const { data: reviewCounts } = useQuery({
-        queryKey: ['reviewCounts', votationId],
-        queryFn: () => getReviewCounts({ data: { votationId } }),
+        ...reviewCountsQuery(votationId),
         enabled: isAdminOrCounter,
     });
 
     const { data: reviewerCount } = useQuery({
-        queryKey: ['reviewerCount', meetingId],
-        queryFn: () => getReviewerCount({ data: { meetingId } }),
+        ...reviewerCountQuery(meetingId),
         enabled: isAdminOrCounter,
     });
 
     const { data: myReview } = useQuery({
-        queryKey: ['myReview', votationId],
-        queryFn: () => getMyReview({ data: { votationId } }),
+        ...myReviewQuery(votationId),
         enabled: isAdminOrCounter,
     });
 
-    useWsSubscription(
-        isAdminOrCounter ? `votation:${votationId}:reviews` : '',
-        {
-            setQueryData: ['reviewCounts', votationId],
-        },
+    useLiveQuerySubscription(
+        isAdminOrCounter ? liveEvents.votationReviews(votationId) : null,
+        { setQueryData: reviewCountsQuery(votationId) },
     );
 
     const reviewMutation = useMutation({
@@ -139,7 +135,6 @@ export default function CheckResults({
     const { result, alternatives, votation } = results;
     const isSTV = votation.type === 'STV';
     const winners = alternatives.filter((a) => a.isWinner);
-    const totalVotes = alternatives.reduce((sum, a) => sum + a.voteCount, 0);
 
     return (
         <div className="space-y-6">
@@ -159,71 +154,11 @@ export default function CheckResults({
                 </div>
             )}
 
-            <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                    <thead>
-                        <tr className="border-b">
-                            <th className="p-2 text-left font-semibold">
-                                Alternativ
-                            </th>
-                            <th className="p-2 text-right font-semibold">
-                                {isSTV ? 'Førstevalg' : 'Stemmer'}
-                            </th>
-                            <th className="p-2 text-right font-semibold">
-                                % av totalt
-                            </th>
-                            <th className="p-2 text-right font-semibold">
-                                % av stemmeberettigede
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {alternatives.map((alt) => (
-                            <tr
-                                key={alt.id}
-                                className={`border-b ${alt.isWinner ? 'font-semibold text-green-700 dark:text-green-400' : ''}`}
-                            >
-                                <td className="p-2">{alt.text}</td>
-                                <td className="p-2 text-right">
-                                    {alt.voteCount}
-                                </td>
-                                <td className="p-2 text-right">
-                                    {totalVotes > 0
-                                        ? (
-                                              (alt.voteCount / totalVotes) *
-                                              100
-                                          ).toFixed(1)
-                                        : '0.0'}
-                                    %
-                                </td>
-                                <td className="p-2 text-right">
-                                    {result && result.votingEligibleCount > 0
-                                        ? (
-                                              (alt.voteCount /
-                                                  result.votingEligibleCount) *
-                                              100
-                                          ).toFixed(1)
-                                        : '0.0'}
-                                    %
-                                </td>
-                            </tr>
-                        ))}
-                        {result?.blankVoteCount != null &&
-                            result.blankVoteCount > 0 && (
-                                <tr className="border-b italic">
-                                    <td className="p-2">Blanke stemmer</td>
-                                    <td className="p-2 text-right">
-                                        {result.blankVoteCount}
-                                    </td>
-                                    <td
-                                        className="p-2 text-right"
-                                        colSpan={2}
-                                    />
-                                </tr>
-                            )}
-                    </tbody>
-                </table>
-            </div>
+            <ResultTable
+                alternatives={alternatives}
+                result={result}
+                isStv={isSTV}
+            />
 
             {isAdminOrCounter && (
                 <ReviewSection

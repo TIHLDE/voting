@@ -1,5 +1,6 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { createFileRoute, Navigate, useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation } from '@tanstack/react-query';
+
 import { getMeetingPublicInfo } from '#/server/meetings';
 import {
     getMyRegistrationStatus,
@@ -7,6 +8,7 @@ import {
 } from '#/server/participants';
 import { Button } from '#/components/ui/button';
 import { useSSE } from '#/hooks/useSSE';
+import { liveEvents } from '#/lib/live-events';
 
 export const Route = createFileRoute('/_authenticated/join/$meetingId')({
     component: JoinMeeting,
@@ -34,8 +36,8 @@ function JoinMeeting() {
 
     useSSE(
         status?.status === 'pending'
-            ? `participant:${session.user.id}:status:${meetingId}`
-            : '',
+            ? liveEvents.participantStatus(session.user.id, meetingId)
+            : null,
         () => {
             void refetch().then((result) => {
                 if (result.data?.status === 'approved') {
@@ -49,8 +51,7 @@ function JoinMeeting() {
     );
 
     if (status?.status === 'approved') {
-        void navigate({ to: '/meetings/$meetingId', params: { meetingId } });
-        return null;
+        return <Navigate to="/meetings/$meetingId" params={{ meetingId }} />;
     }
 
     if (status?.status === 'pending') {
