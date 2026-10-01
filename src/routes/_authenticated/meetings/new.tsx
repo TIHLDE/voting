@@ -1,115 +1,113 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
+import { z } from 'zod';
 import { createMeeting } from '#/server/meetings';
-import { createVotations } from '#/server/votations';
-import WizardShell from '#/components/WizardShell';
-import MeetingForm from '#/components/MeetingForm';
-import type { MeetingFormData } from '#/components/MeetingForm';
-import VotationEditor from '#/components/VotationEditor';
-import type { VotationFormData } from '#/components/VotationEditor';
-import { Button } from '#/components/ui/button';
+import { formHandlers, useAppForm } from '#/hooks/form';
 
 export const Route = createFileRoute('/_authenticated/meetings/new')({
-    component: NewMeetingWizard,
+    component: NewMeetingPage,
 });
 
-const STEPS = ['Møtedetaljer', 'Voteringer'];
+const meetingSchema = z.object({
+    title: z.string().nonempty().max(255),
+    description: z.string(),
+    allowSelfRegistration: z.boolean(),
+});
 
-function NewMeetingWizard() {
-    const [step, setStep] = useState(0);
-    const [meetingData, setMeetingData] = useState<MeetingFormData | null>(
-        null,
-    );
-    const [votations, setVotations] = useState<VotationFormData[]>([]);
+function NewMeetingPage() {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 
-    const createMutation = useMutation({
-        mutationFn: async () => {
-            if (!meetingData) throw new Error('Mangler møtedetaljer');
-
-            const newMeeting = await createMeeting({ data: meetingData });
-
-            if (votations.length > 0) {
-                await createVotations({
-                    data: {
-                        meetingId: newMeeting.id,
-                        votations: votations.map((v, i) => ({
-                            ...v,
-                            index: i,
-                        })),
+    const form = useAppForm({
+        defaultValues: {
+            title: '',
+            description: '',
+            allowSelfRegistration: true,
+        },
+        validators: {
+            onBlur: meetingSchema,
+            onSubmit: meetingSchema,
+            onChange: meetingSchema,
+        },
+        async onSubmit({ value, formApi }) {
+            try {
+                const newMeeting = await createMeeting({ data: value });
+                await queryClient.invalidateQueries({ queryKey: ['meetings'] });
+                await navigate({
+                    to: '/meetings/$meetingId',
+                    params: { meetingId: newMeeting.id },
+                });
+            } catch (e) {
+                formApi.setErrorMap({
+                    onSubmit: {
+                        form: e instanceof Error ? e.message : 'Noe gikk galt',
+                        fields: {},
                     },
                 });
             }
-
-            return newMeeting;
-        },
-        onSuccess: async (newMeeting) => {
-            await queryClient.invalidateQueries({ queryKey: ['meetings'] });
-            void navigate({
-                to: '/meetings/$meetingId',
-                params: { meetingId: newMeeting.id },
-            });
         },
     });
 
-    function handleMeetingSubmit(data: MeetingFormData) {
-        setMeetingData(data);
-        setStep(1);
-    }
-
     return (
-        <main className="mx-auto max-w-5xl px-4 py-12">
+        <main className="mx-auto max-w-2xl px-4 py-12">
             <h1 className="mb-8 text-center text-3xl font-bold text-foreground">
                 Opprett nytt møte
             </h1>
 
-            <WizardShell
-                currentStep={step}
-                steps={STEPS}
-                onStepChange={setStep}
-            >
-                <div className="mx-auto max-w-2xl rounded-xl border bg-card p-6 shadow-sm sm:p-8">
-                    {step === 0 && (
-                        <MeetingForm
-                            initialData={meetingData ?? undefined}
-                            onSubmit={handleMeetingSubmit}
-                            submitLabel="Neste: Voteringer"
-                        />
-                    )}
-
-                    {step === 1 && (
-                        <div className="space-y-6">
-                            <VotationEditor
-                                votations={votations}
-                                onChange={setVotations}
-                            />
-                            <div className="flex justify-between">
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setStep(0)}
-                                >
-                                    Tilbake
-                                </Button>
-                                <Button
-                                    onClick={() => createMutation.mutate()}
-                                    disabled={createMutation.isPending}
-                                >
-                                    {createMutation.isPending
-                                        ? 'Oppretter...'
-                                        : 'Opprett møte'}
-                                </Button>
-                            </div>
-                            {createMutation.error && (
-                                <p className="text-sm text-destructive">
-                                    {createMutation.error.message}
-                                </p>
+            <div className="rounded-xl border bg-card p-6 shadow-sm sm:p-8">
+                <form.AppForm>
+                    <form {...formHandlers(form)} className="space-y-4">
+                        <form.AppField
+                            name="title"
+                            children={(field) => (
+                                <field.InputField
+                                    label="Tittel"
+                                    required
+                                    placeholder="Møtetittel"
+                                    maxLength={255}
+                                />
                             )}
-                        </div>
-                    )}
-                </div>
-            </WizardShell>
+                        />
+
+                        <form.AppField
+                            name="description"
+                            children={(field) => (
+                                <field.Field>
+                                    <field.Label>
+                                        Beskrivelse (valgfritt)
+                                    </field.Label>
+                                    <field.Textarea
+                                        placeholder="Kort beskrivelse av møtet"
+                                        rows={3}
+                                    />
+                                    <field.Error />
+                                </field.Field>
+                            )}
+                        />
+
+                        <form.AppField
+                            name="allowSelfRegistration"
+                            children={(field) => (
+                                <field.Field orientation="horizontal">
+                                    <field.Switch />
+                                    <field.Label>
+                                        Tillat selvregistrering
+                                    </field.Label>
+                                </field.Field>
+                            )}
+                        />
+
+                        <form.SubmitButton
+                            className="w-full"
+                            loading="Oppretter..."
+                        >
+                            Opprett møte
+                        </form.SubmitButton>
+
+                        <form.FormErrors />
+                    </form>
+                </form.AppForm>
+            </div>
         </main>
     );
 }

@@ -66,7 +66,6 @@ export function InputField({
                             break;
 
                         case 'date':
-                        case 'datetime-local':
                             field.handleChange(
                                 e.target.valueAsDate as unknown as string,
                             );

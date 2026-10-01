@@ -7,9 +7,7 @@ import { Switch } from '#/components/ui/switch';
 
 export interface MeetingFormData {
     title: string;
-    organization: string;
     description: string;
-    startTime: string;
     allowSelfRegistration: boolean;
 }
 
@@ -22,9 +20,7 @@ interface MeetingFormProps {
 
 const defaultData: MeetingFormData = {
     title: '',
-    organization: '',
     description: '',
-    startTime: '',
     allowSelfRegistration: false,
 };
 
@@ -60,19 +56,6 @@ export default function MeetingForm({
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="organization">Organisasjon</Label>
-                <Input
-                    id="organization"
-                    value={form.organization}
-                    onChange={(e) =>
-                        setForm({ ...form, organization: e.target.value })
-                    }
-                    placeholder="Navn på organisasjonen"
-                    required
-                />
-            </div>
-
-            <div className="space-y-2">
                 <Label htmlFor="description">Beskrivelse (valgfritt)</Label>
                 <Textarea
                     id="description"
@@ -82,19 +65,6 @@ export default function MeetingForm({
                     }
                     placeholder="Kort beskrivelse av møtet"
                     rows={3}
-                />
-            </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="startTime">Starttid</Label>
-                <Input
-                    id="startTime"
-                    type="datetime-local"
-                    value={form.startTime}
-                    onChange={(e) =>
-                        setForm({ ...form, startTime: e.target.value })
-                    }
-                    required
                 />
             </div>
 

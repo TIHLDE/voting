@@ -60,9 +60,7 @@ export const getMeetingById = createServerFn({ method: 'GET' })
 
 const createMeetingSchema = z.object({
     title: z.string().min(1).max(255),
-    organization: z.string().min(1),
     description: z.string().optional(),
-    startTime: z.string().transform((s) => new Date(s)),
     allowSelfRegistration: z.boolean(),
 });
 
@@ -76,9 +74,7 @@ export const createMeeting = createServerFn({ method: 'POST' })
                 .insert(meeting)
                 .values({
                     title: data.title,
-                    organization: data.organization,
                     description: data.description,
-                    startTime: data.startTime,
                     allowSelfRegistration: data.allowSelfRegistration,
                     ownerId: session.user.id,
                 })
@@ -98,12 +94,7 @@ export const createMeeting = createServerFn({ method: 'POST' })
 const updateMeetingSchema = z.object({
     meetingId: z.string(),
     title: z.string().min(1).max(255).optional(),
-    organization: z.string().min(1).optional(),
     description: z.string().optional(),
-    startTime: z
-        .string()
-        .transform((s) => new Date(s))
-        .optional(),
     status: z.enum(['UPCOMING', 'ONGOING', 'ENDED']).optional(),
     allowSelfRegistration: z.boolean().optional(),
 });
@@ -133,7 +124,6 @@ export const getMeetingPublicInfo = createServerFn({ method: 'GET' })
             columns: {
                 id: true,
                 title: true,
-                organization: true,
                 description: true,
                 allowSelfRegistration: true,
                 status: true,

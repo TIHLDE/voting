@@ -5,3 +5,4 @@ export { CheckboxGroup } from './checkbox-group';
 export { Switch } from './switch';
 export { Select } from './select';
 export { RadioGroup } from './radio-group';
+export { Textarea } from './textarea';

@@ -50,9 +50,6 @@ function PresentationView() {
                 <h1 className="text-4xl font-bold tracking-tight text-foreground">
                     {meeting.title}
                 </h1>
-                <p className="mt-1 text-xl text-muted-foreground">
-                    {meeting.organization}
-                </p>
             </header>
 
             <main className="flex flex-1 items-center justify-center p-12">

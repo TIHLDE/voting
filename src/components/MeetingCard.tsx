@@ -5,8 +5,6 @@ import { Badge } from '#/components/ui/badge';
 interface MeetingCardProps {
     id: string;
     title: string;
-    organization: string;
-    startTime: Date;
     status: 'UPCOMING' | 'ONGOING' | 'ENDED';
     myRole: string;
     isOwner: boolean;
@@ -15,8 +13,6 @@ interface MeetingCardProps {
 export default function MeetingCard({
     id,
     title,
-    organization,
-    startTime,
     status,
     myRole,
     isOwner,
@@ -40,19 +36,7 @@ export default function MeetingCard({
                     </Badge>
                 )}
             </div>
-            <h3 className="mb-1 text-lg font-semibold text-foreground">
-                {title}
-            </h3>
-            <p className="mb-1 text-sm text-muted-foreground">{organization}</p>
-            <p className="text-xs text-muted-foreground">
-                {new Date(startTime).toLocaleDateString('nb-NO', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                })}
-            </p>
+            <h3 className="text-lg font-semibold text-foreground">{title}</h3>
         </Link>
     );
 }

@@ -59,9 +59,7 @@ function EditMeeting() {
 
     const initialData: MeetingFormData = {
         title: meeting.title,
-        organization: meeting.organization,
         description: meeting.description ?? '',
-        startTime: new Date(meeting.startTime).toISOString().slice(0, 16),
         allowSelfRegistration: meeting.allowSelfRegistration,
     };
 

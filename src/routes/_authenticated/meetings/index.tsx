@@ -65,8 +65,6 @@ function MeetingSection({
     meetings: Array<{
         id: string;
         title: string;
-        organization: string;
-        startTime: Date;
         status: 'UPCOMING' | 'ONGOING' | 'ENDED';
         myRole: string;
         isOwner: boolean;

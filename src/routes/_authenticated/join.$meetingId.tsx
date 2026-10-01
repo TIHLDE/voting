@@ -66,9 +66,6 @@ function JoinMeeting() {
                             <h1 className="text-2xl font-bold text-foreground">
                                 {meetingInfo.title}
                             </h1>
-                            <p className="mt-1 text-muted-foreground">
-                                {meetingInfo.organization}
-                            </p>
                         </div>
                     )}
                     <div className="rounded-xl border bg-card p-6">
@@ -94,9 +91,6 @@ function JoinMeeting() {
                     <h1 className="text-2xl font-bold text-foreground">
                         {meetingInfo.title}
                     </h1>
-                    <p className="text-muted-foreground">
-                        {meetingInfo.organization}
-                    </p>
                     <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6">
                         <p className="text-sm text-destructive">
                             Selvregistrering er ikke aktivert for dette møtet.
@@ -114,9 +108,6 @@ function JoinMeeting() {
                     <h1 className="text-2xl font-bold text-foreground">
                         {meetingInfo.title}
                     </h1>
-                    <p className="mt-1 text-muted-foreground">
-                        {meetingInfo.organization}
-                    </p>
                     {meetingInfo.description && (
                         <p className="mt-3 text-sm text-muted-foreground">
                             {meetingInfo.description}

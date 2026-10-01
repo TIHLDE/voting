@@ -13,6 +13,7 @@ import {
     RadioGroup,
     Select,
     Switch,
+    Textarea,
 } from '#/components/form/field';
 import { InputField, PasswordField } from '#/components/form/basic-fields';
 import { FormErrors } from '#/components/form/form-errors';
@@ -68,6 +69,7 @@ const { useAppForm, withForm, withFieldGroup } = createFormHook({
         Checkbox,
         CheckboxGroup,
         Switch,
+        Textarea,
         Select,
         RadioGroup,
         Description,

@@ -48,10 +48,8 @@ async function seed() {
         .insert(schema.meeting)
         .values({
             title: 'Generalforsamling 2026',
-            organization: 'Testorganisasjonen',
             description:
                 'Testmøte med alle typer voteringer for å verifisere systemet.',
-            startTime: new Date(),
             status: 'UPCOMING',
             allowSelfRegistration: true,
             ownerId: userA.id,
