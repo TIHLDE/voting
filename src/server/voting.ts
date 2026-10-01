@@ -15,6 +15,7 @@ import {
 import { validateStatusTransition } from './votation-state';
 import { publish } from './sse/emitter';
 import { liveEvents } from '#/lib/live-events';
+import { validateStvRanking } from '#/lib/stv-ranking';
 import { db } from '#/db/index';
 import {
     requireAdmin,
@@ -126,6 +127,17 @@ export const castStvVote = createServerFn({ method: 'POST' })
         const v = await ensureVotationOpen(data.votationId);
         if (v.type !== 'STV') throw new Error('Denne voteringen er ikke STV');
 
+        // Blank votes go through castBlankVote, so every ballot here must
+        // be a complete ranking of the votation's alternatives
+        const alts = await db.query.alternative.findMany({
+            where: { votationId: data.votationId },
+        });
+        const rankingError = validateStvRanking(
+            data.alternatives,
+            alts.map((a) => a.id),
+        );
+        if (rankingError) throw new Error(rankingError);
+
         const { session } = await requireVotingEligible(v.meetingId);
         await ensureNotVoted(session.user.id, data.votationId);
 
@@ -140,15 +152,13 @@ export const castStvVote = createServerFn({ method: 'POST' })
                 .values({ votationId: data.votationId })
                 .returning();
 
-            if (data.alternatives.length > 0) {
-                await tx.insert(vote).values(
-                    data.alternatives.map((a) => ({
-                        alternativeId: a.alternativeId,
-                        ranking: a.ranking,
-                        stvVoteId: newStvVote.id,
-                    })),
-                );
-            }
+            await tx.insert(vote).values(
+                data.alternatives.map((a) => ({
+                    alternativeId: a.alternativeId,
+                    ranking: a.ranking,
+                    stvVoteId: newStvVote.id,
+                })),
+            );
         });
 
         const counts = await getVoteCountData(data.votationId, v.meetingId);
