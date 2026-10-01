@@ -1,10 +1,10 @@
-import { useFieldContext } from "#/hooks/form";
-import { Label as LabelPrimitive } from "#/components/ui/label";
+import { useFieldContext } from '#/hooks/form';
+import { Label as LabelPrimitive } from '#/components/ui/label';
 import {
     RadioGroup as RadioGroupRoot,
     RadioGroupItem,
-} from "#/components/ui/radio-group";
-import { useField } from "./field";
+} from '#/components/ui/radio-group';
+import { useField } from './field';
 
 interface RadioGroupOption<TValue extends string = string> {
     value: TValue;

@@ -1,10 +1,10 @@
-import { useFieldContext } from "#/hooks/form";
-import { Switch as SwitchPrimitive } from "#/components/ui/switch";
-import { useField } from "./field";
+import { useFieldContext } from '#/hooks/form';
+import { Switch as SwitchPrimitive } from '#/components/ui/switch';
+import { useField } from './field';
 
 type SwitchProps = Omit<
     React.ComponentProps<typeof SwitchPrimitive>,
-    "checked" | "onCheckedChange" | "onBlur" | "id" | "name" | "required"
+    'checked' | 'onCheckedChange' | 'onBlur' | 'id' | 'name' | 'required'
 >;
 
 export function Switch(props: SwitchProps) {

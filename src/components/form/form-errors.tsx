@@ -1,5 +1,5 @@
-import { useFormContext } from "#/hooks/form";
-import { FieldError } from "#/components/ui/field";
+import { useFormContext } from '#/hooks/form';
+import { FieldError } from '#/components/ui/field';
 
 type Issue = { message?: string; path?: PropertyKey[] };
 
@@ -11,15 +11,15 @@ function collectUnmapped(error: unknown, out: Issue[]): void {
         return;
     }
 
-    if (typeof error === "string") {
+    if (typeof error === 'string') {
         out.push({ message: error });
         return;
     }
 
-    if (typeof error !== "object") return;
+    if (typeof error !== 'object') return;
 
     const issue = error as Issue;
-    if (typeof issue.message === "string") {
+    if (typeof issue.message === 'string') {
         // A top-level path belongs to a field, which renders it itself.
         if (!issue.path || issue.path.length > 1) out.push(issue);
         return;
@@ -30,7 +30,7 @@ function collectUnmapped(error: unknown, out: Issue[]): void {
 }
 
 export function FormErrors(
-    props: Omit<React.ComponentProps<typeof FieldError>, "errors">,
+    props: Omit<React.ComponentProps<typeof FieldError>, 'errors'>,
 ) {
     const form = useFormContext();
 

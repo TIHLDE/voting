@@ -19,24 +19,27 @@ export const Route = createFileRoute('/auth')({
 });
 
 type AuthMutationData = {
-    redirectTo?: string
-} & ({
-    type: 'register',
-    name: string,
-    email: string,
-    password: string,
-} | {
-    type: 'login',
-    email: string,
-    password: string,
-} | {
-    type: 'oauth'
-})
+    redirectTo?: string;
+} & (
+    | {
+          type: 'register';
+          name: string;
+          email: string;
+          password: string;
+      }
+    | {
+          type: 'login';
+          email: string;
+          password: string;
+      }
+    | {
+          type: 'oauth';
+      }
+);
 
 const authMutationOptions = mutationOptions({
     mutationKey: ['auth', 'login-register-mutation'],
     async mutationFn(data: AuthMutationData) {
-
         let result;
 
         const authType = data.type;
@@ -45,8 +48,8 @@ const authMutationOptions = mutationOptions({
             case 'oauth':
                 result = await authClient.signIn.social({
                     provider: 'photon',
-                    callbackURL: data.redirectTo
-                })
+                    callbackURL: data.redirectTo,
+                });
                 break;
 
             case 'login':
@@ -65,26 +68,28 @@ const authMutationOptions = mutationOptions({
                 break;
 
             default:
-                assertNever(authType)
-                throw new Error("Unsupported auth path: " + authType);
+                assertNever(authType);
+                throw new Error('Unsupported auth path: ' + authType);
                 break;
         }
 
         if (result.error) {
-            throw new Error(result.error.message ?? (
-                authType == "login" ? "E-post eller passord er feil" : 'Noe gikk galt'
-            ));
+            throw new Error(
+                result.error.message ??
+                    (authType == 'login'
+                        ? 'E-post eller passord er feil'
+                        : 'Noe gikk galt'),
+            );
         }
     },
     async onSuccess(_, __, ___, context) {
         await context.client.invalidateQueries();
     },
-})
+});
 
 function AuthPage() {
     const { redirect } = Route.useSearch();
     const authMutation = useMutation(authMutationOptions);
-
 
     return (
         <main className="mx-auto max-w-md px-4 py-12">
@@ -100,7 +105,12 @@ function AuthPage() {
                     type="button"
                     className="w-full"
                     disabled={authMutation.isPending}
-                    onClick={() => authMutation.mutate({ type: "oauth", redirectTo: redirect })}
+                    onClick={() =>
+                        authMutation.mutate({
+                            type: 'oauth',
+                            redirectTo: redirect,
+                        })
+                    }
                 >
                     Logg inn med TIHLDE
                 </Button>
@@ -119,11 +129,20 @@ function AuthPage() {
                     med e-post.
                 </p>
 
-
-                <Tabs defaultValue="login" >
+                <Tabs defaultValue="login">
                     <TabsList className="w-full p-2 h-fit!">
-                        <TabsTrigger value="login" className="p-1 data-active:bg-primary! data-active:text-accent!">Logg Inn</TabsTrigger>
-                        <TabsTrigger value="signup" className="p-1 data-active:bg-primary! data-active:text-accent!">Opprett Konto</TabsTrigger>
+                        <TabsTrigger
+                            value="login"
+                            className="p-1 data-active:bg-primary! data-active:text-accent!"
+                        >
+                            Logg Inn
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="signup"
+                            className="p-1 data-active:bg-primary! data-active:text-accent!"
+                        >
+                            Opprett Konto
+                        </TabsTrigger>
                     </TabsList>
                     <TabsContent value="login">
                         <LoginForm />
@@ -133,33 +152,32 @@ function AuthPage() {
                     </TabsContent>
                 </Tabs>
             </div>
-        </main >
+        </main>
     );
 }
 
-
 const loginSchema = z.object({
     email: z.email(),
-    password: z.string()
+    password: z.string(),
 });
-const signupSchema = loginSchema.extend({
-    name: z.string().min(4),
-    password: z.string().min(8),
-    confirmPassword: z.string(),
-}).superRefine((v, ctx) => {
-    if (v.confirmPassword != v.password) {
-        ctx.addIssue({
-            code: 'custom',
-            message: 'Passwords must match',
-            path: ['confirmPassword']
-        });
-        return z.NEVER;
-    }
-})
-
+const signupSchema = loginSchema
+    .extend({
+        name: z.string().min(4),
+        password: z.string().min(8),
+        confirmPassword: z.string(),
+    })
+    .superRefine((v, ctx) => {
+        if (v.confirmPassword != v.password) {
+            ctx.addIssue({
+                code: 'custom',
+                message: 'Passwords must match',
+                path: ['confirmPassword'],
+            });
+            return z.NEVER;
+        }
+    });
 
 function LoginForm() {
-
     const { redirect } = Route.useSearch();
     const navigate = useNavigate();
     const authMutation = useMutation(authMutationOptions);
@@ -172,17 +190,17 @@ function LoginForm() {
         validators: {
             onBlur: loginSchema,
             onSubmit: loginSchema,
-            onChange: loginSchema
+            onChange: loginSchema,
         },
 
         async onSubmit({ value: { email, password }, formApi }) {
             try {
                 await authMutation.mutateAsync({
-                    type: "login",
+                    type: 'login',
                     email,
-                    password
+                    password,
                 });
-                await navigate({ href: redirectTarget(redirect) });
+                await navigate({ href: redirect });
             } catch (e) {
                 formApi.setErrorMap({
                     onSubmit: {
@@ -191,7 +209,7 @@ function LoginForm() {
                     },
                 });
             }
-        }
+        },
     });
     return (
         <form.AppForm>
@@ -200,9 +218,9 @@ function LoginForm() {
                     name="email"
                     children={(field) => (
                         <field.InputField
-                            label='E-post'
-                            type='email'
-                            autoComplete='email'
+                            label="E-post"
+                            type="email"
+                            autoComplete="email"
                         />
                     )}
                 />
@@ -220,7 +238,7 @@ function LoginForm() {
                 <form.FormErrors />
             </form>
         </form.AppForm>
-    )
+    );
 }
 
 function SignupForm() {
@@ -238,18 +256,18 @@ function SignupForm() {
         validators: {
             onBlur: signupSchema,
             onSubmit: signupSchema,
-            onChange: signupSchema
+            onChange: signupSchema,
         },
 
         async onSubmit({ value: { name, email, password }, formApi }) {
             try {
                 await authMutation.mutateAsync({
-                    type: "register",
+                    type: 'register',
                     name,
                     email,
-                    password
+                    password,
                 });
-                await navigate({ href: redirectTarget(redirect) });
+                await navigate({ href: redirect });
             } catch (e) {
                 formApi.setErrorMap({
                     onSubmit: {
@@ -258,7 +276,7 @@ function SignupForm() {
                     },
                 });
             }
-        }
+        },
     });
     return (
         <form.AppForm>
@@ -266,10 +284,7 @@ function SignupForm() {
                 <form.AppField
                     name="name"
                     children={(field) => (
-                        <field.InputField
-                            label='Navn'
-                            autoComplete='name'
-                        />
+                        <field.InputField label="Navn" autoComplete="name" />
                     )}
                 />
 
@@ -277,9 +292,9 @@ function SignupForm() {
                     name="email"
                     children={(field) => (
                         <field.InputField
-                            label='E-post'
-                            type='email'
-                            autoComplete='email'
+                            label="E-post"
+                            type="email"
+                            autoComplete="email"
                         />
                     )}
                 />
@@ -287,22 +302,31 @@ function SignupForm() {
                 <form.AppField
                     name="password"
                     children={(field) => (
-                        <field.PasswordField label="Passord" autoComplete="new-password" />
+                        <field.PasswordField
+                            label="Passord"
+                            autoComplete="new-password"
+                        />
                     )}
                 />
 
                 <form.AppField
                     name="confirmPassword"
                     children={(field) => (
-                        <field.PasswordField label="Bekreft passord" autoComplete="new-password" />
+                        <field.PasswordField
+                            label="Bekreft passord"
+                            autoComplete="new-password"
+                        />
                     )}
                 />
-                <form.SubmitButton className="w-full" loading="Oppretter konto...">
+                <form.SubmitButton
+                    className="w-full"
+                    loading="Oppretter konto..."
+                >
                     Opprett konto
                 </form.SubmitButton>
 
                 <form.FormErrors />
             </form>
         </form.AppForm>
-    )
+    );
 }

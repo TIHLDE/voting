@@ -1,12 +1,12 @@
-import { useFieldContext } from "#/hooks/form";
+import { useFieldContext } from '#/hooks/form';
 import {
     Select as SelectRoot,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "#/components/ui/select";
-import { useField } from "./field";
+} from '#/components/ui/select';
+import { useField } from './field';
 
 interface SelectOption<TValue extends string = string> {
     value: TValue;

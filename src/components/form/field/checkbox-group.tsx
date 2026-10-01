@@ -1,7 +1,7 @@
-import { useFieldContext } from "#/hooks/form";
-import { Checkbox as CheckboxPrimitive } from "#/components/ui/checkbox";
-import { Label as LabelPrimitive } from "#/components/ui/label";
-import { useField } from "./field";
+import { useFieldContext } from '#/hooks/form';
+import { Checkbox as CheckboxPrimitive } from '#/components/ui/checkbox';
+import { Label as LabelPrimitive } from '#/components/ui/label';
+import { useField } from './field';
 
 interface CheckboxGroupOption<TValue extends string | number> {
     value: TValue;

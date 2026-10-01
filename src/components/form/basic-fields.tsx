@@ -1,19 +1,19 @@
-import { useFieldContext } from "#/hooks/form";
+import { useFieldContext } from '#/hooks/form';
 import {
     Field,
     FieldDescription,
     FieldError,
     FieldLabel,
-} from "#/components/ui/field";
-import { Input } from "#/components/ui/input";
+} from '#/components/ui/field';
+import { Input } from '#/components/ui/input';
 import {
     InputGroup,
     InputGroupAddon,
     InputGroupButton,
     InputGroupInput,
-} from "#/components/ui/input-group";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
-import { useId, useState } from "react";
+} from '#/components/ui/input-group';
+import { EyeIcon, EyeOffIcon } from 'lucide-react';
+import { useId, useState } from 'react';
 
 interface BasicFieldPropBase {
     label?: string;
@@ -23,7 +23,7 @@ interface BasicFieldPropBase {
 }
 
 interface InputFieldProps
-    extends BasicFieldPropBase, React.ComponentProps<typeof Input> { }
+    extends BasicFieldPropBase, React.ComponentProps<typeof Input> {}
 
 export function InputField({
     label,
@@ -46,7 +46,7 @@ export function InputField({
         >
             {label && (
                 <FieldLabel htmlFor={inputId}>
-                    {label}{" "}
+                    {label}{' '}
                     {required && <span className="text-destructive">*</span>}
                 </FieldLabel>
             )}
@@ -59,14 +59,14 @@ export function InputField({
                 value={field.state.value}
                 onChange={(e) => {
                     switch (type) {
-                        case "number":
+                        case 'number':
                             field.handleChange(
                                 e.target.valueAsNumber as unknown as string,
                             );
                             break;
 
-                        case "date":
-                        case "datetime-local":
+                        case 'date':
+                        case 'datetime-local':
                             field.handleChange(
                                 e.target.valueAsDate as unknown as string,
                             );
@@ -88,16 +88,16 @@ export function InputField({
 }
 
 interface PasswordFieldProps
-    extends BasicFieldPropBase, React.ComponentProps<typeof InputGroupInput> { }
+    extends BasicFieldPropBase, React.ComponentProps<typeof InputGroupInput> {}
 
 export function PasswordField({
     label,
     required,
     description,
     hideError = false,
-    autoComplete = "current-password",
+    autoComplete = 'current-password',
     ...props
-}: Omit<PasswordFieldProps, "type">) {
+}: Omit<PasswordFieldProps, 'type'>) {
     const field = useFieldContext<string>();
     const inputId = useId();
     const [showPassword, setShowPassword] = useState(false);
@@ -112,14 +112,14 @@ export function PasswordField({
         >
             {label && (
                 <FieldLabel htmlFor={inputId}>
-                    {label}{" "}
+                    {label}{' '}
                     {required && <span className="text-destructive">*</span>}
                 </FieldLabel>
             )}
             <InputGroup>
                 <InputGroupInput
                     {...props}
-                    type={showPassword ? "text" : "password"}
+                    type={showPassword ? 'text' : 'password'}
                     id={inputId}
                     name={field.name}
                     required={required}

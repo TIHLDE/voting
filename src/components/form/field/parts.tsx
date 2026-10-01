@@ -1,6 +1,10 @@
-import { useFieldContext } from "#/hooks/form";
-import { FieldDescription, FieldError, FieldLabel } from "#/components/ui/field";
-import { useField } from "./field";
+import { useFieldContext } from '#/hooks/form';
+import {
+    FieldDescription,
+    FieldError,
+    FieldLabel,
+} from '#/components/ui/field';
+import { useField } from './field';
 
 interface LabelProps extends React.ComponentProps<typeof FieldLabel> {
     required?: boolean;

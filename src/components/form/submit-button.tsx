@@ -1,6 +1,6 @@
-import { useFormContext } from "#/hooks/form";
-import { Button } from "#/components/ui/button";
-import { useRef } from "react";
+import { useFormContext } from '#/hooks/form';
+import { Button } from '#/components/ui/button';
+import { useRef } from 'react';
 
 interface SubmitButtonProps extends React.ComponentProps<typeof Button> {
     disabled?: boolean;
@@ -8,7 +8,7 @@ interface SubmitButtonProps extends React.ComponentProps<typeof Button> {
 }
 
 export function SubmitButton({
-    type = "submit",
+    type = 'submit',
     disabled,
     loading,
     onClick,

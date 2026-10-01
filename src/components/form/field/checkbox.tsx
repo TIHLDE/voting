@@ -1,10 +1,10 @@
-import { useFieldContext } from "#/hooks/form";
-import { Checkbox as CheckboxPrimitive } from "#/components/ui/checkbox";
-import { useField } from "./field";
+import { useFieldContext } from '#/hooks/form';
+import { Checkbox as CheckboxPrimitive } from '#/components/ui/checkbox';
+import { useField } from './field';
 
 type CheckboxProps = Omit<
     React.ComponentProps<typeof CheckboxPrimitive>,
-    "checked" | "onCheckedChange" | "onBlur" | "id" | "name" | "required"
+    'checked' | 'onCheckedChange' | 'onBlur' | 'id' | 'name' | 'required'
 >;
 
 export function Checkbox(props: CheckboxProps) {

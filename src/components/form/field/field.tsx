@@ -1,6 +1,6 @@
-import { useFieldErrorVisible } from "#/hooks/form";
-import { Field as FieldPrimitive } from "#/components/ui/field";
-import { createContext, useContext, useId, useMemo, useState } from "react";
+import { useFieldErrorVisible } from '#/hooks/form';
+import { Field as FieldPrimitive } from '#/components/ui/field';
+import { createContext, useContext, useId, useMemo, useState } from 'react';
 
 export type FieldContextValue = {
     inputId: string;
@@ -15,7 +15,7 @@ const FieldContext = createContext<FieldContextValue | null>(null);
 export function useField(): FieldContextValue {
     const ctx = useContext(FieldContext);
     if (!ctx) {
-        throw new Error("Field parts must be used inside <field.Field>");
+        throw new Error('Field parts must be used inside <field.Field>');
     }
     return ctx;
 }
