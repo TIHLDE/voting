@@ -50,15 +50,6 @@ function MobileMenu() {
                 </SheetHeader>
                 <Separator />
                 <nav className="flex flex-col gap-1 p-2">
-                    <Link
-                        to="/"
-                        onClick={close}
-                        className={mobileLinkClassName}
-                        activeProps={mobileLinkActiveProps}
-                        activeOptions={{ exact: true }}
-                    >
-                        Hjem
-                    </Link>
                     {user && (
                         <Link
                             to="/meetings"
@@ -125,19 +116,6 @@ export default function Header() {
                 >
                     {APP_NAME}
                 </Link>
-
-                <div className="hidden items-center gap-4 text-sm font-medium sm:flex">
-                    <Link
-                        to="/"
-                        className="text-muted-foreground no-underline transition hover:text-foreground"
-                        activeProps={{
-                            className: 'text-foreground no-underline',
-                        }}
-                        activeOptions={{ exact: true }}
-                    >
-                        Hjem
-                    </Link>
-                </div>
 
                 <div className="ml-auto flex items-center gap-2">
                     <div className="hidden sm:block">

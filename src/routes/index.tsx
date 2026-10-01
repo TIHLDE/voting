@@ -22,7 +22,7 @@ function LandingPage() {
                 </p>
                 <div className="flex flex-wrap gap-3">
                     <Link
-                        to="/auth"
+                        to="/meetings"
                         className={
                             buttonVariants({ variant: 'default' }) +
                             ' no-underline'
@@ -64,23 +64,6 @@ function LandingPage() {
                         </p>
                     </article>
                 ))}
-            </section>
-
-            <section className="mt-8 rounded-xl border bg-card p-6 shadow-sm">
-                <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                    For hvem?
-                </p>
-                <ul className="m-0 list-disc space-y-2 pl-5 text-sm text-muted-foreground">
-                    <li>Studentorganisasjoner og linjeforeninger</li>
-                    <li>
-                        Ideelle organisasjoner med behov for formelle
-                        generalforsamlinger
-                    </li>
-                    <li>
-                        Enhver organisasjon som trenger revisjonssikre,
-                        strukturerte demokratiske beslutningsprosesser
-                    </li>
-                </ul>
             </section>
         </main>
     );

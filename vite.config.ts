@@ -96,30 +96,15 @@ export default defineConfig(({ mode }) => ({
         ],
     },
     plugins: lazyPlugins(async () => {
-        // App plugins (nitro, TanStack Start) hang the vitest server and
-        // break CJS deps under the module runner - skip them for tests.
         if (mode === 'test') return [];
-
-        const [
-            { devtools },
-            { tanstackStart },
-            { default: viteReact },
-            { default: tailwindcss },
-            { nitro },
-        ] = await Promise.all([
-            import('@tanstack/devtools-vite'),
-            import('@tanstack/react-start/plugin/vite'),
-            import('@vitejs/plugin-react'),
-            import('@tailwindcss/vite'),
-            import('nitro/vite'),
+        return await Promise.all([
+            import('@tanstack/devtools-vite').then((v) => v.devtools()),
+            import('@tanstack/react-start/plugin/vite').then((v) =>
+                v.tanstackStart(),
+            ),
+            import('@vitejs/plugin-react').then((v) => v.default()),
+            import('@tailwindcss/vite').then((v) => v.default()),
+            import('nitro/vite').then((v) => v.nitro()),
         ]);
-
-        return [
-            devtools(),
-            tailwindcss(),
-            tanstackStart(),
-            nitro(),
-            viteReact(),
-        ];
     }),
 }));

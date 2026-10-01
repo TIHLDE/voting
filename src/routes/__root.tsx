@@ -5,6 +5,7 @@ import {
 } from '@tanstack/react-router';
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools';
 import { TanStackDevtools } from '@tanstack/react-devtools';
+import { formDevtoolsPlugin } from '@tanstack/react-form-devtools';
 import { Toaster } from '../components/ui/sonner';
 import Footer from '../components/Footer';
 import Header from '../components/Header';
@@ -53,7 +54,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             <head>
                 <HeadContent />
             </head>
-            <body className="font-sans antialiased [overflow-wrap:anywhere]">
+            <body className="font-sans antialiased wrap-anywhere">
                 <ThemeProvider>
                     <TanStackQueryProvider>
                         <Header />
@@ -70,6 +71,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
                                     render: <TanStackRouterDevtoolsPanel />,
                                 },
                                 TanStackQueryDevtools,
+                                formDevtoolsPlugin(),
                             ]}
                         />
                     </TanStackQueryProvider>
