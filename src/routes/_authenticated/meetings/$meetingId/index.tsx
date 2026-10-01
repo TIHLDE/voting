@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState, useSyncExternalStore } from 'react';
-import { QRCodeSVG } from 'qrcode.react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
 import { toast } from 'sonner';
 import { getMeetingById, updateMeeting } from '#/server/meetings';
 import { startNextVotation } from '#/server/voting';
@@ -11,10 +11,10 @@ import {
     denyParticipant,
     getPendingParticipants,
 } from '#/server/participants';
-import AdminBar from '#/components/AdminBar';
-import VotationList from '#/components/VotationList';
-import ActiveVotation from '#/components/ActiveVotation';
-import ManageParticipants from '#/components/ManageParticipants';
+import AdminBar from './-components/AdminBar';
+import VotationList from './-components/VotationList';
+import ActiveVotation from './-components/ActiveVotation';
+import ManageParticipants from './-components/ManageParticipants';
 import StatusBadge from '#/components/StatusBadge';
 import { Button } from '#/components/ui/button';
 import { useLiveQuerySubscription } from '#/hooks/useLiveQuerySubscription';
@@ -469,6 +469,27 @@ function SelfRegistrationPanel({
     allowSelfRegistration: boolean;
 }) {
     const origin = useOrigin();
+    const qrCanvasRef = useRef<HTMLCanvasElement>(null);
+
+    async function copyQrCode() {
+        const canvas = qrCanvasRef.current;
+        if (!canvas) return;
+
+        try {
+            // Pass the blob as a promise so Safari keeps the user gesture.
+            const png = new Promise<Blob>((resolve, reject) =>
+                canvas.toBlob((blob) =>
+                    blob ? resolve(blob) : reject(new Error('toBlob failed')),
+                ),
+            );
+            await navigator.clipboard.write([
+                new ClipboardItem({ 'image/png': png }),
+            ]);
+            toast.success('QR-kode kopiert');
+        } catch {
+            toast.error('Kunne ikke kopiere QR-koden');
+        }
+    }
 
     if (!allowSelfRegistration) {
         return (
@@ -508,9 +529,28 @@ function SelfRegistrationPanel({
                     Kopier
                 </Button>
             </div>
-            <div className="flex justify-center">
+            <div className="flex flex-col items-center gap-3">
                 {regUrl ? (
-                    <QRCodeSVG value={regUrl} size={200} />
+                    <>
+                        <div className="rounded-lg bg-white p-4">
+                            <QRCodeSVG value={regUrl} size={200} />
+                        </div>
+                        {/* Higher resolution copy, with a white margin, for the clipboard */}
+                        <QRCodeCanvas
+                            ref={qrCanvasRef}
+                            value={regUrl}
+                            size={512}
+                            marginSize={4}
+                            className="hidden"
+                        />
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => void copyQrCode()}
+                        >
+                            Kopier QR-kode
+                        </Button>
+                    </>
                 ) : (
                     <div className="h-[200px] w-[200px] animate-pulse rounded bg-muted" />
                 )}

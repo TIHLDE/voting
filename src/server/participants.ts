@@ -72,104 +72,68 @@ export const getMyRegistrationStatus = createServerFn({ method: 'GET' })
         return { status: 'approved' as const };
     });
 
-const addParticipantsSchema = z.object({
+const addParticipantSchema = z.object({
     meetingId: z.string(),
-    participants: z.array(
-        z.object({
-            email: z.string().email(),
-            role: z.enum(['ADMIN', 'COUNTER', 'PARTICIPANT']),
-            isVotingEligible: z.boolean().default(true),
-        }),
-    ),
+    email: z.email(),
+    role: z.enum(['ADMIN', 'COUNTER', 'PARTICIPANT']),
+    isVotingEligible: z.boolean().default(true),
 });
 
-export const addParticipants = createServerFn({ method: 'POST' })
-    .validator(addParticipantsSchema)
+export const addParticipant = createServerFn({ method: 'POST' })
+    .validator(addParticipantSchema)
     .handler(async ({ data }) => {
         await requireAdmin(data.meetingId);
 
-        const requested = Array.from(
-            new Map(
-                data.participants.map((item) => [item.email, item]),
-            ).values(),
-        );
-        if (requested.length === 0) return { addedCount: 0 };
-
-        const emails = requested.map((item) => item.email);
-        const existingUsers = await db
+        const [existingUser] = await db
             .select()
             .from(user)
-            .where(inArray(user.email, emails));
-        const usersByEmail = new Map(
-            existingUsers.map((existingUser) => [
-                existingUser.email,
-                existingUser,
-            ]),
-        );
-        const userIds = existingUsers.map((existingUser) => existingUser.id);
+            .where(eq(user.email, data.email));
 
-        const [existingParticipants, existingInvites] = await Promise.all([
-            userIds.length > 0
-                ? db
-                      .select()
-                      .from(participant)
-                      .where(
-                          and(
-                              eq(participant.meetingId, data.meetingId),
-                              inArray(participant.userId, userIds),
-                          ),
-                      )
-                : Promise.resolve([]),
-            db
+        // Users without an account are invited, and become participants
+        // when they sign up.
+        if (!existingUser) {
+            const [existingInvite] = await db
                 .select()
                 .from(invite)
                 .where(
                     and(
                         eq(invite.meetingId, data.meetingId),
-                        inArray(invite.email, emails),
+                        eq(invite.email, data.email),
                     ),
-                ),
-        ]);
-
-        const participantUserIds = new Set(
-            existingParticipants.map((item) => item.userId),
-        );
-        const inviteEmails = new Set(existingInvites.map((item) => item.email));
-        const participantsToAdd = requested.flatMap((item) => {
-            const existingUser = usersByEmail.get(item.email);
-            if (!existingUser || participantUserIds.has(existingUser.id)) {
-                return [];
+                );
+            if (existingInvite) {
+                throw new Error('Denne e-posten er allerede invitert');
             }
-            return [
-                {
-                    role: item.role,
-                    isVotingEligible: item.isVotingEligible,
-                    isApproved: true,
-                    userId: existingUser.id,
-                    meetingId: data.meetingId,
-                },
-            ];
+
+            await db.insert(invite).values({
+                email: data.email,
+                role: data.role,
+                isVotingEligible: data.isVotingEligible,
+                meetingId: data.meetingId,
+            });
+            return;
+        }
+
+        const [existingParticipant] = await db
+            .select()
+            .from(participant)
+            .where(
+                and(
+                    eq(participant.meetingId, data.meetingId),
+                    eq(participant.userId, existingUser.id),
+                ),
+            );
+        if (existingParticipant) {
+            throw new Error('Brukeren er allerede deltaker i møtet');
+        }
+
+        await db.insert(participant).values({
+            role: data.role,
+            isVotingEligible: data.isVotingEligible,
+            isApproved: true,
+            userId: existingUser.id,
+            meetingId: data.meetingId,
         });
-        const invitesToAdd = requested
-            .filter(
-                (item) =>
-                    !usersByEmail.has(item.email) &&
-                    !inviteEmails.has(item.email),
-            )
-            .map((item) => ({ ...item, meetingId: data.meetingId }));
-
-        await Promise.all([
-            participantsToAdd.length > 0
-                ? db.insert(participant).values(participantsToAdd)
-                : Promise.resolve(),
-            invitesToAdd.length > 0
-                ? db.insert(invite).values(invitesToAdd)
-                : Promise.resolve(),
-        ]);
-
-        return {
-            addedCount: participantsToAdd.length + invitesToAdd.length,
-        };
     });
 
 const updateParticipantSchema = z.object({

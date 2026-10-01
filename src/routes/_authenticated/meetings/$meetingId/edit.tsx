@@ -6,11 +6,11 @@ import {
     updateMeeting,
     deleteMeeting,
 } from '#/server/meetings';
-import WizardShell from '#/components/WizardShell';
-import MeetingForm from '#/components/MeetingForm';
-import type { MeetingFormData } from '#/components/MeetingForm';
-import VotationEditor from '#/components/VotationEditor';
-import ManageParticipants from '#/components/ManageParticipants';
+import WizardShell from './-components/WizardShell';
+import MeetingForm from './-components/MeetingForm';
+import type { MeetingFormData } from './-components/MeetingForm';
+import VotationEditor from './-components/VotationEditor';
+import ManageParticipants from './-components/ManageParticipants';
 import { Button } from '#/components/ui/button';
 
 export const Route = createFileRoute(
