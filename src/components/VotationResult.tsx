@@ -93,7 +93,7 @@ function VotationResultContent({
                     </p>
                 </div>
             ) : (
-                <ResultDetails results={results} />
+                <ResultDetails results={results} isAdmin={isAdmin} />
             )}
             {isAdminOrCounter && <VoteAudit votationId={votationId} />}
             {isAdmin && (
@@ -134,7 +134,13 @@ function WinnerSummary({
     );
 }
 
-function ResultDetails({ results }: { results: VotationResults }) {
+function ResultDetails({
+    results,
+    isAdmin,
+}: {
+    results: VotationResults;
+    isAdmin: boolean;
+}) {
     const { result, alternatives, votation } = results;
 
     return (
@@ -164,12 +170,14 @@ function ResultDetails({ results }: { results: VotationResults }) {
                         quota={result.quota ?? 0}
                     />
                 )}
-            <div className="flex gap-2">
-                <DownloadResultButton
-                    alternatives={alternatives}
-                    result={result}
-                />
-            </div>
+            {isAdmin && (
+                <div className="flex gap-2">
+                    <DownloadResultButton
+                        alternatives={alternatives}
+                        result={result}
+                    />
+                </div>
+            )}
         </>
     );
 }
