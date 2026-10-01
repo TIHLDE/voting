@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { MenuIcon } from 'lucide-react';
 import BetterAuthHeader from '../integrations/better-auth/header-user';
 import ThemeToggle from './ThemeToggle';
+import UserAvatar from './UserAvatar';
 import { APP_NAME } from '../env';
 import { authClient } from '#/lib/auth-client';
 import { useSignOut } from '#/hooks/useSignOut';
@@ -65,18 +66,17 @@ function MobileMenu() {
                     <SheetFooter>
                         {user ? (
                             <>
-                                <div className="flex items-center gap-3">
-                                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
-                                        <span className="text-xs font-medium text-muted-foreground">
-                                            {user.name
-                                                ?.charAt(0)
-                                                .toUpperCase() || 'U'}
-                                        </span>
-                                    </div>
+                                <Link
+                                    to="/profile"
+                                    onClick={close}
+                                    className="flex items-center gap-3 rounded-md px-2 py-1.5 text-foreground no-underline transition hover:bg-accent"
+                                    activeProps={{ className: 'bg-accent' }}
+                                >
+                                    <UserAvatar user={user} />
                                     <span className="truncate text-sm font-medium">
                                         {user.name}
                                     </span>
-                                </div>
+                                </Link>
                                 <Button
                                     variant="outline"
                                     onClick={() => {

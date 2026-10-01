@@ -1,4 +1,8 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import {
+    createFileRoute,
+    stripSearchParams,
+    useNavigate,
+} from '@tanstack/react-router';
 import { mutationOptions, useMutation } from '@tanstack/react-query';
 import { z } from 'zod';
 import { authClient } from '#/lib/auth-client';
@@ -9,12 +13,19 @@ import { assertNever } from '#/lib/utils';
 import { APP_NAME } from '#/env';
 import { formHandlers, useAppForm } from '#/hooks/form';
 
+const searchDefaults = {
+    redirect: '/meetings',
+};
+
 const searchSchema = z.object({
-    redirect: z.string().optional(),
+    redirect: z.string().default(searchDefaults.redirect),
 });
 
 export const Route = createFileRoute('/auth')({
     validateSearch: searchSchema,
+    search: {
+        middlewares: [stripSearchParams(searchDefaults)],
+    },
     component: AuthPage,
 });
 

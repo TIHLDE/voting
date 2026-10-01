@@ -2,6 +2,7 @@ import { authClient } from '#/lib/auth-client';
 import { useSignOut } from '#/hooks/useSignOut';
 import { Link } from '@tanstack/react-router';
 import { Button, buttonVariants } from '#/components/ui/button';
+import UserAvatar from '#/components/UserAvatar';
 
 export default function BetterAuthHeader() {
     const { data: session, isPending } = authClient.useSession();
@@ -20,11 +21,13 @@ export default function BetterAuthHeader() {
                 >
                     Mine møter
                 </Link>
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-                    <span className="text-xs font-medium text-muted-foreground">
-                        {session.user.name?.charAt(0).toUpperCase() || 'U'}
-                    </span>
-                </div>
+                <Link
+                    to="/profile"
+                    aria-label="Min profil"
+                    className="rounded-full transition hover:opacity-80"
+                >
+                    <UserAvatar user={session.user} />
+                </Link>
                 <Button
                     variant="outline"
                     size="sm"

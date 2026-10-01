@@ -1,169 +1,328 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { z } from 'zod';
 import { authClient } from '#/lib/auth-client';
+import { getMyLoginMethods } from '#/server/account';
+import { APP_NAME } from '#/env';
+import { formHandlers, useAppForm } from '#/hooks/form';
+import UserAvatar from '#/components/UserAvatar';
+import { Badge } from '#/components/ui/badge';
 import { Button } from '#/components/ui/button';
-import { Input } from '#/components/ui/input';
-import { Label } from '#/components/ui/label';
 import { Separator } from '#/components/ui/separator';
+import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '#/components/ui/alert-dialog';
 
 export const Route = createFileRoute('/_authenticated/profile')({
+    loader: ({ context }) =>
+        context.queryClient.query({
+            queryKey: ['auth', 'login-methods'],
+            queryFn: () => getMyLoginMethods(),
+        }),
     component: ProfilePage,
 });
 
 function ProfilePage() {
-    const { data: session } = authClient.useSession();
-    const [currentPassword, setCurrentPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [passwordError, setPasswordError] = useState<string | null>(null);
-    const [passwordSuccess, setPasswordSuccess] = useState(false);
-    const [changingPassword, setChangingPassword] = useState(false);
-    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    const [deleting, setDeleting] = useState(false);
-    const navigate = useNavigate();
+    const { session } = Route.useRouteContext();
+    const { user } = session;
 
-    async function handleChangePassword(e: React.FormEvent) {
-        e.preventDefault();
-        setPasswordError(null);
-        setPasswordSuccess(false);
-        setChangingPassword(true);
+    const { hasPassword, hasTihlde } = Route.useLoaderData();
 
-        try {
+    return (
+        <main className="mx-auto max-w-3xl px-4 py-12">
+            <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:text-left">
+                <UserAvatar
+                    user={user}
+                    className="size-20 [&_[data-slot=avatar-fallback]]:text-2xl"
+                />
+                <div className="min-w-0 space-y-1">
+                    <h1 className="truncate text-3xl font-bold text-foreground">
+                        {user.name}
+                    </h1>
+                    <p className="truncate text-muted-foreground">
+                        {user.email}
+                    </p>
+                    {hasTihlde && (
+                        <Badge variant="secondary" className="mt-1">
+                            TIHLDE-konto
+                        </Badge>
+                    )}
+                </div>
+            </div>
+
+            <Separator className="my-10" />
+
+            <div className="space-y-10">
+                <ProfileSection
+                    title="Passord"
+                    description={
+                        hasPassword
+                            ? 'Bruk minst 8 tegn. Du forblir innlogget på denne enheten.'
+                            : undefined
+                    }
+                >
+                    {hasPassword ? (
+                        <ChangePasswordForm />
+                    ) : (
+                        <p className="text-sm text-muted-foreground">
+                            Du logger inn med TIHLDE-kontoen din, og har derfor
+                            ikke et eget passord her. Passordet endrer du på
+                            tihlde.org.
+                        </p>
+                    )}
+                </ProfileSection>
+
+                <Separator />
+
+                <ProfileSection
+                    title="Slett konto"
+                    description={
+                        hasTihlde
+                            ? `Sletter kun kontoen din på ${APP_NAME} og alle møter du eier. TIHLDE-kontoen din på tihlde.org blir ikke slettet. Dette kan ikke angres.`
+                            : `Sletter kontoen din på ${APP_NAME} og alle møter du eier. Dette kan ikke angres.`
+                    }
+                    destructive
+                >
+                    <DeleteAccountDialog
+                        hasPassword={hasPassword}
+                        hasTihlde={hasTihlde}
+                    />
+                </ProfileSection>
+            </div>
+        </main>
+    );
+}
+
+function ProfileSection({
+    title,
+    description,
+    destructive,
+    children,
+}: {
+    title: string;
+    description?: string;
+    destructive?: boolean;
+    children: React.ReactNode;
+}) {
+    return (
+        <section className="grid gap-4 md:grid-cols-[1fr_2fr] md:gap-10">
+            <div className="space-y-1">
+                <h2
+                    className={
+                        destructive
+                            ? 'font-semibold text-destructive'
+                            : 'font-semibold text-foreground'
+                    }
+                >
+                    {title}
+                </h2>
+                {description && (
+                    <p className="text-sm text-muted-foreground">
+                        {description}
+                    </p>
+                )}
+            </div>
+            <div>{children}</div>
+        </section>
+    );
+}
+
+const changePasswordSchema = z
+    .object({
+        currentPassword: z.string().nonempty(),
+        newPassword: z.string().min(8),
+        confirmPassword: z.string(),
+    })
+    .superRefine((v, ctx) => {
+        if (v.confirmPassword != v.newPassword) {
+            ctx.addIssue({
+                code: 'custom',
+                message: 'Passordene må være like',
+                path: ['confirmPassword'],
+            });
+            return z.NEVER;
+        }
+    });
+
+function ChangePasswordForm() {
+    const form = useAppForm({
+        defaultValues: {
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: '',
+        },
+        validators: {
+            onBlur: changePasswordSchema,
+            onSubmit: changePasswordSchema,
+            onChange: changePasswordSchema,
+        },
+        async onSubmit({ value: { currentPassword, newPassword }, formApi }) {
             const result = await authClient.changePassword({
                 currentPassword,
                 newPassword,
             });
+
             if (result.error) {
-                setPasswordError(
-                    result.error.message ?? 'Kunne ikke endre passord',
-                );
+                formApi.setErrorMap({
+                    onSubmit: {
+                        form:
+                            result.error.message ?? 'Kunne ikke endre passord',
+                        fields: {},
+                    },
+                });
                 return;
             }
-            setPasswordSuccess(true);
-            setCurrentPassword('');
-            setNewPassword('');
-        } catch {
-            setPasswordError('Noe gikk galt. Vennligst prov igjen.');
-        } finally {
-            setChangingPassword(false);
-        }
-    }
 
-    async function handleDeleteAccount() {
-        setDeleting(true);
-        try {
-            await authClient.deleteUser();
-            void navigate({ to: '/' });
-        } catch {
-            setDeleting(false);
-        }
-    }
+            formApi.reset();
+            toast.success('Passordet ble endret');
+        },
+    });
 
     return (
-        <main className="mx-auto max-w-lg px-4 py-12">
-            <section className="rounded-xl border bg-card p-6 shadow-sm sm:p-8">
-                <h1 className="mb-6 text-3xl font-bold text-foreground">
-                    Min profil
-                </h1>
+        <form.AppForm>
+            <form {...formHandlers(form)} className="space-y-4">
+                <form.AppField
+                    name="currentPassword"
+                    children={(field) => (
+                        <field.PasswordField label="Nåværende passord" />
+                    )}
+                />
+                <form.AppField
+                    name="newPassword"
+                    children={(field) => (
+                        <field.PasswordField
+                            label="Nytt passord"
+                            autoComplete="new-password"
+                        />
+                    )}
+                />
+                <form.AppField
+                    name="confirmPassword"
+                    children={(field) => (
+                        <field.PasswordField
+                            label="Bekreft nytt passord"
+                            autoComplete="new-password"
+                        />
+                    )}
+                />
 
-                <div className="mb-6 space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                        <span className="font-semibold">Navn:</span>{' '}
-                        {session?.user.name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                        <span className="font-semibold">E-post:</span>{' '}
-                        {session?.user.email}
-                    </p>
-                </div>
-
-                <Separator className="my-6" />
-
-                <h2 className="mb-4 text-lg font-semibold text-foreground">
+                <form.SubmitButton loading="Endrer...">
                     Endre passord
-                </h2>
+                </form.SubmitButton>
 
-                <form onSubmit={handleChangePassword} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="currentPassword">
-                            Navarende passord
-                        </Label>
-                        <Input
-                            id="currentPassword"
-                            type="password"
-                            value={currentPassword}
-                            onChange={(e) => setCurrentPassword(e.target.value)}
-                            required
-                        />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="newPassword">Nytt passord</Label>
-                        <Input
-                            id="newPassword"
-                            type="password"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            required
-                            minLength={8}
-                        />
-                    </div>
+                <form.FormErrors />
+            </form>
+        </form.AppForm>
+    );
+}
 
-                    {passwordError && (
-                        <p className="text-sm text-destructive">
-                            {passwordError}
-                        </p>
-                    )}
-                    {passwordSuccess && (
-                        <p className="text-sm text-green-600 dark:text-green-400">
-                            Passordet ble endret.
-                        </p>
-                    )}
+function DeleteAccountDialog({
+    hasPassword,
+    hasTihlde,
+}: {
+    hasPassword: boolean;
+    hasTihlde: boolean;
+}) {
+    const router = useRouter();
+    const queryClient = useQueryClient();
 
-                    <Button type="submit" disabled={changingPassword}>
-                        {changingPassword ? 'Endrer...' : 'Endre passord'}
-                    </Button>
-                </form>
+    const deleteSchema = z.object({
+        password: hasPassword ? z.string().nonempty() : z.string(),
+    });
 
-                <Separator className="my-6" />
+    const form = useAppForm({
+        defaultValues: {
+            password: '',
+        },
+        validators: {
+            onSubmit: deleteSchema,
+            onChange: deleteSchema,
+        },
+        async onSubmit({ value: { password }, formApi }) {
+            const result = await authClient.deleteUser(
+                hasPassword ? { password } : {},
+            );
 
-                <h2 className="mb-4 text-lg font-semibold text-destructive">
-                    Slett konto
-                </h2>
-                <p className="mb-4 text-sm text-muted-foreground">
-                    Denne handlingen kan ikke angres. Alle dine data vil bli
-                    slettet, og eventuelle apne voteringer du deltar i vil bli
-                    ugyldiggjort.
-                </p>
+            if (result.error) {
+                formApi.setErrorMap({
+                    onSubmit: {
+                        form:
+                            result.error.code === 'SESSION_EXPIRED'
+                                ? 'Logg ut og inn igjen før du sletter kontoen.'
+                                : (result.error.message ??
+                                  'Kunne ikke slette kontoen'),
+                        fields: {},
+                    },
+                });
+                return;
+            }
 
-                {!showDeleteConfirm ? (
-                    <Button
-                        variant="destructive"
-                        onClick={() => setShowDeleteConfirm(true)}
-                    >
-                        Slett min konto
-                    </Button>
-                ) : (
-                    <div className="space-y-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-                        <p className="text-sm font-semibold text-destructive">
-                            Er du sikker pa at du vil slette kontoen din?
-                        </p>
-                        <div className="flex gap-2">
-                            <Button
+            await router.navigate({ to: '/' });
+            queryClient.clear();
+            await router.invalidate();
+        },
+    });
+
+    return (
+        <AlertDialog onOpenChange={(open) => !open && form.reset()}>
+            <AlertDialogTrigger render={<Button variant="destructive" />}>
+                Slett min konto
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <form.AppForm>
+                    <form {...formHandlers(form)} className="grid gap-6">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>
+                                Slette kontoen din?
+                            </AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Kontoen din på {APP_NAME} og alle møter du eier
+                                blir slettet for godt. Pågående voteringer du
+                                deltar i kan bli ugyldige.
+                            </AlertDialogDescription>
+                            {hasTihlde && (
+                                <AlertDialogDescription>
+                                    TIHLDE-kontoen din på tihlde.org blir{' '}
+                                    <strong className="text-foreground">
+                                        ikke
+                                    </strong>{' '}
+                                    slettet. Du kan fortsatt logge inn her med
+                                    TIHLDE senere, men får da en ny, tom konto.
+                                </AlertDialogDescription>
+                            )}
+                        </AlertDialogHeader>
+
+                        {hasPassword && (
+                            <form.AppField
+                                name="password"
+                                children={(field) => (
+                                    <field.PasswordField label="Bekreft med passordet ditt" />
+                                )}
+                            />
+                        )}
+
+                        <form.FormErrors />
+
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+                            <form.SubmitButton
                                 variant="destructive"
-                                onClick={() => void handleDeleteAccount()}
-                                disabled={deleting}
+                                loading="Sletter..."
                             >
-                                {deleting ? 'Sletter...' : 'Ja, slett kontoen'}
-                            </Button>
-                            <Button
-                                variant="outline"
-                                onClick={() => setShowDeleteConfirm(false)}
-                            >
-                                Avbryt
-                            </Button>
-                        </div>
-                    </div>
-                )}
-            </section>
-        </main>
+                                Slett kontoen
+                            </form.SubmitButton>
+                        </AlertDialogFooter>
+                    </form>
+                </form.AppForm>
+            </AlertDialogContent>
+        </AlertDialog>
     );
 }
