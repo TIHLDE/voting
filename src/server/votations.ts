@@ -6,7 +6,7 @@ import { db } from '#/db/index';
 import { requireAdmin, requireParticipant } from './permissions.server';
 
 export const getVotationsForMeeting = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ meetingId: z.string() }))
+    .validator(z.object({ meetingId: z.string() }))
     .handler(async ({ data }) => {
         await requireParticipant(data.meetingId);
 
@@ -22,7 +22,7 @@ export const getVotationsForMeeting = createServerFn({ method: 'GET' })
     });
 
 export const getVotationById = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ votationId: z.string() }))
+    .validator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
             where: { id: data.votationId },
@@ -57,7 +57,7 @@ const createVotationSchema = z.object({
 });
 
 export const createVotations = createServerFn({ method: 'POST' })
-    .inputValidator(
+    .validator(
         z.object({
             meetingId: z.string(),
             votations: z.array(createVotationSchema),
@@ -114,7 +114,7 @@ const updateVotationSchema = z.object({
 });
 
 export const updateVotations = createServerFn({ method: 'POST' })
-    .inputValidator(
+    .validator(
         z.object({
             meetingId: z.string(),
             votations: z.array(updateVotationSchema),
@@ -163,7 +163,7 @@ export const updateVotations = createServerFn({ method: 'POST' })
     });
 
 export const updateVotationIndexes = createServerFn({ method: 'POST' })
-    .inputValidator(
+    .validator(
         z.object({
             meetingId: z.string(),
             votations: z.array(z.object({ id: z.string(), index: z.number() })),
@@ -184,7 +184,7 @@ export const updateVotationIndexes = createServerFn({ method: 'POST' })
     });
 
 export const deleteVotation = createServerFn({ method: 'POST' })
-    .inputValidator(z.object({ votationId: z.string() }))
+    .validator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
             where: { id: data.votationId },
@@ -198,7 +198,7 @@ export const deleteVotation = createServerFn({ method: 'POST' })
     });
 
 export const deleteAlternatives = createServerFn({ method: 'POST' })
-    .inputValidator(z.object({ ids: z.array(z.string()) }))
+    .validator(z.object({ ids: z.array(z.string()) }))
     .handler(async ({ data }) => {
         if (data.ids.length === 0) return { success: true };
 
@@ -218,7 +218,7 @@ export const deleteAlternatives = createServerFn({ method: 'POST' })
     });
 
 export const getOpenVotation = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ meetingId: z.string() }))
+    .validator(z.object({ meetingId: z.string() }))
     .handler(async ({ data }) => {
         await requireParticipant(data.meetingId);
 
@@ -230,7 +230,7 @@ export const getOpenVotation = createServerFn({ method: 'GET' })
     });
 
 export const getActiveVotationId = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ meetingId: z.string() }))
+    .validator(z.object({ meetingId: z.string() }))
     .handler(async ({ data }) => {
         await requireParticipant(data.meetingId);
 

@@ -8,7 +8,7 @@ import { requireParticipant } from './permissions.server';
 // ---------------------------------------------------------------------------
 
 export const getVotationResults = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ votationId: z.string() }))
+    .validator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
             where: { id: data.votationId },
@@ -64,7 +64,7 @@ export const getVotationResults = createServerFn({ method: 'GET' })
     });
 
 export const getWinnerOfVotation = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ votationId: z.string() }))
+    .validator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
             where: { id: data.votationId },

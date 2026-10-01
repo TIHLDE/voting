@@ -13,7 +13,7 @@ import { publish } from './sse/emitter';
 import { liveEvents } from '#/lib/live-events';
 
 export const getParticipants = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ meetingId: z.string() }))
+    .validator(z.object({ meetingId: z.string() }))
     .handler(async ({ data }) => {
         await requireAdminOrCounter(data.meetingId);
 
@@ -35,7 +35,7 @@ export const getParticipants = createServerFn({ method: 'GET' })
     });
 
 export const getPendingParticipants = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ meetingId: z.string() }))
+    .validator(z.object({ meetingId: z.string() }))
     .handler(async ({ data }) => {
         await requireAdminOrCounter(data.meetingId);
 
@@ -46,14 +46,14 @@ export const getPendingParticipants = createServerFn({ method: 'GET' })
     });
 
 export const getMyParticipant = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ meetingId: z.string() }))
+    .validator(z.object({ meetingId: z.string() }))
     .handler(async ({ data }) => {
         const result = await requireParticipant(data.meetingId);
         return result.participant;
     });
 
 export const getMyRegistrationStatus = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ meetingId: z.string() }))
+    .validator(z.object({ meetingId: z.string() }))
     .handler(async ({ data }) => {
         const session = await requireAuth();
 
@@ -84,7 +84,7 @@ const addParticipantsSchema = z.object({
 });
 
 export const addParticipants = createServerFn({ method: 'POST' })
-    .inputValidator(addParticipantsSchema)
+    .validator(addParticipantsSchema)
     .handler(async ({ data }) => {
         await requireAdmin(data.meetingId);
 
@@ -180,7 +180,7 @@ const updateParticipantSchema = z.object({
 });
 
 export const updateParticipant = createServerFn({ method: 'POST' })
-    .inputValidator(updateParticipantSchema)
+    .validator(updateParticipantSchema)
     .handler(async ({ data }) => {
         const { participant: caller } = await requireAdminOrCounter(
             data.meetingId,
@@ -227,7 +227,7 @@ const bulkUpdateVotingEligibilitySchema = z.object({
 });
 
 export const bulkUpdateVotingEligibility = createServerFn({ method: 'POST' })
-    .inputValidator(bulkUpdateVotingEligibilitySchema)
+    .validator(bulkUpdateVotingEligibilitySchema)
     .handler(async ({ data }) => {
         await requireAdminOrCounter(data.meetingId);
 
@@ -242,7 +242,7 @@ export const bulkUpdateVotingEligibility = createServerFn({ method: 'POST' })
     });
 
 export const deleteParticipants = createServerFn({ method: 'POST' })
-    .inputValidator(
+    .validator(
         z.object({
             meetingId: z.string(),
             participantIds: z.array(z.string()),
@@ -294,7 +294,7 @@ export const deleteParticipants = createServerFn({ method: 'POST' })
     });
 
 export const registerAsParticipant = createServerFn({ method: 'POST' })
-    .inputValidator(z.object({ meetingId: z.string() }))
+    .validator(z.object({ meetingId: z.string() }))
     .handler(async ({ data }) => {
         const session = await requireAuth();
 
@@ -340,9 +340,7 @@ export const registerAsParticipant = createServerFn({ method: 'POST' })
     });
 
 export const approveParticipant = createServerFn({ method: 'POST' })
-    .inputValidator(
-        z.object({ meetingId: z.string(), participantId: z.string() }),
-    )
+    .validator(z.object({ meetingId: z.string(), participantId: z.string() }))
     .handler(async ({ data }) => {
         await requireAdminOrCounter(data.meetingId);
 
@@ -363,9 +361,7 @@ export const approveParticipant = createServerFn({ method: 'POST' })
     });
 
 export const denyParticipant = createServerFn({ method: 'POST' })
-    .inputValidator(
-        z.object({ meetingId: z.string(), participantId: z.string() }),
-    )
+    .validator(z.object({ meetingId: z.string(), participantId: z.string() }))
     .handler(async ({ data }) => {
         await requireAdminOrCounter(data.meetingId);
 

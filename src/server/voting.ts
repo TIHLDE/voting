@@ -34,7 +34,7 @@ import { requireAuth } from './auth-session.server';
 export { getOpenVotation } from './votations';
 
 export const getHasVoted = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ votationId: z.string() }))
+    .validator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
             where: { id: data.votationId },
@@ -55,7 +55,7 @@ export const getHasVoted = createServerFn({ method: 'GET' })
     });
 
 export const castVote = createServerFn({ method: 'POST' })
-    .inputValidator(z.object({ alternativeId: z.string() }))
+    .validator(z.object({ alternativeId: z.string() }))
     .handler(async ({ data }) => {
         const alt = await db.query.alternative.findFirst({
             where: { id: data.alternativeId },
@@ -85,7 +85,7 @@ export const castVote = createServerFn({ method: 'POST' })
     });
 
 export const castBlankVote = createServerFn({ method: 'POST' })
-    .inputValidator(z.object({ votationId: z.string() }))
+    .validator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await ensureVotationOpen(data.votationId);
         if (!v.blankVotes) throw new Error('Blanke stemmer er ikke tillatt');
@@ -112,7 +112,7 @@ export const castBlankVote = createServerFn({ method: 'POST' })
     });
 
 export const castStvVote = createServerFn({ method: 'POST' })
-    .inputValidator(
+    .validator(
         z.object({
             votationId: z.string(),
             alternatives: z.array(
@@ -168,7 +168,7 @@ export const castStvVote = createServerFn({ method: 'POST' })
     });
 
 export const startNextVotation = createServerFn({ method: 'POST' })
-    .inputValidator(z.object({ meetingId: z.string() }))
+    .validator(z.object({ meetingId: z.string() }))
     .handler(async ({ data }) => {
         await requireAdmin(data.meetingId);
 
@@ -219,7 +219,7 @@ export const startNextVotation = createServerFn({ method: 'POST' })
     });
 
 export const updateVotationStatus = createServerFn({ method: 'POST' })
-    .inputValidator(
+    .validator(
         z.object({
             votationId: z.string(),
             status: z.enum([
@@ -264,7 +264,7 @@ export const updateVotationStatus = createServerFn({ method: 'POST' })
     });
 
 export const resetVotation = createServerFn({ method: 'POST' })
-    .inputValidator(z.object({ votationId: z.string() }))
+    .validator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
             where: { id: data.votationId },
@@ -338,7 +338,7 @@ export const resetVotation = createServerFn({ method: 'POST' })
     });
 
 export const getVoteCount = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ votationId: z.string() }))
+    .validator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
             where: { id: data.votationId },
@@ -350,7 +350,7 @@ export const getVoteCount = createServerFn({ method: 'GET' })
     });
 
 export const reviewVotation = createServerFn({ method: 'POST' })
-    .inputValidator(
+    .validator(
         z.object({
             votationId: z.string(),
             approved: z.boolean(),
@@ -405,7 +405,7 @@ export const reviewVotation = createServerFn({ method: 'POST' })
     });
 
 export const getReviews = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ votationId: z.string() }))
+    .validator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
             where: { id: data.votationId },
@@ -423,7 +423,7 @@ export const getReviews = createServerFn({ method: 'GET' })
     });
 
 export const getReviewCounts = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ votationId: z.string() }))
+    .validator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
             where: { id: data.votationId },
@@ -443,7 +443,7 @@ export const getReviewCounts = createServerFn({ method: 'GET' })
     });
 
 export const getVoteAudit = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ votationId: z.string() }))
+    .validator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
             where: { id: data.votationId },
@@ -503,7 +503,7 @@ export const getVoteAudit = createServerFn({ method: 'GET' })
     });
 
 export const getMyReview = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ votationId: z.string() }))
+    .validator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
             where: { id: data.votationId },
@@ -526,7 +526,7 @@ export const getMyReview = createServerFn({ method: 'GET' })
     });
 
 export const getNotVotedParticipants = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ votationId: z.string() }))
+    .validator(z.object({ votationId: z.string() }))
     .handler(async ({ data }) => {
         const v = await db.query.votation.findFirst({
             where: { id: data.votationId },
@@ -569,7 +569,7 @@ export const getNotVotedParticipants = createServerFn({ method: 'GET' })
     });
 
 export const getReviewerCount = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ meetingId: z.string() }))
+    .validator(z.object({ meetingId: z.string() }))
     .handler(async ({ data }) => {
         await requireAdminOrCounter(data.meetingId);
 

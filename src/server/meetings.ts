@@ -40,7 +40,7 @@ export const getMyMeetings = createServerFn({ method: 'GET' }).handler(
 );
 
 export const getMeetingById = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ meetingId: z.string() }))
+    .validator(z.object({ meetingId: z.string() }))
     .handler(async ({ data }) => {
         await requireParticipant(data.meetingId);
 
@@ -67,7 +67,7 @@ const createMeetingSchema = z.object({
 });
 
 export const createMeeting = createServerFn({ method: 'POST' })
-    .inputValidator(createMeetingSchema)
+    .validator(createMeetingSchema)
     .handler(async ({ data }) => {
         const session = await requireAuth();
 
@@ -109,7 +109,7 @@ const updateMeetingSchema = z.object({
 });
 
 export const updateMeeting = createServerFn({ method: 'POST' })
-    .inputValidator(updateMeetingSchema)
+    .validator(updateMeetingSchema)
     .handler(async ({ data }) => {
         await requireAdmin(data.meetingId);
 
@@ -124,7 +124,7 @@ export const updateMeeting = createServerFn({ method: 'POST' })
     });
 
 export const getMeetingPublicInfo = createServerFn({ method: 'GET' })
-    .inputValidator(z.object({ meetingId: z.string() }))
+    .validator(z.object({ meetingId: z.string() }))
     .handler(async ({ data }) => {
         await requireAuth();
 
@@ -145,7 +145,7 @@ export const getMeetingPublicInfo = createServerFn({ method: 'GET' })
     });
 
 export const deleteMeeting = createServerFn({ method: 'POST' })
-    .inputValidator(z.object({ meetingId: z.string() }))
+    .validator(z.object({ meetingId: z.string() }))
     .handler(async ({ data }) => {
         await requireOwner(data.meetingId);
 
