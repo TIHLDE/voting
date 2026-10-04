@@ -13,64 +13,27 @@ import {
     arrayMove,
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { Copy, Save, Trash2 } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
     createVotations,
     deleteVotation,
-    getVotationsForMeeting,
     updateVotationIndexes,
     updateVotations,
 } from '#/server/votations';
 import { votationsQuery } from '#/queries/live';
 import { Button } from '#/components/ui/button';
 import { SortableVotationCard } from './SortableVotationCard';
-import { VotationFormFields } from './VotationFormFields';
+import { VotationActions, VotationFormFields } from './VotationFormFields';
 import { EditorHeader, EmptyVotations } from './LocalVotationEditor';
-import { TYPE_LABELS, createEmptyVotation } from './votation-editor-types';
-import type { VotationFormData } from './votation-editor-types';
-
-type ServerVotation = Awaited<
-    ReturnType<typeof getVotationsForMeeting>
->[number];
-
-function toFormData(votation: ServerVotation): VotationFormData {
-    return {
-        id: votation.id,
-        title: votation.title,
-        description: votation.description ?? '',
-        type: votation.type,
-        blankVotes: votation.blankVotes,
-        hiddenVotes: votation.hiddenVotes,
-        numberOfWinners: votation.numberOfWinners,
-        majorityThreshold: votation.majorityThreshold,
-        alternatives: votation.alternatives.map((alternative) => ({
-            id: alternative.id,
-            text: alternative.text,
-            index: alternative.index,
-        })),
-    };
-}
-
-function toServerInput(data: VotationFormData, index: number) {
-    return {
-        title: data.title,
-        description: data.description,
-        type: data.type,
-        blankVotes: data.blankVotes,
-        hiddenVotes: data.hiddenVotes,
-        numberOfWinners: data.numberOfWinners,
-        majorityThreshold: data.majorityThreshold,
-        index,
-        alternatives: data.alternatives.map(
-            (alternative, alternativeIndex) => ({
-                text: alternative.text,
-                index: alternativeIndex,
-            }),
-        ),
-    };
-}
+import {
+    TYPE_LABELS,
+    createEmptyVotation,
+    toFormData,
+    toServerInput,
+} from './votation-editor-types';
+import type { ServerVotation, VotationFormData } from './votation-editor-types';
 
 export function ServerVotationEditor({ meetingId }: { meetingId: string }) {
     const queryClient = useQueryClient();
@@ -289,58 +252,6 @@ function ServerVotationItem({
                 />
             )}
         </SortableVotationCard>
-    );
-}
-
-function VotationActions({
-    hasEdits,
-    saving,
-    deleting,
-    duplicating,
-    onSave,
-    onDelete,
-    onDuplicate,
-}: {
-    hasEdits: boolean;
-    saving: boolean;
-    deleting: boolean;
-    duplicating: boolean;
-    onSave: () => void;
-    onDelete: () => void;
-    onDuplicate: () => void;
-}) {
-    return (
-        <div className="flex gap-2 border-t pt-4">
-            <Button
-                type="button"
-                size="sm"
-                onClick={onSave}
-                disabled={!hasEdits || saving}
-            >
-                <Save className="mr-1 h-4 w-4" />
-                {saving ? 'Lagrer...' : 'Lagre'}
-            </Button>
-            <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={onDuplicate}
-                disabled={duplicating}
-            >
-                <Copy className="mr-1 h-4 w-4" />
-                Dupliser
-            </Button>
-            <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                onClick={onDelete}
-                disabled={deleting}
-            >
-                <Trash2 className="mr-1 h-4 w-4" />
-                Slett
-            </Button>
-        </div>
     );
 }
 

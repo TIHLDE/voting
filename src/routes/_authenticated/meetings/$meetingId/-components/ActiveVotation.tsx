@@ -633,7 +633,7 @@ function NotVotedList({ votationId }: { votationId: string }) {
                 <ChevronDown
                     className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`}
                 />
-                Har ikke stemt enn\u00e5 ({notVoted.length})
+                Har ikke stemt ennå ({notVoted.length})
             </button>
             {open && (
                 <div className="mt-2 space-y-1">

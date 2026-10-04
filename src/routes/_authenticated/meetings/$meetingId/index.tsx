@@ -1,20 +1,15 @@
 import { createFileRoute, Link } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { getMeetingById, updateMeeting } from '#/server/meetings';
 import { startNextVotation } from '#/server/voting';
 import { getVotationsForMeeting } from '#/server/votations';
-import {
-    approveParticipant,
-    denyParticipant,
-    getPendingParticipants,
-} from '#/server/participants';
+import { getPendingParticipants } from '#/server/participants';
 import AdminBar from './-components/AdminBar';
 import VotationList from './-components/VotationList';
 import ActiveVotation from './-components/ActiveVotation';
-import ManageParticipants from './-components/ManageParticipants';
+import ConfirmDialog from '#/components/ConfirmDialog';
 import StatusBadge from '#/components/StatusBadge';
 import { Button } from '#/components/ui/button';
 import { useLiveQuerySubscription } from '#/hooks/useLiveQuerySubscription';
@@ -26,6 +21,8 @@ import {
     pendingParticipantsQuery,
     votationsQuery,
 } from '#/queries/live';
+import { SelfRegistrationPanel } from './-tabs/register';
+import { ParticipantsPanel } from './-tabs/participants';
 
 export const Route = createFileRoute('/_authenticated/meetings/$meetingId/')({
     component: MeetingLobby,
@@ -157,6 +154,7 @@ function MeetingHeader({
         onError: (error) =>
             toast.error(error.message || 'Kunne ikke oppdatere møtestatus'),
     });
+    const [confirmEnd, setConfirmEnd] = useState(false);
 
     return (
         <div className="mb-6 flex flex-wrap items-center gap-3">
@@ -170,12 +168,26 @@ function MeetingHeader({
                         <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => endMeeting.mutate()}
+                            onClick={() => setConfirmEnd(true)}
                             disabled={endMeeting.isPending}
                         >
                             Avslutt møte
                         </Button>
                     )}
+                    <ConfirmDialog
+                        open={confirmEnd}
+                        onOpenChange={setConfirmEnd}
+                        title="Avslutte møtet?"
+                        description={
+                            <>
+                                «{meeting.title}» blir markert som avsluttet og
+                                flyttes til «Avsluttede» i møteoversikten.
+                            </>
+                        }
+                        confirmLabel="Avslutt møte"
+                        actionVariant="destructive"
+                        onConfirm={() => endMeeting.mutate()}
+                    />
                     {isAdmin && (
                         <Link
                             to="/meetings/$meetingId/edit"
@@ -318,243 +330,4 @@ function MeetingContent({
         default:
             return null;
     }
-}
-
-function ParticipantsPanel({
-    meetingId,
-    pendingParticipants,
-}: {
-    meetingId: string;
-    pendingParticipants: Array<{
-        id: string;
-        user: { name: string; email: string };
-    }>;
-}) {
-    const queryClient = useQueryClient();
-
-    const approveMutation = useMutation({
-        mutationFn: (participantId: string) =>
-            approveParticipant({ data: { meetingId, participantId } }),
-        onSuccess: () => {
-            void queryClient.invalidateQueries({
-                queryKey: ['pendingParticipants', meetingId],
-            });
-            void queryClient.invalidateQueries({
-                queryKey: ['participants', meetingId],
-            });
-            void queryClient.invalidateQueries({
-                queryKey: ['meeting', meetingId],
-            });
-        },
-    });
-
-    const denyMutation = useMutation({
-        mutationFn: (participantId: string) =>
-            denyParticipant({ data: { meetingId, participantId } }),
-        onSuccess: () => {
-            void queryClient.invalidateQueries({
-                queryKey: ['pendingParticipants', meetingId],
-            });
-        },
-    });
-
-    const approveAllMutation = useMutation({
-        mutationFn: () =>
-            Promise.all(
-                pendingParticipants.map((participant) =>
-                    approveParticipant({
-                        data: {
-                            meetingId,
-                            participantId: participant.id,
-                        },
-                    }),
-                ),
-            ),
-        onSuccess: () => {
-            void queryClient.invalidateQueries({
-                queryKey: ['pendingParticipants', meetingId],
-            });
-            void queryClient.invalidateQueries({
-                queryKey: ['participants', meetingId],
-            });
-            void queryClient.invalidateQueries({
-                queryKey: ['meeting', meetingId],
-            });
-        },
-    });
-
-    return (
-        <div className="space-y-6">
-            {pendingParticipants.length > 0 && (
-                <div className="rounded-xl border-2 border-amber-500/30 bg-amber-50 p-6 dark:bg-amber-950/20">
-                    <div className="mb-4 flex items-center justify-between">
-                        <h3 className="text-lg font-semibold text-foreground">
-                            Venter på godkjenning ({pendingParticipants.length})
-                        </h3>
-                        {pendingParticipants.length > 1 && (
-                            <Button
-                                size="sm"
-                                onClick={() => approveAllMutation.mutate()}
-                                disabled={approveAllMutation.isPending}
-                            >
-                                {approveAllMutation.isPending
-                                    ? 'Godkjenner...'
-                                    : 'Godkjenn alle'}
-                            </Button>
-                        )}
-                    </div>
-                    <div className="space-y-2">
-                        {pendingParticipants.map((p) => (
-                            <div
-                                key={p.id}
-                                className="flex items-center gap-3 rounded-lg border bg-background p-3"
-                            >
-                                <div className="flex-1">
-                                    <p className="text-sm font-medium text-foreground">
-                                        {p.user.name}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {p.user.email}
-                                    </p>
-                                </div>
-                                <Button
-                                    size="sm"
-                                    onClick={() => approveMutation.mutate(p.id)}
-                                    disabled={approveMutation.isPending}
-                                >
-                                    Godkjenn
-                                </Button>
-                                <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => denyMutation.mutate(p.id)}
-                                    disabled={denyMutation.isPending}
-                                >
-                                    Avvis
-                                </Button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {pendingParticipants.length === 0 && (
-                <div className="rounded-xl border bg-card p-6 text-center shadow-sm">
-                    <p className="text-sm text-muted-foreground">
-                        Ingen ventende forespørsler.
-                    </p>
-                </div>
-            )}
-
-            <ManageParticipants meetingId={meetingId} />
-        </div>
-    );
-}
-
-const subscribeToOrigin = () => () => {};
-
-function useOrigin() {
-    return useSyncExternalStore(
-        subscribeToOrigin,
-        () => window.location.origin,
-        () => '',
-    );
-}
-
-function SelfRegistrationPanel({
-    meetingId,
-    allowSelfRegistration,
-}: {
-    meetingId: string;
-    allowSelfRegistration: boolean;
-}) {
-    const origin = useOrigin();
-    const qrCanvasRef = useRef<HTMLCanvasElement>(null);
-
-    async function copyQrCode() {
-        const canvas = qrCanvasRef.current;
-        if (!canvas) return;
-
-        try {
-            // Pass the blob as a promise so Safari keeps the user gesture.
-            const png = new Promise<Blob>((resolve, reject) =>
-                canvas.toBlob((blob) =>
-                    blob ? resolve(blob) : reject(new Error('toBlob failed')),
-                ),
-            );
-            await navigator.clipboard.write([
-                new ClipboardItem({ 'image/png': png }),
-            ]);
-            toast.success('QR-kode kopiert');
-        } catch {
-            toast.error('Kunne ikke kopiere QR-koden');
-        }
-    }
-
-    if (!allowSelfRegistration) {
-        return (
-            <div className="rounded-xl border bg-card p-6 text-center shadow-sm">
-                <p className="text-muted-foreground">
-                    Selvregistrering er ikke aktivert for dette møtet. Du kan
-                    aktivere det i møteinnstillingene.
-                </p>
-            </div>
-        );
-    }
-
-    const regUrl = origin ? `${origin}/join/${meetingId}` : '';
-
-    return (
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
-            <h2 className="mb-4 text-xl font-semibold text-foreground">
-                Selvregistrering
-            </h2>
-            <p className="mb-4 text-sm text-muted-foreground">
-                Del denne lenken eller QR-koden med deltakere som skal
-                registrere seg selv. Deltakere som registrerer seg må godkjennes
-                under Deltakere-fanen.
-            </p>
-            <div className="mb-4 flex items-center gap-2">
-                <code className="flex-1 rounded-lg border bg-muted px-3 py-2 text-sm">
-                    {regUrl}
-                </code>
-                <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                        void navigator.clipboard.writeText(regUrl);
-                        toast.success('Lenke kopiert');
-                    }}
-                >
-                    Kopier
-                </Button>
-            </div>
-            <div className="flex flex-col items-center gap-3">
-                {regUrl ? (
-                    <>
-                        <div className="rounded-lg bg-white p-4">
-                            <QRCodeSVG value={regUrl} size={200} />
-                        </div>
-                        {/* Higher resolution copy, with a white margin, for the clipboard */}
-                        <QRCodeCanvas
-                            ref={qrCanvasRef}
-                            value={regUrl}
-                            size={512}
-                            marginSize={4}
-                            className="hidden"
-                        />
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => void copyQrCode()}
-                        >
-                            Kopier QR-kode
-                        </Button>
-                    </>
-                ) : (
-                    <div className="h-[200px] w-[200px] animate-pulse rounded bg-muted" />
-                )}
-            </div>
-        </div>
-    );
 }

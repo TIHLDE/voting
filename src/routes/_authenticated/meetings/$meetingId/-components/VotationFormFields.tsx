@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from 'lucide-react';
+import { Copy, Plus, Save, Trash2 } from 'lucide-react';
 import { Button } from '#/components/ui/button';
 import { Input } from '#/components/ui/input';
 import { Label } from '#/components/ui/label';
@@ -214,6 +214,7 @@ function AlternativesEditor({
                         aria-label={`Fjern alternativ ${index + 1}`}
                         variant="ghost"
                         size="sm"
+                        className="text-destructive hover:text-destructive"
                         onClick={() => removeAlternative(alternative.id)}
                     >
                         <Trash2 className="h-4 w-4" />
@@ -237,6 +238,58 @@ function AlternativesEditor({
             >
                 <Plus className="mr-1 h-4 w-4" />
                 Legg til alternativ
+            </Button>
+        </div>
+    );
+}
+
+export function VotationActions({
+    hasEdits,
+    saving,
+    deleting,
+    duplicating,
+    onSave,
+    onDelete,
+    onDuplicate,
+}: {
+    hasEdits: boolean;
+    saving: boolean;
+    deleting: boolean;
+    duplicating: boolean;
+    onSave: () => void;
+    onDelete: () => void;
+    onDuplicate: () => void;
+}) {
+    return (
+        <div className="flex gap-2 border-t pt-4">
+            <Button
+                type="button"
+                size="sm"
+                onClick={onSave}
+                disabled={!hasEdits || saving}
+            >
+                <Save className="mr-1 h-4 w-4" />
+                {saving ? 'Lagrer...' : 'Lagre'}
+            </Button>
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onDuplicate}
+                disabled={duplicating}
+            >
+                <Copy className="mr-1 h-4 w-4" />
+                Dupliser
+            </Button>
+            <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={onDelete}
+                disabled={deleting}
+            >
+                <Trash2 className="mr-1 h-4 w-4" />
+                Slett
             </Button>
         </div>
     );
