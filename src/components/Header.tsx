@@ -113,10 +113,14 @@ export default function Header() {
             <nav className="mx-auto flex max-w-5xl items-center gap-4 py-3">
                 <Link
                     to="/"
-                    className="flex items-center no-underline"
+                    aria-label={APP_NAME}
+                    className="flex items-center gap-2 no-underline"
                     style={{ color: 'var(--color-logo, currentColor)' }}
                 >
                     <TihldeLogo variant="full" className="h-5 w-auto" />
+                    <span className="text-lg leading-none font-semibold tracking-tight">
+                        Voting
+                    </span>
                 </Link>
 
                 <div className="ml-auto flex items-center gap-2">
