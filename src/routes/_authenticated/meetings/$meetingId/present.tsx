@@ -1,6 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
+import { Maximize2, Minimize2 } from 'lucide-react';
+import { Button } from '#/components/ui/button';
 import { Progress } from '#/components/ui/progress';
 import { useLiveQuerySubscription } from '#/hooks/useLiveQuerySubscription';
 import { liveEvents } from '#/lib/live-events';
@@ -23,9 +25,20 @@ export const Route = createFileRoute(
 
 function PresentationView() {
     const { meetingId } = Route.useParams();
+    const navigate = useNavigate();
     const [currentVotationId, setCurrentVotationId] = useState<string | null>(
         null,
     );
+    const [maximized, setMaximized] = useState(false);
+
+    useEffect(() => {
+        if (!maximized) return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setMaximized(false);
+        };
+        window.addEventListener('keydown', onKeyDown);
+        return () => window.removeEventListener('keydown', onKeyDown);
+    }, [maximized]);
 
     const { data: meeting } = useQuery(meetingQuery(meetingId));
 
@@ -42,14 +55,40 @@ function PresentationView() {
         onMessage: ({ votationId }) => setCurrentVotationId(votationId),
     });
 
+    useLiveQuerySubscription(liveEvents.meetingUpdated(meetingId), {
+        invalidate: [meetingQuery(meetingId)],
+    });
+
+    useLiveQuerySubscription(liveEvents.meetingDeleted(meetingId), {
+        onMessage: () => void navigate({ to: '/meetings' }),
+    });
+
+    // Role changes alter how many admins and counters review results
+    useLiveQuerySubscription(liveEvents.meetingParticipantsUpdated(meetingId), {
+        invalidate: [reviewerCountQuery(meetingId)],
+    });
+
     if (!meeting) return null;
 
     return (
-        <div className="flex min-h-screen flex-col bg-background">
-            <header className="border-b px-12 py-6 text-center">
+        // Maximized covers the app's top bar and footer
+        <div
+            className={`flex flex-col bg-background ${maximized ? 'fixed inset-0 z-100 overflow-auto' : 'min-h-screen'}`}
+        >
+            <header className="relative border-b px-12 py-6 text-center">
                 <h1 className="text-4xl font-bold tracking-tight text-foreground">
                     {meeting.title}
                 </h1>
+                <Button
+                    size="icon"
+                    variant="ghost"
+                    className="absolute top-4 right-4"
+                    aria-label={maximized ? 'Avslutt fullskjerm' : 'Fullskjerm'}
+                    title={maximized ? 'Avslutt fullskjerm' : 'Fullskjerm'}
+                    onClick={() => setMaximized((current) => !current)}
+                >
+                    {maximized ? <Minimize2 /> : <Maximize2 />}
+                </Button>
             </header>
 
             <main className="flex flex-1 items-center justify-center p-12">

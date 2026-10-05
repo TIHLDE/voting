@@ -1,8 +1,12 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { getMeetingById, updateMeeting } from '#/server/meetings';
+import {
+    deleteMeeting,
+    getMeetingById,
+    updateMeeting,
+} from '#/server/meetings';
 import { startNextVotation } from '#/server/voting';
 import { getVotationsForMeeting } from '#/server/votations';
 import { getPendingParticipants } from '#/server/participants';
@@ -12,6 +16,8 @@ import ActiveVotation from './-components/ActiveVotation';
 import ConfirmDialog from '#/components/ConfirmDialog';
 import StatusBadge from '#/components/StatusBadge';
 import { Button } from '#/components/ui/button';
+import { Input } from '#/components/ui/input';
+import { Check, Pencil, X } from 'lucide-react';
 import { useLiveQuerySubscription } from '#/hooks/useLiveQuerySubscription';
 import { liveEvents } from '#/lib/live-events';
 import {
@@ -19,6 +25,7 @@ import {
     meetingQuery,
     participantsQuery,
     pendingParticipantsQuery,
+    reviewerCountQuery,
     votationsQuery,
 } from '#/queries/live';
 import { SelfRegistrationPanel } from './-tabs/register';
@@ -31,6 +38,7 @@ export const Route = createFileRoute('/_authenticated/meetings/$meetingId/')({
 function MeetingLobby() {
     const { meetingId } = Route.useParams();
     const { session } = Route.useRouteContext();
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState('votations');
 
     const { data: meeting } = useQuery(meetingQuery(meetingId));
@@ -45,6 +53,9 @@ function MeetingLobby() {
     const isAdmin = myParticipant?.role === 'ADMIN';
     const isCounter = myParticipant?.role === 'COUNTER';
     const isAdminOrCounter = isAdmin || isCounter;
+    // Unknown until the meeting has loaded, so nobody is treated as a plain
+    // participant before their role is known.
+    const isPlainParticipant = !!myParticipant && !isAdminOrCounter;
     const { data: pendingParticipants } = useQuery({
         ...pendingParticipantsQuery(meetingId),
         enabled: isAdminOrCounter,
@@ -56,12 +67,40 @@ function MeetingLobby() {
             votationsQuery(meetingId),
             meetingQuery(meetingId),
         ],
-        onMessage: () => setActiveTab('active'),
+        // Admins and counters have tabs and switch on their own
+        onMessage: () => {
+            if (isPlainParticipant) setActiveTab('active');
+        },
     });
 
     useLiveQuerySubscription(liveEvents.meetingVotationsUpdated(meetingId), {
-        invalidate: [votationsQuery(meetingId)],
+        invalidate: [votationsQuery(meetingId), activeVotationQuery(meetingId)],
     });
+
+    useLiveQuerySubscription(liveEvents.meetingUpdated(meetingId), {
+        invalidate: [meetingQuery(meetingId)],
+    });
+
+    useLiveQuerySubscription(liveEvents.meetingDeleted(meetingId), {
+        onMessage: () => {
+            toast.info('Møtet er slettet');
+            void navigate({ to: '/meetings' });
+        },
+    });
+
+    // Role, voting eligibility or removal of the current user
+    useLiveQuerySubscription(
+        liveEvents.participantStatus(session.user.id, meetingId),
+        {
+            invalidate: [meetingQuery(meetingId)],
+            onMessage: (status) => {
+                if ('removed' in status) {
+                    toast.info('Du er fjernet fra møtet');
+                    void navigate({ to: '/meetings' });
+                }
+            },
+        },
+    );
 
     useLiveQuerySubscription(
         isAdminOrCounter
@@ -79,18 +118,22 @@ function MeetingLobby() {
                 pendingParticipantsQuery(meetingId),
                 participantsQuery(meetingId),
                 meetingQuery(meetingId),
+                reviewerCountQuery(meetingId),
             ],
         },
     );
 
-    // Auto-switch to active tab when a votation becomes active
+    // Participants have no tab bar: move them to the active tab when a
+    // votation becomes active, and off staff-only tabs if they were demoted.
+    // Admins and counters switch on their own.
     useEffect(() => {
-        if (activeVotationId) {
-            setActiveTab((current) =>
-                current === 'votations' ? 'active' : current,
-            );
-        }
-    }, [activeVotationId]);
+        if (!isPlainParticipant) return;
+        setActiveTab((current) => {
+            if (current === 'active') return current;
+            if (activeVotationId) return 'active';
+            return 'votations';
+        });
+    }, [activeVotationId, isPlainParticipant]);
 
     if (!meeting) return null;
 
@@ -100,6 +143,7 @@ function MeetingLobby() {
                 meeting={meeting}
                 meetingId={meetingId}
                 isAdmin={!!isAdmin}
+                isOwner={meeting.ownerId === session.user.id}
                 isAdminOrCounter={isAdminOrCounter}
             />
             {isAdminOrCounter && (
@@ -134,14 +178,17 @@ function MeetingHeader({
     meeting,
     meetingId,
     isAdmin,
+    isOwner,
     isAdminOrCounter,
 }: {
     meeting: MeetingData;
     meetingId: string;
     isAdmin: boolean;
+    isOwner: boolean;
     isAdminOrCounter: boolean;
 }) {
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
     const endMeeting = useMutation({
         mutationFn: () =>
             updateMeeting({ data: { meetingId, status: 'ENDED' } }),
@@ -150,12 +197,28 @@ function MeetingHeader({
             toast.error(error.message || 'Kunne ikke oppdatere møtestatus'),
     });
     const [confirmEnd, setConfirmEnd] = useState(false);
+    const removeMeeting = useMutation({
+        mutationFn: () => deleteMeeting({ data: { meetingId } }),
+        onSuccess: async () => {
+            await queryClient.invalidateQueries({ queryKey: ['meetings'] });
+            void navigate({ to: '/meetings' });
+        },
+        onError: (error) =>
+            toast.error(error.message || 'Kunne ikke slette møtet'),
+    });
+    const [confirmDelete, setConfirmDelete] = useState(false);
+    const [deleteConfirmation, setDeleteConfirmation] = useState('');
+    const deletePhrase = `Ja jeg vil slette ${meeting.title} med alle voteringer og resultater`;
 
     return (
         <div className="mb-6 flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-bold text-foreground">
-                {meeting.title}
-            </h1>
+            {isAdmin ? (
+                <EditableTitle title={meeting.title} meetingId={meetingId} />
+            ) : (
+                <h1 className="text-3xl font-bold text-foreground">
+                    {meeting.title}
+                </h1>
+            )}
             <StatusBadge status={meeting.status} />
             {isAdminOrCounter && (
                 <div className="ml-auto flex gap-2">
@@ -183,16 +246,53 @@ function MeetingHeader({
                         actionVariant="destructive"
                         onConfirm={() => endMeeting.mutate()}
                     />
-                    {isAdmin && (
-                        <Link
-                            to="/meetings/$meetingId/edit"
-                            params={{ meetingId }}
+                    {isOwner && (
+                        <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => setConfirmDelete(true)}
+                            disabled={removeMeeting.isPending}
                         >
-                            <Button size="sm" variant="outline">
-                                Rediger
-                            </Button>
-                        </Link>
+                            Slett møte
+                        </Button>
                     )}
+                    <ConfirmDialog
+                        open={confirmDelete}
+                        onOpenChange={(open) => {
+                            setConfirmDelete(open);
+                            if (!open) setDeleteConfirmation('');
+                        }}
+                        title="Slette møtet?"
+                        description={
+                            <>
+                                «{meeting.title}» med alle voteringer,
+                                resultater og deltakere blir slettet for godt.
+                                Dette kan ikke angres.
+                            </>
+                        }
+                        confirmLabel="Slett møte"
+                        actionVariant="destructive"
+                        confirmDisabled={deleteConfirmation !== deletePhrase}
+                        onConfirm={() => removeMeeting.mutate()}
+                    >
+                        <div className="space-y-2">
+                            <p className="text-sm text-muted-foreground">
+                                Skriv{' '}
+                                <span className="font-medium text-foreground select-all">
+                                    {deletePhrase}
+                                </span>{' '}
+                                for å bekrefte.
+                            </p>
+                            <Input
+                                aria-label="Bekreftelsestekst"
+                                value={deleteConfirmation}
+                                onChange={(e) =>
+                                    setDeleteConfirmation(e.target.value)
+                                }
+                                autoComplete="off"
+                            />
+                        </div>
+                    </ConfirmDialog>
                     <Link
                         to="/meetings/$meetingId/present"
                         params={{ meetingId }}
@@ -205,6 +305,112 @@ function MeetingHeader({
                 </div>
             )}
         </div>
+    );
+}
+
+function EditableTitle({
+    title,
+    meetingId,
+}: {
+    title: string;
+    meetingId: string;
+}) {
+    const queryClient = useQueryClient();
+    const [editing, setEditing] = useState(false);
+    // null until the admin types, so an untouched editor follows live renames
+    const [draft, setDraft] = useState<string | null>(null);
+    const renameMeeting = useMutation({
+        mutationFn: (newTitle: string) =>
+            updateMeeting({ data: { meetingId, title: newTitle } }),
+        onSuccess: async () => {
+            await queryClient.invalidateQueries(meetingQuery(meetingId));
+            setEditing(false);
+        },
+        onError: (error) =>
+            toast.error(error.message || 'Kunne ikke endre tittel'),
+    });
+
+    const startEditing = () => {
+        setDraft(null);
+        setEditing(true);
+    };
+    const cancel = () => {
+        setDraft(null);
+        setEditing(false);
+    };
+    const save = () => {
+        if (draft === null) {
+            setEditing(false);
+            return;
+        }
+        const trimmed = draft.trim();
+        if (!trimmed) {
+            toast.error('Tittel kan ikke være tom');
+            return;
+        }
+        if (trimmed === title) {
+            setEditing(false);
+            return;
+        }
+        renameMeeting.mutate(trimmed);
+    };
+
+    if (!editing) {
+        return (
+            <div className="flex items-center gap-1">
+                <h1 className="text-3xl font-bold text-foreground">{title}</h1>
+                <Button
+                    size="icon-sm"
+                    variant="ghost"
+                    aria-label="Endre tittel"
+                    onClick={startEditing}
+                >
+                    <Pencil />
+                </Button>
+            </div>
+        );
+    }
+
+    return (
+        <form
+            className="flex items-center gap-1"
+            onSubmit={(e) => {
+                e.preventDefault();
+                save();
+            }}
+        >
+            <Input
+                autoFocus
+                aria-label="Tittel"
+                value={draft ?? title}
+                maxLength={255}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                    if (e.key === 'Escape') cancel();
+                }}
+                disabled={renameMeeting.isPending}
+                className="h-10 w-72 text-xl font-bold md:text-xl"
+            />
+            <Button
+                type="submit"
+                size="icon-sm"
+                variant="ghost"
+                aria-label="Lagre tittel"
+                disabled={renameMeeting.isPending}
+            >
+                <Check />
+            </Button>
+            <Button
+                type="button"
+                size="icon-sm"
+                variant="ghost"
+                aria-label="Avbryt"
+                onClick={cancel}
+                disabled={renameMeeting.isPending}
+            >
+                <X />
+            </Button>
+        </form>
     );
 }
 
@@ -230,7 +436,6 @@ function MeetingAdminBar({
                 queryClient.invalidateQueries(votationsQuery(meetingId)),
                 queryClient.invalidateQueries(meetingQuery(meetingId)),
             ]);
-            onTabChange('active');
         },
         onError: (error) =>
             toast.error(error.message || 'Kunne ikke starte votering'),
@@ -312,6 +517,7 @@ function MeetingContent({
             return isAdminOrCounter ? (
                 <ParticipantsPanel
                     meetingId={meetingId}
+                    isAdmin={isAdmin}
                     pendingParticipants={pendingParticipants}
                 />
             ) : null;
@@ -319,6 +525,7 @@ function MeetingContent({
             return isAdminOrCounter ? (
                 <SelfRegistrationPanel
                     meetingId={meetingId}
+                    isAdmin={isAdmin}
                     allowSelfRegistration={meeting.allowSelfRegistration}
                 />
             ) : null;

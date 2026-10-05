@@ -24,20 +24,13 @@ export const TYPE_LABELS: Record<VotationFormData['type'], string> = {
     STV: 'Preferansevalg (STV)',
 };
 
-export const STATUS_LABELS: Record<string, string> = {
-    OPEN: 'Åpen',
-    CHECKING_RESULT: 'Kontrolleres',
-    PUBLISHED_RESULT: 'Publisert',
-    INVALID: 'Ugyldig',
-};
-
 export function createEmptyVotation(): VotationFormData {
     return {
         id: crypto.randomUUID(),
         title: '',
         type: 'SIMPLE',
-        blankVotes: false,
-        hiddenVotes: false,
+        blankVotes: true,
+        hiddenVotes: true,
         numberOfWinners: 1,
         majorityThreshold: 50,
         alternatives: [],

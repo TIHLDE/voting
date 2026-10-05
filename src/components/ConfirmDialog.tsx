@@ -16,7 +16,9 @@ export default function ConfirmDialog({
     description,
     confirmLabel,
     actionVariant = 'default',
+    confirmDisabled = false,
     onConfirm,
+    children,
 }: {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -24,7 +26,9 @@ export default function ConfirmDialog({
     description: React.ReactNode;
     confirmLabel: string;
     actionVariant?: React.ComponentProps<typeof AlertDialogAction>['variant'];
+    confirmDisabled?: boolean;
     onConfirm: () => void;
+    children?: React.ReactNode;
 }) {
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -35,10 +39,12 @@ export default function ConfirmDialog({
                         {description}
                     </AlertDialogDescription>
                 </AlertDialogHeader>
+                {children}
                 <AlertDialogFooter>
                     <AlertDialogCancel>Avbryt</AlertDialogCancel>
                     <AlertDialogAction
                         variant={actionVariant}
+                        disabled={confirmDisabled}
                         onClick={() => {
                             onConfirm();
                             onOpenChange(false);

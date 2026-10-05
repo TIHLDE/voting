@@ -21,6 +21,8 @@ const participantPending = z.object({
 const participantStatus = z.union([
     z.object({ approved: z.literal(true) }),
     z.object({ denied: z.literal(true) }),
+    z.object({ updated: z.literal(true) }),
+    z.object({ removed: z.literal(true) }),
 ]);
 const votationStatus = z.object({
     votationId: z.string(),
@@ -42,6 +44,10 @@ const reviewCounts = z.object({
 });
 
 export const liveEvents = {
+    meetingUpdated: (meetingId: string) =>
+        event(`meeting:${meetingId}:updated`, emptyPayload),
+    meetingDeleted: (meetingId: string) =>
+        event(`meeting:${meetingId}:deleted`, emptyPayload),
     meetingVotationOpened: (meetingId: string) =>
         event(`meeting:${meetingId}:votation-opened`, votationOpened),
     meetingVotationsUpdated: (meetingId: string) =>
