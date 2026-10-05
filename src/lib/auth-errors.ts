@@ -1,5 +1,8 @@
 const FALLBACK = 'Noe gikk galt. Prøv igjen.';
 
+export const NETWORK_ERROR_MESSAGE =
+    'Fikk ikke kontakt med serveren. Sjekk nettet og prøv igjen.';
+
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
     INVALID_EMAIL_OR_PASSWORD: 'Feil e-post eller passord.',
     INVALID_PASSWORD: 'Feil e-post eller passord.',
@@ -24,6 +27,8 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
     email_not_found: 'Vi fikk ikke e-posten din fra TIHLDE. Prøv igjen.',
     email_not_verified: 'E-posten din hos TIHLDE er ikke bekreftet.',
     oauth_provider_not_found: 'Innlogging med TIHLDE virker ikke akkurat nå.',
+    state_mismatch: 'Innloggingen tok for lang tid. Prøv igjen.',
+    state_not_found: 'Innloggingen tok for lang tid. Prøv igjen.',
 };
 
 export function authErrorMessage(error: {

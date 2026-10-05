@@ -12,7 +12,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs';
 import { assertNever } from '#/lib/utils';
 import { APP_NAME } from '#/env';
 import { formHandlers, useAppForm } from '#/hooks/form';
-import { authErrorMessage, oauthErrorMessage } from '#/lib/auth-errors';
+import {
+    authErrorMessage,
+    NETWORK_ERROR_MESSAGE,
+    oauthErrorMessage,
+} from '#/lib/auth-errors';
 
 const searchDefaults = {
     redirect: '/meetings',
@@ -58,34 +62,38 @@ const authMutationOptions = mutationOptions({
 
         const authType = data.type;
 
-        switch (authType) {
-            case 'oauth':
-                result = await authClient.signIn.social({
-                    provider: 'photon',
-                    callbackURL: data.redirectTo,
-                    errorCallbackURL: data.errorCallbackURL,
-                });
-                break;
+        try {
+            switch (authType) {
+                case 'oauth':
+                    result = await authClient.signIn.social({
+                        provider: 'photon',
+                        callbackURL: data.redirectTo,
+                        errorCallbackURL: data.errorCallbackURL,
+                    });
+                    break;
 
-            case 'login':
-                result = await authClient.signIn.email({
-                    email: data.email,
-                    password: data.password,
-                });
-                break;
+                case 'login':
+                    result = await authClient.signIn.email({
+                        email: data.email,
+                        password: data.password,
+                    });
+                    break;
 
-            case 'register':
-                result = await authClient.signUp.email({
-                    name: data.name,
-                    email: data.email,
-                    password: data.password,
-                });
-                break;
+                case 'register':
+                    result = await authClient.signUp.email({
+                        name: data.name,
+                        email: data.email,
+                        password: data.password,
+                    });
+                    break;
 
-            default:
-                assertNever(authType);
-                throw new Error('Unsupported auth path: ' + authType);
-                break;
+                default:
+                    assertNever(authType);
+                    throw new Error('Unsupported auth path: ' + authType);
+                    break;
+            }
+        } catch {
+            throw new Error(NETWORK_ERROR_MESSAGE);
         }
 
         if (result.error) {

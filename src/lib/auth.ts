@@ -19,6 +19,9 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
     },
+    onAPIError: {
+        errorURL: '/auth',
+    },
     user: {
         deleteUser: {
             enabled: true,
