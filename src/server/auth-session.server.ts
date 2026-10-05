@@ -10,7 +10,7 @@ export async function getServerSession() {
 export async function requireAuth() {
     const session = await getServerSession();
     if (!session) {
-        throw new Error('Ikke autentisert');
+        throw new Error('Du er ikke logget inn. Logg inn og prøv igjen.');
     }
     return session;
 }

@@ -12,6 +12,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '#/components/ui/tabs';
 import { assertNever } from '#/lib/utils';
 import { APP_NAME } from '#/env';
 import { formHandlers, useAppForm } from '#/hooks/form';
+import {
+    authErrorMessage,
+    NETWORK_ERROR_MESSAGE,
+    oauthErrorMessage,
+} from '#/lib/auth-errors';
 
 const searchDefaults = {
     redirect: '/meetings',
@@ -19,6 +24,7 @@ const searchDefaults = {
 
 const searchSchema = z.object({
     redirect: z.string().default(searchDefaults.redirect),
+    error: z.string().optional(),
 });
 
 export const Route = createFileRoute('/auth')({
@@ -45,6 +51,7 @@ type AuthMutationData = {
       }
     | {
           type: 'oauth';
+          errorCallbackURL: string;
       }
 );
 
@@ -55,42 +62,42 @@ const authMutationOptions = mutationOptions({
 
         const authType = data.type;
 
-        switch (authType) {
-            case 'oauth':
-                result = await authClient.signIn.social({
-                    provider: 'photon',
-                    callbackURL: data.redirectTo,
-                });
-                break;
+        try {
+            switch (authType) {
+                case 'oauth':
+                    result = await authClient.signIn.social({
+                        provider: 'photon',
+                        callbackURL: data.redirectTo,
+                        errorCallbackURL: data.errorCallbackURL,
+                    });
+                    break;
 
-            case 'login':
-                result = await authClient.signIn.email({
-                    email: data.email,
-                    password: data.password,
-                });
-                break;
+                case 'login':
+                    result = await authClient.signIn.email({
+                        email: data.email,
+                        password: data.password,
+                    });
+                    break;
 
-            case 'register':
-                result = await authClient.signUp.email({
-                    name: data.name,
-                    email: data.email,
-                    password: data.password,
-                });
-                break;
+                case 'register':
+                    result = await authClient.signUp.email({
+                        name: data.name,
+                        email: data.email,
+                        password: data.password,
+                    });
+                    break;
 
-            default:
-                assertNever(authType);
-                throw new Error('Unsupported auth path: ' + authType);
-                break;
+                default:
+                    assertNever(authType);
+                    throw new Error('Unsupported auth path: ' + authType);
+                    break;
+            }
+        } catch {
+            throw new Error(NETWORK_ERROR_MESSAGE);
         }
 
         if (result.error) {
-            throw new Error(
-                result.error.message ??
-                    (authType == 'login'
-                        ? 'E-post eller passord er feil'
-                        : 'Noe gikk galt'),
-            );
+            throw new Error(authErrorMessage(result.error));
         }
     },
     async onSuccess(_, __, ___, context) {
@@ -99,8 +106,11 @@ const authMutationOptions = mutationOptions({
 });
 
 function AuthPage() {
-    const { redirect } = Route.useSearch();
+    const { redirect, error } = Route.useSearch();
     const authMutation = useMutation(authMutationOptions);
+    const oauthError = authMutation.error
+        ? authMutation.error.message
+        : error && oauthErrorMessage(error);
 
     return (
         <main className="mx-auto max-w-md px-4 py-12">
@@ -120,11 +130,20 @@ function AuthPage() {
                         authMutation.mutate({
                             type: 'oauth',
                             redirectTo: redirect,
+                            errorCallbackURL: authPageURL(redirect),
                         })
                     }
                 >
                     Logg inn med TIHLDE
                 </Button>
+                {oauthError && (
+                    <p
+                        role="alert"
+                        className="mt-2 text-center text-sm text-destructive"
+                    >
+                        {oauthError}
+                    </p>
+                )}
 
                 <div className="relative my-6">
                     <Separator />
@@ -167,21 +186,27 @@ function AuthPage() {
     );
 }
 
+function authPageURL(redirect: string) {
+    return redirect === searchDefaults.redirect
+        ? '/auth'
+        : `/auth?${new URLSearchParams({ redirect })}`;
+}
+
 const loginSchema = z.object({
-    email: z.email(),
+    email: z.email('Skriv inn en gyldig e-postadresse.'),
     password: z.string(),
 });
 const signupSchema = loginSchema
     .extend({
-        name: z.string().min(4),
-        password: z.string().min(8),
+        name: z.string().min(4, 'Navnet må ha minst 4 tegn.'),
+        password: z.string().min(8, 'Passordet må ha minst 8 tegn.'),
         confirmPassword: z.string(),
     })
     .superRefine((v, ctx) => {
         if (v.confirmPassword != v.password) {
             ctx.addIssue({
                 code: 'custom',
-                message: 'Passwords must match',
+                message: 'Passordene er ikke like.',
                 path: ['confirmPassword'],
             });
             return z.NEVER;
@@ -215,7 +240,10 @@ function LoginForm() {
             } catch (e) {
                 formApi.setErrorMap({
                     onSubmit: {
-                        form: e instanceof Error ? e.message : 'Noe gikk galt',
+                        form:
+                            e instanceof Error
+                                ? e.message
+                                : 'Noe gikk galt. Prøv igjen.',
                         fields: {},
                     },
                 });
@@ -282,7 +310,10 @@ function SignupForm() {
             } catch (e) {
                 formApi.setErrorMap({
                     onSubmit: {
-                        form: e instanceof Error ? e.message : 'Noe gikk galt',
+                        form:
+                            e instanceof Error
+                                ? e.message
+                                : 'Noe gikk galt. Prøv igjen.',
                         fields: {},
                     },
                 });
