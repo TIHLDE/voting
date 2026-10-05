@@ -114,7 +114,7 @@ function AuthPage() {
 
     return (
         <main className="mx-auto max-w-md px-4 py-12">
-            <div className="rounded-xl border bg-card p-6 shadow-sm sm:p-8">
+            <div className="rounded-xl border border-card-border bg-card p-6 shadow-sm sm:p-8">
                 <h1 className="mb-2 text-center text-2xl font-bold text-foreground">
                     Autentiser med {APP_NAME}
                 </h1>
@@ -163,13 +163,13 @@ function AuthPage() {
                     <TabsList className="w-full p-2 h-fit!">
                         <TabsTrigger
                             value="login"
-                            className="p-1 data-active:bg-primary! data-active:text-accent!"
+                            className="p-1 data-active:bg-primary! data-active:text-primary-foreground!"
                         >
                             Logg Inn
                         </TabsTrigger>
                         <TabsTrigger
                             value="signup"
-                            className="p-1 data-active:bg-primary! data-active:text-accent!"
+                            className="p-1 data-active:bg-primary! data-active:text-primary-foreground!"
                         >
                             Opprett Konto
                         </TabsTrigger>

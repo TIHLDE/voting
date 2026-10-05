@@ -3,7 +3,7 @@ import { Separator } from './ui/separator';
 export default function Footer() {
     return (
         <footer className="w-full">
-            <Separator />
+            <Separator className="bg-border-subtle" />
             <div className="container mx-auto grid gap-6 px-4 py-6 md:grid-cols-3 md:gap-8 md:py-10">
                 <div className="flex flex-col items-center gap-1 text-center md:items-start md:gap-2 md:text-left">
                     <h3 className="font-heading text-sm font-semibold">

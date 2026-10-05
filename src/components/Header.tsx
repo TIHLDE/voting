@@ -5,6 +5,7 @@ import BetterAuthHeader from '../integrations/better-auth/header-user';
 import ThemeToggle from './ThemeToggle';
 import UserAvatar from './UserAvatar';
 import { APP_NAME } from '../env';
+import { TihldeLogo } from './icons/tihlde';
 import { authClient } from '#/lib/auth-client';
 import { useSignOut } from '#/hooks/useSignOut';
 import { Button, buttonVariants } from '#/components/ui/button';
@@ -108,13 +109,18 @@ function MobileMenu() {
 
 export default function Header() {
     return (
-        <header className="sticky top-0 z-50 border-b bg-background/95 px-4 backdrop-blur-lg">
+        <header className="sticky top-0 z-50 border-b border-border-subtle bg-background/95 px-4 backdrop-blur-lg">
             <nav className="mx-auto flex max-w-5xl items-center gap-4 py-3">
                 <Link
                     to="/"
-                    className="text-base font-bold tracking-tight text-foreground no-underline"
+                    aria-label={APP_NAME}
+                    className="flex items-center gap-2 no-underline"
+                    style={{ color: 'var(--color-logo, currentColor)' }}
                 >
-                    {APP_NAME}
+                    <TihldeLogo variant="full" className="h-5 w-auto" />
+                    <span className="text-lg leading-none font-semibold tracking-tight">
+                        Voting
+                    </span>
                 </Link>
 
                 <div className="ml-auto flex items-center gap-2">

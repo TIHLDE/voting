@@ -318,7 +318,7 @@ function VotationCard({
                 position: 'relative',
                 zIndex: isDragging ? 10 : undefined,
             }}
-            className="space-y-3 rounded-xl border bg-card p-4"
+            className="space-y-3 rounded-xl border border-card-border bg-card p-4"
         >
             <div className="flex items-center gap-2">
                 {canEdit && (
@@ -424,7 +424,7 @@ function FinishedVotationCard({
     const winners = votation.alternatives.filter((a) => a.isWinner);
 
     return (
-        <div className="flex items-center gap-2 rounded-xl border bg-card/50 p-4">
+        <div className="flex items-center gap-2 rounded-xl border border-card-border bg-card/50 p-4">
             <div className="flex flex-1 items-center gap-2 opacity-60">
                 <Badge
                     variant={
@@ -489,7 +489,7 @@ function NewVotationCard({
     onCancel: () => void;
 }) {
     return (
-        <div className="space-y-3 rounded-xl border bg-card p-4">
+        <div className="space-y-3 rounded-xl border border-card-border bg-card p-4">
             <div className="flex items-center gap-2">
                 <Badge variant="outline">Ny</Badge>
                 <span className="font-medium text-foreground">

@@ -68,7 +68,7 @@ function JoinMeeting() {
                             </h1>
                         </div>
                     )}
-                    <div className="rounded-xl border bg-card p-6">
+                    <div className="rounded-xl border border-card-border bg-card p-6">
                         <h2 className="text-lg font-semibold text-foreground">
                             Venter på godkjenning
                         </h2>
@@ -109,7 +109,7 @@ function JoinMeeting() {
                         {meetingInfo.title}
                     </h1>
                 </div>
-                <div className="rounded-xl border bg-card p-6">
+                <div className="rounded-xl border border-card-border bg-card p-6">
                     <p className="mb-4 text-sm text-muted-foreground">
                         Du er logget inn som{' '}
                         <span className="font-medium text-foreground">

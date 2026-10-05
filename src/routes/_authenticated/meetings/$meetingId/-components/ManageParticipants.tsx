@@ -508,7 +508,7 @@ function ParticipantRow({
     }) => void;
 }) {
     return (
-        <div className="flex items-center gap-3 rounded-lg border bg-card p-3">
+        <div className="flex items-center gap-3 rounded-lg border border-card-border bg-card p-3">
             {selectable && (
                 <Checkbox
                     checked={selected}

@@ -7,7 +7,7 @@ export const Route = createFileRoute('/')({ component: LandingPage });
 function LandingPage() {
     return (
         <main className="mx-auto max-w-5xl px-4 pb-8 pt-14">
-            <section className="rounded-xl border bg-card p-8 shadow-sm sm:p-12">
+            <section className="rounded-xl border border-card-border bg-card p-8 shadow-sm sm:p-12">
                 <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
                     {APP_NAME}
                 </p>
@@ -54,7 +54,7 @@ function LandingPage() {
                 ].map(([title, desc]) => (
                     <article
                         key={title}
-                        className="rounded-xl border bg-card p-5 shadow-sm"
+                        className="rounded-xl border border-card-border bg-card p-5 shadow-sm"
                     >
                         <h2 className="mb-2 text-base font-semibold text-foreground">
                             {title}

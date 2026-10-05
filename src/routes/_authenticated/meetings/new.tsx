@@ -52,7 +52,7 @@ function NewMeetingPage() {
                 Opprett nytt møte
             </h1>
 
-            <div className="rounded-xl border bg-card p-6 shadow-sm sm:p-8">
+            <div className="rounded-xl border border-card-border bg-card p-6 shadow-sm sm:p-8">
                 <form.AppForm>
                     <form {...formHandlers(form)} className="space-y-4">
                         <form.AppField

@@ -114,7 +114,7 @@ function WinnerSummary({
 }) {
     if (winners.length === 0) {
         return (
-            <div className="rounded-xl border bg-card p-6 text-center">
+            <div className="rounded-xl border border-card-border bg-card p-6 text-center">
                 <p className="text-lg font-semibold text-foreground">
                     Ingen vinner
                 </p>
