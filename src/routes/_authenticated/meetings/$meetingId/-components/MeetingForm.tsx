@@ -2,12 +2,10 @@ import { useState } from 'react';
 import { Button } from '#/components/ui/button';
 import { Input } from '#/components/ui/input';
 import { Label } from '#/components/ui/label';
-import { Textarea } from '#/components/ui/textarea';
 import { Switch } from '#/components/ui/switch';
 
 export interface MeetingFormData {
     title: string;
-    description: string;
     allowSelfRegistration: boolean;
 }
 
@@ -20,7 +18,6 @@ interface MeetingFormProps {
 
 const defaultData: MeetingFormData = {
     title: '',
-    description: '',
     allowSelfRegistration: false,
 };
 
@@ -52,19 +49,6 @@ export default function MeetingForm({
                     placeholder="Møtetittel"
                     required
                     maxLength={255}
-                />
-            </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="description">Beskrivelse (valgfritt)</Label>
-                <Textarea
-                    id="description"
-                    value={form.description}
-                    onChange={(e) =>
-                        setForm({ ...form, description: e.target.value })
-                    }
-                    placeholder="Kort beskrivelse av møtet"
-                    rows={3}
                 />
             </div>
 

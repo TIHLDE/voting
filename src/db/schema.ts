@@ -100,7 +100,6 @@ export const meeting = pgTable('meeting', {
         .primaryKey()
         .$defaultFn(() => crypto.randomUUID()),
     title: varchar('title', { length: 255 }).notNull(),
-    description: text('description'),
     status: meetingStatusEnum('status').notNull().default('UPCOMING'),
     allowSelfRegistration: boolean('allow_self_registration')
         .notNull()

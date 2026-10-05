@@ -10,7 +10,6 @@ export const Route = createFileRoute('/_authenticated/meetings/new')({
 
 const meetingSchema = z.object({
     title: z.string().nonempty().max(255),
-    description: z.string(),
     allowSelfRegistration: z.boolean(),
 });
 
@@ -21,7 +20,6 @@ function NewMeetingPage() {
     const form = useAppForm({
         defaultValues: {
             title: '',
-            description: '',
             allowSelfRegistration: true,
         },
         validators: {
@@ -66,22 +64,6 @@ function NewMeetingPage() {
                                     placeholder="Møtetittel"
                                     maxLength={255}
                                 />
-                            )}
-                        />
-
-                        <form.AppField
-                            name="description"
-                            children={(field) => (
-                                <field.Field>
-                                    <field.Label>
-                                        Beskrivelse (valgfritt)
-                                    </field.Label>
-                                    <field.Textarea
-                                        placeholder="Kort beskrivelse av møtet"
-                                        rows={3}
-                                    />
-                                    <field.Error />
-                                </field.Field>
                             )}
                         />
 

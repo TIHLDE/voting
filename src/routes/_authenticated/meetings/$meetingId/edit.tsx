@@ -59,7 +59,6 @@ function EditMeeting() {
 
     const initialData: MeetingFormData = {
         title: meeting.title,
-        description: meeting.description ?? '',
         allowSelfRegistration: meeting.allowSelfRegistration,
     };
 

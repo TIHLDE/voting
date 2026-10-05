@@ -102,11 +102,6 @@ function MeetingLobby() {
                 isAdmin={!!isAdmin}
                 isAdminOrCounter={isAdminOrCounter}
             />
-            {meeting.description && (
-                <p className="mb-6 text-muted-foreground">
-                    {meeting.description}
-                </p>
-            )}
             {isAdminOrCounter && (
                 <MeetingAdminBar
                     meetingId={meetingId}

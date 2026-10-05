@@ -108,11 +108,6 @@ function JoinMeeting() {
                     <h1 className="text-2xl font-bold text-foreground">
                         {meetingInfo.title}
                     </h1>
-                    {meetingInfo.description && (
-                        <p className="mt-3 text-sm text-muted-foreground">
-                            {meetingInfo.description}
-                        </p>
-                    )}
                 </div>
                 <div className="rounded-xl border bg-card p-6">
                     <p className="mb-4 text-sm text-muted-foreground">
