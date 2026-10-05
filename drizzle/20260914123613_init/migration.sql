@@ -50,9 +50,6 @@ CREATE TABLE "invite" (
 CREATE TABLE "meeting" (
 	"id" text PRIMARY KEY NOT NULL,
 	"title" varchar(255) NOT NULL,
-	"organization" text NOT NULL,
-	"description" text,
-	"start_time" timestamp NOT NULL,
 	"status" "meeting_status" DEFAULT 'UPCOMING' NOT NULL,
 	"allow_self_registration" boolean DEFAULT false NOT NULL,
 	"owner_id" text NOT NULL
