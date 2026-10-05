@@ -5,9 +5,6 @@ export const NETWORK_ERROR_MESSAGE =
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
     INVALID_EMAIL_OR_PASSWORD: 'Feil e-post eller passord.',
-    INVALID_PASSWORD: 'Feil e-post eller passord.',
-    USER_NOT_FOUND: 'Feil e-post eller passord.',
-    CREDENTIAL_ACCOUNT_NOT_FOUND: 'Feil e-post eller passord.',
     INVALID_EMAIL: 'Skriv inn en gyldig e-postadresse.',
     PASSWORD_TOO_SHORT: 'Passordet må ha minst 8 tegn.',
     PASSWORD_TOO_LONG: 'Passordet er for langt.',
