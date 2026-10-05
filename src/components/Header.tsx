@@ -5,6 +5,7 @@ import BetterAuthHeader from '../integrations/better-auth/header-user';
 import ThemeToggle from './ThemeToggle';
 import UserAvatar from './UserAvatar';
 import { APP_NAME } from '../env';
+import { TihldeLogo } from './icons/tihlde';
 import { authClient } from '#/lib/auth-client';
 import { useSignOut } from '#/hooks/useSignOut';
 import { Button, buttonVariants } from '#/components/ui/button';
@@ -112,9 +113,10 @@ export default function Header() {
             <nav className="mx-auto flex max-w-5xl items-center gap-4 py-3">
                 <Link
                     to="/"
-                    className="text-base font-bold tracking-tight text-foreground no-underline"
+                    className="flex items-center no-underline"
+                    style={{ color: 'var(--color-logo, currentColor)' }}
                 >
-                    {APP_NAME}
+                    <TihldeLogo variant="full" className="h-5 w-auto" />
                 </Link>
 
                 <div className="ml-auto flex items-center gap-2">
