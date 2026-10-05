@@ -31,14 +31,15 @@ const OAUTH_ERROR_MESSAGES: Record<string, string> = {
     state_not_found: 'Innloggingen tok for lang tid. Prøv igjen.',
 };
 
-export function authErrorMessage(error: {
-    code?: string;
-    status?: number;
-}): string {
+export function authErrorMessage(
+    error: { code?: string; status?: number },
+    overrides: Record<string, string> = {},
+): string {
     if (error.status === 429) {
         return 'For mange forsøk. Vent litt og prøv igjen.';
     }
-    return (error.code && AUTH_ERROR_MESSAGES[error.code]) || FALLBACK;
+    const messages = { ...AUTH_ERROR_MESSAGES, ...overrides };
+    return (error.code && messages[error.code]) || FALLBACK;
 }
 
 export function oauthErrorMessage(code: string): string {

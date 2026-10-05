@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { authClient } from '#/lib/auth-client';
+import { authErrorMessage, NETWORK_ERROR_MESSAGE } from '#/lib/auth-errors';
 import { getMyLoginMethods } from '#/server/account';
 import { APP_NAME } from '#/env';
 import { formHandlers, useAppForm } from '#/hooks/form';
@@ -137,15 +138,15 @@ function ProfileSection({
 
 const changePasswordSchema = z
     .object({
-        currentPassword: z.string().nonempty(),
-        newPassword: z.string().min(8),
+        currentPassword: z.string().nonempty('Skriv inn passordet ditt.'),
+        newPassword: z.string().min(8, 'Passordet må ha minst 8 tegn.'),
         confirmPassword: z.string(),
     })
     .superRefine((v, ctx) => {
         if (v.confirmPassword != v.newPassword) {
             ctx.addIssue({
                 code: 'custom',
-                message: 'Passordene må være like',
+                message: 'Passordene er ikke like.',
                 path: ['confirmPassword'],
             });
             return z.NEVER;
@@ -165,16 +166,26 @@ function ChangePasswordForm() {
             onChange: changePasswordSchema,
         },
         async onSubmit({ value: { currentPassword, newPassword }, formApi }) {
-            const result = await authClient.changePassword({
-                currentPassword,
-                newPassword,
-            });
+            let result;
+            try {
+                result = await authClient.changePassword({
+                    currentPassword,
+                    newPassword,
+                });
+            } catch {
+                formApi.setErrorMap({
+                    onSubmit: { form: NETWORK_ERROR_MESSAGE, fields: {} },
+                });
+                return;
+            }
 
             if (result.error) {
                 formApi.setErrorMap({
                     onSubmit: {
-                        form:
-                            result.error.message ?? 'Kunne ikke endre passord',
+                        form: authErrorMessage(result.error, {
+                            INVALID_PASSWORD:
+                                'Det nåværende passordet er feil.',
+                        }),
                         fields: {},
                     },
                 });
@@ -235,7 +246,9 @@ function DeleteAccountDialog({
     const queryClient = useQueryClient();
 
     const deleteSchema = z.object({
-        password: hasPassword ? z.string().nonempty() : z.string(),
+        password: hasPassword
+            ? z.string().nonempty('Skriv inn passordet ditt.')
+            : z.string(),
     });
 
     const form = useAppForm({
@@ -247,18 +260,26 @@ function DeleteAccountDialog({
             onChange: deleteSchema,
         },
         async onSubmit({ value: { password }, formApi }) {
-            const result = await authClient.deleteUser(
-                hasPassword ? { password } : {},
-            );
+            let result;
+            try {
+                result = await authClient.deleteUser(
+                    hasPassword ? { password } : {},
+                );
+            } catch {
+                formApi.setErrorMap({
+                    onSubmit: { form: NETWORK_ERROR_MESSAGE, fields: {} },
+                });
+                return;
+            }
 
             if (result.error) {
                 formApi.setErrorMap({
                     onSubmit: {
-                        form:
-                            result.error.code === 'SESSION_EXPIRED'
-                                ? 'Logg ut og inn igjen før du sletter kontoen.'
-                                : (result.error.message ??
-                                  'Kunne ikke slette kontoen'),
+                        form: authErrorMessage(result.error, {
+                            INVALID_PASSWORD: 'Feil passord.',
+                            SESSION_EXPIRED:
+                                'Logg ut og inn igjen før du sletter kontoen.',
+                        }),
                         fields: {},
                     },
                 });
