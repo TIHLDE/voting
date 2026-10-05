@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-    getParticipants,
     addParticipant,
     updateParticipant,
     deleteParticipants,
@@ -18,6 +17,9 @@ import {
 } from '#/components/ui/select';
 import { Switch } from '#/components/ui/switch';
 import { Checkbox } from '#/components/ui/checkbox';
+import ConfirmDialog from '#/components/ConfirmDialog';
+import { participantsQuery } from '#/queries/live';
+import { toast } from 'sonner';
 
 const ROLE_LABELS: Record<string, string> = {
     ADMIN: 'Admin',
@@ -25,134 +27,101 @@ const ROLE_LABELS: Record<string, string> = {
     PARTICIPANT: 'Deltaker',
 };
 
-export interface ParticipantInput {
-    email: string;
-    role: 'ADMIN' | 'COUNTER' | 'PARTICIPANT';
-    isVotingEligible: boolean;
-}
+type Role = 'ADMIN' | 'COUNTER' | 'PARTICIPANT';
 
 interface ManageParticipantsProps {
-    meetingId?: string;
-    participants?: ParticipantInput[];
-    onChange?: (participants: ParticipantInput[]) => void;
+    meetingId: string;
+    isAdmin: boolean;
 }
 
 export default function ManageParticipants({
     meetingId,
-    participants: localParticipants,
-    onChange,
+    isAdmin,
 }: ManageParticipantsProps) {
-    const isLocal = !meetingId;
     const [newEmail, setNewEmail] = useState('');
-    const [newRole, setNewRole] = useState<'ADMIN' | 'COUNTER' | 'PARTICIPANT'>(
-        'PARTICIPANT',
-    );
+    const [newRole, setNewRole] = useState<Role>('PARTICIPANT');
     const queryClient = useQueryClient();
 
-    const { data } = useQuery({
-        queryKey: ['participants', meetingId],
-        queryFn: () => getParticipants({ data: { meetingId: meetingId! } }),
-        enabled: !!meetingId,
-    });
+    const { data } = useQuery(participantsQuery(meetingId));
 
     const addMutation = useMutation({
-        mutationFn: (participant: ParticipantInput) =>
+        mutationFn: (email: string) =>
             addParticipant({
-                data: { meetingId: meetingId!, ...participant },
+                data: {
+                    meetingId,
+                    email,
+                    role: newRole,
+                    isVotingEligible: true,
+                },
             }),
         onSuccess: () => {
             setNewEmail('');
-            void queryClient.invalidateQueries({
-                queryKey: ['participants', meetingId],
-            });
+            void queryClient.invalidateQueries(participantsQuery(meetingId));
         },
     });
 
     const updateMutation = useMutation({
         mutationFn: (params: {
             participantId: string;
-            role?: 'ADMIN' | 'COUNTER' | 'PARTICIPANT';
+            role?: Role;
             isVotingEligible?: boolean;
         }) =>
             updateParticipant({
-                data: { meetingId: meetingId!, ...params },
+                data: { meetingId, ...params },
             }),
         onSuccess: () => {
-            void queryClient.invalidateQueries({
-                queryKey: ['participants', meetingId],
-            });
+            void queryClient.invalidateQueries(participantsQuery(meetingId));
         },
+        onError: (error) =>
+            toast.error(error.message || 'Kunne ikke oppdatere deltaker'),
     });
 
-    function handleAddParticipant() {
-        if (!newEmail) return;
-
-        const p: ParticipantInput = {
-            email: newEmail,
-            role: newRole,
-            isVotingEligible: true,
-        };
-
-        if (isLocal) {
-            onChange?.([...(localParticipants ?? []), p]);
-            setNewEmail('');
-        } else {
-            addMutation.mutate(p);
-        }
-    }
-
-    const displayParticipants = isLocal
-        ? (localParticipants ?? []).map((p, i) => ({
-              id: String(i),
-              email: p.email,
-              name: undefined as string | undefined,
-              role: p.role,
-              isVotingEligible: p.isVotingEligible,
-              isParticipant: false,
-              isOwner: false,
-          }))
-        : [
-              ...(data?.participants ?? []).map((p) => ({
-                  id: p.id,
-                  email: p.user.email,
-                  name: p.user.name,
-                  role: p.role,
-                  isVotingEligible: p.isVotingEligible,
-                  isParticipant: true,
-                  isOwner: p.userId === data?.ownerId,
-              })),
-              ...(data?.invites ?? []).map((inv) => ({
-                  id: `invite-${inv.email}`,
-                  email: inv.email,
-                  name: undefined as string | undefined,
-                  role: inv.role,
-                  isVotingEligible: inv.isVotingEligible,
-                  isParticipant: false,
-                  isOwner: false,
-              })),
-          ];
+    const displayParticipants: DisplayParticipant[] = [
+        ...(data?.participants ?? []).map((p) => ({
+            id: p.id,
+            email: p.user.email,
+            name: p.user.name,
+            role: p.role,
+            isVotingEligible: p.isVotingEligible,
+            isParticipant: true,
+            isOwner: p.userId === data?.ownerId,
+        })),
+        ...(data?.invites ?? []).map((inv) => ({
+            id: `invite-${inv.email}`,
+            email: inv.email,
+            name: undefined,
+            role: inv.role,
+            isVotingEligible: inv.isVotingEligible,
+            isParticipant: false,
+            isOwner: false,
+        })),
+    ];
 
     return (
         <div className="space-y-6">
-            <AddParticipantSection
-                email={newEmail}
-                role={newRole}
-                onEmailChange={setNewEmail}
-                onRoleChange={setNewRole}
-                onAdd={handleAddParticipant}
-                isAdding={addMutation.isPending}
-                error={addMutation.error?.message}
-            />
+            {isAdmin && (
+                <AddParticipantSection
+                    email={newEmail}
+                    role={newRole}
+                    onEmailChange={setNewEmail}
+                    onRoleChange={setNewRole}
+                    onAdd={() => {
+                        if (newEmail) addMutation.mutate(newEmail);
+                    }}
+                    isAdding={addMutation.isPending}
+                    error={addMutation.error?.message}
+                />
+            )}
             <ParticipantDirectory
                 participants={displayParticipants}
                 meetingId={meetingId}
-                onUpdate={(params) => updateMutation.mutate(params)}
+                canEditRoles={isAdmin}
+                onUpdate={updateMutation.mutate}
             />
         </div>
     );
 }
 
-type Role = ParticipantInput['role'];
 type ParticipantFilter = 'all' | 'eligible' | 'not_eligible';
 type DisplayParticipant = {
     id: string;
@@ -219,10 +188,12 @@ function AddParticipantSection({
 function ParticipantDirectory({
     participants,
     meetingId,
+    canEditRoles,
     onUpdate,
 }: {
     participants: DisplayParticipant[];
-    meetingId?: string;
+    meetingId: string;
+    canEditRoles: boolean;
     onUpdate: (params: {
         participantId: string;
         role?: Role;
@@ -233,22 +204,27 @@ function ParticipantDirectory({
     const [search, setSearch] = useState('');
     const [filter, setFilter] = useState<ParticipantFilter>('all');
     const [selected, setSelected] = useState<Set<string>>(new Set());
-    const isLocal = !meetingId;
+    const [confirmDelete, setConfirmDelete] = useState(false);
 
     const deleteMutation = useMutation({
-        mutationFn: (participantIds: string[]) =>
+        mutationFn: (selection: DisplayParticipant[]) =>
             deleteParticipants({
                 data: {
-                    meetingId: meetingId!,
-                    participantIds,
+                    meetingId,
+                    participantIds: selection
+                        .filter((item) => item.isParticipant)
+                        .map((item) => item.id),
+                    inviteEmails: selection
+                        .filter((item) => !item.isParticipant)
+                        .map((item) => item.email),
                 },
             }),
         onSuccess: () => {
             setSelected(new Set());
-            void queryClient.invalidateQueries({
-                queryKey: ['participants', meetingId],
-            });
+            void queryClient.invalidateQueries(participantsQuery(meetingId));
         },
+        onError: (error) =>
+            toast.error(error.message || 'Kunne ikke fjerne deltakere'),
     });
     const bulkVotingMutation = useMutation({
         mutationFn: (params: {
@@ -256,14 +232,14 @@ function ParticipantDirectory({
             isVotingEligible: boolean;
         }) =>
             bulkUpdateVotingEligibility({
-                data: { meetingId: meetingId!, ...params },
+                data: { meetingId, ...params },
             }),
         onSuccess: () => {
             setSelected(new Set());
-            void queryClient.invalidateQueries({
-                queryKey: ['participants', meetingId],
-            });
+            void queryClient.invalidateQueries(participantsQuery(meetingId));
         },
+        onError: (error) =>
+            toast.error(error.message || 'Kunne ikke oppdatere stemmerett'),
     });
 
     const staff = participants.filter(
@@ -273,8 +249,13 @@ function ParticipantDirectory({
         (participant) => participant.role === 'PARTICIPANT',
     );
     // Ignore selections of people who have since become admin or counter.
-    const selectedIds = members
-        .filter((participant) => selected.has(participant.id))
+    const selection = members.filter((participant) =>
+        selected.has(participant.id),
+    );
+    // Invites have no participant row, so voting eligibility can't be bulk
+    // edited for them.
+    const selectedParticipantIds = selection
+        .filter((participant) => participant.isParticipant)
         .map((participant) => participant.id);
 
     const filtered = members.filter((participant) => {
@@ -301,7 +282,7 @@ function ParticipantDirectory({
                         <ParticipantRow
                             key={participant.id}
                             participant={participant}
-                            isLocal={isLocal}
+                            canEditRoles={canEditRoles}
                             onUpdate={onUpdate}
                         />
                     ))}
@@ -320,28 +301,46 @@ function ParticipantDirectory({
                     onSearchChange={setSearch}
                     onFilterChange={setFilter}
                 />
-                {!isLocal && (
-                    <BulkParticipantActions
-                        filtered={filtered}
-                        selected={selected}
-                        selectedCount={selectedIds.length}
-                        onSelectedChange={setSelected}
-                        onSetVotingEligibility={(isVotingEligible) =>
-                            bulkVotingMutation.mutate({
-                                participantIds: selectedIds,
-                                isVotingEligible,
-                            })
-                        }
-                        onDelete={() => deleteMutation.mutate(selectedIds)}
-                    />
-                )}
+                <BulkParticipantActions
+                    filtered={filtered}
+                    selected={selected}
+                    selectedCount={selection.length}
+                    eligibilityCount={selectedParticipantIds.length}
+                    pending={
+                        deleteMutation.isPending || bulkVotingMutation.isPending
+                    }
+                    onSelectedChange={setSelected}
+                    onSetVotingEligibility={(isVotingEligible) =>
+                        bulkVotingMutation.mutate({
+                            participantIds: selectedParticipantIds,
+                            isVotingEligible,
+                        })
+                    }
+                    onDelete={() => setConfirmDelete(true)}
+                />
+                <ConfirmDialog
+                    open={confirmDelete}
+                    onOpenChange={setConfirmDelete}
+                    title="Fjerne fra møtet?"
+                    description={
+                        <>
+                            {selection.length === 1
+                                ? `${selection[0].name ?? selection[0].email} blir fjernet fra møtet.`
+                                : `${selection.length} deltakere blir fjernet fra møtet.`}{' '}
+                            Stemmer som allerede er avgitt blir ikke berørt.
+                        </>
+                    }
+                    confirmLabel="Fjern"
+                    actionVariant="destructive"
+                    onConfirm={() => deleteMutation.mutate(selection)}
+                />
                 <div className="space-y-2">
                     {filtered.map((participant) => (
                         <ParticipantRow
                             key={participant.id}
                             participant={participant}
-                            isLocal={isLocal}
-                            selectable={!isLocal}
+                            canEditRoles={canEditRoles}
+                            selectable
                             selected={selected.has(participant.id)}
                             onSelectedChange={(checked) => {
                                 const next = new Set(selected);
@@ -417,6 +416,8 @@ function BulkParticipantActions({
     filtered,
     selected,
     selectedCount,
+    eligibilityCount,
+    pending,
     onSelectedChange,
     onSetVotingEligibility,
     onDelete,
@@ -424,6 +425,8 @@ function BulkParticipantActions({
     filtered: DisplayParticipant[];
     selected: Set<string>;
     selectedCount: number;
+    eligibilityCount: number;
+    pending: boolean;
     onSelectedChange: (selected: Set<string>) => void;
     onSetVotingEligibility: (eligible: boolean) => void;
     onDelete: () => void;
@@ -451,21 +454,32 @@ function BulkParticipantActions({
             </span>
             {selectedCount > 0 && (
                 <>
+                    {eligibilityCount > 0 && (
+                        <>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => onSetVotingEligibility(true)}
+                                disabled={pending}
+                            >
+                                Gi stemmerett ({eligibilityCount})
+                            </Button>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => onSetVotingEligibility(false)}
+                                disabled={pending}
+                            >
+                                Fjern stemmerett ({eligibilityCount})
+                            </Button>
+                        </>
+                    )}
                     <Button
+                        variant="destructive"
                         size="sm"
-                        variant="outline"
-                        onClick={() => onSetVotingEligibility(true)}
+                        onClick={onDelete}
+                        disabled={pending}
                     >
-                        Gi stemmerett ({selectedCount})
-                    </Button>
-                    <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onSetVotingEligibility(false)}
-                    >
-                        Fjern stemmerett ({selectedCount})
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={onDelete}>
                         Fjern fra møtet ({selectedCount})
                     </Button>
                 </>
@@ -476,14 +490,14 @@ function BulkParticipantActions({
 
 function ParticipantRow({
     participant,
-    isLocal,
+    canEditRoles,
     selectable = false,
     selected = false,
     onSelectedChange,
     onUpdate,
 }: {
     participant: DisplayParticipant;
-    isLocal: boolean;
+    canEditRoles: boolean;
     selectable?: boolean;
     selected?: boolean;
     onSelectedChange?: (checked: boolean) => void;
@@ -516,38 +530,9 @@ function ParticipantRow({
                     </span>
                 )}
             </div>
-            {!isLocal && participant.isParticipant ? (
-                <ParticipantControls
-                    participant={participant}
-                    onUpdate={onUpdate}
-                />
-            ) : (
-                <span className="text-xs font-medium text-muted-foreground">
-                    {ROLE_LABELS[participant.role]}
-                </span>
-            )}
-        </div>
-    );
-}
-
-function ParticipantControls({
-    participant,
-    onUpdate,
-}: {
-    participant: DisplayParticipant;
-    onUpdate: (params: {
-        participantId: string;
-        role?: Role;
-        isVotingEligible?: boolean;
-    }) => void;
-}) {
-    return (
-        <>
-            {participant.isOwner ? (
-                <span className="text-xs font-medium text-muted-foreground">
-                    Eier
-                </span>
-            ) : (
+            {participant.isParticipant &&
+            !participant.isOwner &&
+            canEditRoles ? (
                 <Select
                     value={participant.role}
                     onValueChange={(role) =>
@@ -568,21 +553,29 @@ function ParticipantControls({
                         <SelectItem value="PARTICIPANT">Deltaker</SelectItem>
                     </SelectContent>
                 </Select>
-            )}
-            <div className="flex items-center gap-2">
-                <Switch
-                    checked={participant.isVotingEligible}
-                    onCheckedChange={(isVotingEligible) =>
-                        onUpdate({
-                            participantId: participant.id,
-                            isVotingEligible,
-                        })
-                    }
-                />
-                <span className="text-xs text-muted-foreground">
-                    Stemmerett
+            ) : (
+                <span className="text-xs font-medium text-muted-foreground">
+                    {participant.isOwner
+                        ? 'Eier'
+                        : ROLE_LABELS[participant.role]}
                 </span>
-            </div>
-        </>
+            )}
+            {participant.isParticipant && (
+                <div className="flex items-center gap-2">
+                    <Switch
+                        checked={participant.isVotingEligible}
+                        onCheckedChange={(isVotingEligible) =>
+                            onUpdate({
+                                participantId: participant.id,
+                                isVotingEligible,
+                            })
+                        }
+                    />
+                    <span className="text-xs text-muted-foreground">
+                        Stemmerett
+                    </span>
+                </div>
+            )}
+        </div>
     );
 }

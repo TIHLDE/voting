@@ -9,6 +9,8 @@ import {
     requireOwner,
     requireParticipant,
 } from './permissions.server';
+import { publish } from './sse/emitter';
+import { liveEvents } from '#/lib/live-events';
 
 export const getMyMeetings = createServerFn({ method: 'GET' }).handler(
     async () => {
@@ -108,6 +110,8 @@ export const updateMeeting = createServerFn({ method: 'POST' })
             .where(eq(meeting.id, meetingId))
             .returning();
 
+        publish(liveEvents.meetingUpdated(meetingId), {});
+
         return updated;
     });
 
@@ -136,5 +140,7 @@ export const deleteMeeting = createServerFn({ method: 'POST' })
         await requireOwner(data.meetingId);
 
         await db.delete(meeting).where(eq(meeting.id, data.meetingId));
+
+        publish(liveEvents.meetingDeleted(data.meetingId), {});
         return { success: true };
     });

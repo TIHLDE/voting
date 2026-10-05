@@ -211,6 +211,9 @@ export const startNextVotation = createServerFn({ method: 'POST' })
             .set({ status: 'OPEN' })
             .where(eq(votation.id, next.id));
 
+        if (m?.status === 'UPCOMING') {
+            publish(liveEvents.meetingUpdated(data.meetingId), {});
+        }
         publish(liveEvents.meetingVotationOpened(data.meetingId), {
             votationId: next.id,
         });
@@ -259,6 +262,7 @@ export const updateVotationStatus = createServerFn({ method: 'POST' })
             votationId: data.votationId,
             votationStatus: data.status,
         });
+        publish(liveEvents.meetingVotationsUpdated(v.meetingId), {});
 
         return { success: true };
     });

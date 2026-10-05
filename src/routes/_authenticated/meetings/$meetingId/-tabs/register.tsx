@@ -1,4 +1,9 @@
 import { Button } from '#/components/ui/button';
+import { Label } from '#/components/ui/label';
+import { Switch } from '#/components/ui/switch';
+import { meetingQuery } from '#/queries/live';
+import { updateMeeting } from '#/server/meetings';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
 import { useRef, useSyncExternalStore } from 'react';
 import { toast } from 'sonner';
@@ -15,9 +20,55 @@ function useOrigin() {
 
 export function SelfRegistrationPanel({
     meetingId,
+    isAdmin,
     allowSelfRegistration,
 }: {
     meetingId: string;
+    isAdmin: boolean;
+    allowSelfRegistration: boolean;
+}) {
+    const queryClient = useQueryClient();
+    const toggle = useMutation({
+        mutationFn: (enabled: boolean) =>
+            updateMeeting({
+                data: { meetingId, allowSelfRegistration: enabled },
+            }),
+        onSuccess: () => queryClient.invalidateQueries(meetingQuery(meetingId)),
+        onError: (error) =>
+            toast.error(error.message || 'Kunne ikke endre selvregistrering'),
+    });
+
+    return (
+        <div className="space-y-4">
+            {isAdmin && (
+                <div className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm">
+                    <Switch
+                        id="allowSelfRegistration"
+                        checked={allowSelfRegistration}
+                        onCheckedChange={(checked) => toggle.mutate(checked)}
+                        disabled={toggle.isPending}
+                    />
+                    <Label htmlFor="allowSelfRegistration">
+                        Tillat selvregistrering
+                    </Label>
+                </div>
+            )}
+            <SelfRegistrationLink
+                meetingId={meetingId}
+                isAdmin={isAdmin}
+                allowSelfRegistration={allowSelfRegistration}
+            />
+        </div>
+    );
+}
+
+function SelfRegistrationLink({
+    meetingId,
+    isAdmin,
+    allowSelfRegistration,
+}: {
+    meetingId: string;
+    isAdmin: boolean;
     allowSelfRegistration: boolean;
 }) {
     const origin = useOrigin();
@@ -47,8 +98,10 @@ export function SelfRegistrationPanel({
         return (
             <div className="rounded-xl border bg-card p-6 text-center shadow-sm">
                 <p className="text-muted-foreground">
-                    Selvregistrering er ikke aktivert for dette møtet. Du kan
-                    aktivere det i møteinnstillingene.
+                    Selvregistrering er ikke aktivert for dette møtet.
+                    {isAdmin
+                        ? ' Slå det på over for å dele lenke og QR-kode.'
+                        : ' En administrator kan slå det på.'}
                 </p>
             </div>
         );

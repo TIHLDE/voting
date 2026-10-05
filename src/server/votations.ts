@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { votation, alternative } from '#/db/schema';
 import { db } from '#/db/index';
 import { requireAdmin, requireParticipant } from './permissions.server';
+import { publish } from './sse/emitter';
+import { liveEvents } from '#/lib/live-events';
 
 export const getVotationsForMeeting = createServerFn({ method: 'GET' })
     .validator(z.object({ meetingId: z.string() }))
@@ -48,8 +50,8 @@ const createVotationSchema = z.object({
     title: z.string().min(1).max(255),
     description: z.string().optional(),
     type: z.enum(['SIMPLE', 'QUALIFIED', 'STV']),
-    blankVotes: z.boolean().default(false),
-    hiddenVotes: z.boolean().default(false),
+    blankVotes: z.boolean().default(true),
+    hiddenVotes: z.boolean().default(true),
     numberOfWinners: z.number().default(1),
     majorityThreshold: z.number().default(50),
     index: z.number(),
@@ -66,7 +68,7 @@ export const createVotations = createServerFn({ method: 'POST' })
     .handler(async ({ data }) => {
         await requireAdmin(data.meetingId);
 
-        return Promise.all(
+        const created = await Promise.all(
             data.votations.map(async (item) => {
                 const { alternatives: alts, ...votationData } = item;
                 const [newVotation] = await db
@@ -90,6 +92,9 @@ export const createVotations = createServerFn({ method: 'POST' })
                 return newVotation;
             }),
         );
+
+        publish(liveEvents.meetingVotationsUpdated(data.meetingId), {});
+        return created;
     });
 
 const updateVotationSchema = z.object({
@@ -123,7 +128,7 @@ export const updateVotations = createServerFn({ method: 'POST' })
     .handler(async ({ data }) => {
         await requireAdmin(data.meetingId);
 
-        return Promise.all(
+        const updated = await Promise.all(
             data.votations.map(async (item) => {
                 // Verify votation is UPCOMING
                 const existing = await db.query.votation.findFirst({
@@ -160,6 +165,9 @@ export const updateVotations = createServerFn({ method: 'POST' })
                 return updatedVotation;
             }),
         );
+
+        publish(liveEvents.meetingVotationsUpdated(data.meetingId), {});
+        return updated;
     });
 
 export const updateVotationIndexes = createServerFn({ method: 'POST' })
@@ -180,6 +188,8 @@ export const updateVotationIndexes = createServerFn({ method: 'POST' })
                     .where(eq(votation.id, item.id)),
             ),
         );
+
+        publish(liveEvents.meetingVotationsUpdated(data.meetingId), {});
         return { success: true };
     });
 
@@ -194,6 +204,7 @@ export const deleteVotation = createServerFn({ method: 'POST' })
         await requireAdmin(v.meetingId);
         await db.delete(votation).where(eq(votation.id, data.votationId));
 
+        publish(liveEvents.meetingVotationsUpdated(v.meetingId), {});
         return { success: true };
     });
 
@@ -214,6 +225,9 @@ export const deleteAlternatives = createServerFn({ method: 'POST' })
         );
         await db.delete(alternative).where(inArray(alternative.id, data.ids));
 
+        for (const meetingId of meetingIds) {
+            publish(liveEvents.meetingVotationsUpdated(meetingId), {});
+        }
         return { success: true };
     });
 
@@ -234,17 +248,12 @@ export const getActiveVotationId = createServerFn({ method: 'GET' })
     .handler(async ({ data }) => {
         await requireParticipant(data.meetingId);
 
-        for (const status of [
-            'OPEN',
-            'CHECKING_RESULT',
-            'PUBLISHED_RESULT',
-        ] as const) {
-            const v = await db.query.votation.findFirst({
-                where: { meetingId: data.meetingId, status },
-                orderBy: { index: 'desc' },
-            });
-            if (v) return v.id;
-        }
+        // Votations start in index order, so the last started one (open,
+        // being checked, published or cancelled) has the highest index.
+        const v = await db.query.votation.findFirst({
+            where: { meetingId: data.meetingId, status: { ne: 'UPCOMING' } },
+            orderBy: { index: 'desc' },
+        });
 
-        return null;
+        return v?.id ?? null;
     });

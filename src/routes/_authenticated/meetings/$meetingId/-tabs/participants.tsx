@@ -5,9 +5,11 @@ import ManageParticipants from '../-components/ManageParticipants';
 
 export function ParticipantsPanel({
     meetingId,
+    isAdmin,
     pendingParticipants,
 }: {
     meetingId: string;
+    isAdmin: boolean;
     pendingParticipants: Array<{
         id: string;
         user: { name: string; email: string };
@@ -129,7 +131,7 @@ export function ParticipantsPanel({
                 </div>
             )}
 
-            <ManageParticipants meetingId={meetingId} />
+            <ManageParticipants meetingId={meetingId} isAdmin={isAdmin} />
         </div>
     );
 }

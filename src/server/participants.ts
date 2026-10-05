@@ -11,6 +11,37 @@ import {
 } from './permissions.server';
 import { publish } from './sse/emitter';
 import { liveEvents } from '#/lib/live-events';
+import { getVoteCountData } from './voting.server';
+
+/**
+ * Tells admins and counters to refetch the participant list, tells each
+ * affected user that their own participation changed, and refreshes the
+ * eligible voter count of an open votation.
+ */
+async function publishParticipantChanges(
+    meetingId: string,
+    affected: { userIds: string[]; status: 'updated' | 'removed' },
+) {
+    publish(liveEvents.meetingParticipantsUpdated(meetingId), {});
+    for (const userId of affected.userIds) {
+        publish(
+            liveEvents.participantStatus(userId, meetingId),
+            affected.status === 'removed'
+                ? { removed: true }
+                : { updated: true },
+        );
+    }
+
+    const open = await db.query.votation.findFirst({
+        where: { meetingId, status: 'OPEN' },
+    });
+    if (open) {
+        publish(
+            liveEvents.votationVotes(open.id),
+            await getVoteCountData(open.id, meetingId),
+        );
+    }
+}
 
 export const getParticipants = createServerFn({ method: 'GET' })
     .validator(z.object({ meetingId: z.string() }))
@@ -111,6 +142,7 @@ export const addParticipant = createServerFn({ method: 'POST' })
                 isVotingEligible: data.isVotingEligible,
                 meetingId: data.meetingId,
             });
+            publish(liveEvents.meetingParticipantsUpdated(data.meetingId), {});
             return;
         }
 
@@ -133,6 +165,11 @@ export const addParticipant = createServerFn({ method: 'POST' })
             isApproved: true,
             userId: existingUser.id,
             meetingId: data.meetingId,
+        });
+
+        await publishParticipantChanges(data.meetingId, {
+            userIds: [existingUser.id],
+            status: 'updated',
         });
     });
 
@@ -181,6 +218,11 @@ export const updateParticipant = createServerFn({ method: 'POST' })
             .where(eq(participant.id, data.participantId))
             .returning();
 
+        await publishParticipantChanges(data.meetingId, {
+            userIds: [p.userId],
+            status: 'updated',
+        });
+
         return updated;
     });
 
@@ -196,10 +238,16 @@ export const bulkUpdateVotingEligibility = createServerFn({ method: 'POST' })
         await requireAdminOrCounter(data.meetingId);
 
         if (data.participantIds.length > 0) {
-            await db
+            const updated = await db
                 .update(participant)
                 .set({ isVotingEligible: data.isVotingEligible })
-                .where(inArray(participant.id, data.participantIds));
+                .where(inArray(participant.id, data.participantIds))
+                .returning({ userId: participant.userId });
+
+            await publishParticipantChanges(data.meetingId, {
+                userIds: updated.map((item) => item.userId),
+                status: 'updated',
+            });
         }
 
         return { updatedCount: data.participantIds.length };
@@ -253,6 +301,11 @@ export const deleteParticipants = createServerFn({ method: 'POST' })
                       )
                 : Promise.resolve(),
         ]);
+
+        await publishParticipantChanges(data.meetingId, {
+            userIds: participantsToDelete.map((item) => item.userId),
+            status: 'removed',
+        });
 
         return { success: true };
     });
@@ -319,7 +372,10 @@ export const approveParticipant = createServerFn({ method: 'POST' })
         publish(liveEvents.participantStatus(updated.userId, data.meetingId), {
             approved: true,
         });
-        publish(liveEvents.meetingParticipantsUpdated(data.meetingId), {});
+        await publishParticipantChanges(data.meetingId, {
+            userIds: [],
+            status: 'updated',
+        });
 
         return updated;
     });

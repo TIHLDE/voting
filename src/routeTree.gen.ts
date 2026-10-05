@@ -20,7 +20,6 @@ import { Route as AuthenticatedMeetingsMeetingIdRouteImport } from './routes/_au
 import { Route as AuthenticatedMeetingsNewRouteImport } from './routes/_authenticated/meetings/new'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AuthenticatedMeetingsMeetingIdIndexRouteImport } from './routes/_authenticated/meetings/$meetingId/index'
-import { Route as AuthenticatedMeetingsMeetingIdEditRouteImport } from './routes/_authenticated/meetings/$meetingId/edit'
 import { Route as AuthenticatedMeetingsMeetingIdPresentRouteImport } from './routes/_authenticated/meetings/$meetingId/present'
 
 const IndexRoute = IndexRouteImport.update({
@@ -82,12 +81,6 @@ const AuthenticatedMeetingsMeetingIdIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedMeetingsMeetingIdRoute,
   } as any)
-const AuthenticatedMeetingsMeetingIdEditRoute =
-  AuthenticatedMeetingsMeetingIdEditRouteImport.update({
-    id: '/edit',
-    path: '/edit',
-    getParentRoute: () => AuthenticatedMeetingsMeetingIdRoute,
-  } as any)
 const AuthenticatedMeetingsMeetingIdPresentRoute =
   AuthenticatedMeetingsMeetingIdPresentRouteImport.update({
     id: '/present',
@@ -105,7 +98,6 @@ export interface FileRoutesByFullPath {
   '/meetings/new': typeof AuthenticatedMeetingsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/meetings/': typeof AuthenticatedMeetingsIndexRoute
-  '/meetings/$meetingId/edit': typeof AuthenticatedMeetingsMeetingIdEditRoute
   '/meetings/$meetingId/present': typeof AuthenticatedMeetingsMeetingIdPresentRoute
   '/meetings/$meetingId/': typeof AuthenticatedMeetingsMeetingIdIndexRoute
 }
@@ -118,7 +110,6 @@ export interface FileRoutesByTo {
   '/meetings/new': typeof AuthenticatedMeetingsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/meetings': typeof AuthenticatedMeetingsIndexRoute
-  '/meetings/$meetingId/edit': typeof AuthenticatedMeetingsMeetingIdEditRoute
   '/meetings/$meetingId/present': typeof AuthenticatedMeetingsMeetingIdPresentRoute
   '/meetings/$meetingId': typeof AuthenticatedMeetingsMeetingIdIndexRoute
 }
@@ -134,7 +125,6 @@ export interface FileRoutesById {
   '/_authenticated/meetings/new': typeof AuthenticatedMeetingsNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_authenticated/meetings/': typeof AuthenticatedMeetingsIndexRoute
-  '/_authenticated/meetings/$meetingId/edit': typeof AuthenticatedMeetingsMeetingIdEditRoute
   '/_authenticated/meetings/$meetingId/present': typeof AuthenticatedMeetingsMeetingIdPresentRoute
   '/_authenticated/meetings/$meetingId/': typeof AuthenticatedMeetingsMeetingIdIndexRoute
 }
@@ -150,7 +140,6 @@ export interface FileRouteTypes {
     | '/meetings/new'
     | '/api/auth/$'
     | '/meetings/'
-    | '/meetings/$meetingId/edit'
     | '/meetings/$meetingId/present'
     | '/meetings/$meetingId/'
   fileRoutesByTo: FileRoutesByTo
@@ -163,7 +152,6 @@ export interface FileRouteTypes {
     | '/meetings/new'
     | '/api/auth/$'
     | '/meetings'
-    | '/meetings/$meetingId/edit'
     | '/meetings/$meetingId/present'
     | '/meetings/$meetingId'
   id:
@@ -178,7 +166,6 @@ export interface FileRouteTypes {
     | '/_authenticated/meetings/new'
     | '/api/auth/$'
     | '/_authenticated/meetings/'
-    | '/_authenticated/meetings/$meetingId/edit'
     | '/_authenticated/meetings/$meetingId/present'
     | '/_authenticated/meetings/$meetingId/'
   fileRoutesById: FileRoutesById
@@ -270,13 +257,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMeetingsMeetingIdIndexRouteImport
       parentRoute: typeof AuthenticatedMeetingsMeetingIdRoute
     }
-    '/_authenticated/meetings/$meetingId/edit': {
-      id: '/_authenticated/meetings/$meetingId/edit'
-      path: '/edit'
-      fullPath: '/meetings/$meetingId/edit'
-      preLoaderRoute: typeof AuthenticatedMeetingsMeetingIdEditRouteImport
-      parentRoute: typeof AuthenticatedMeetingsMeetingIdRoute
-    }
     '/_authenticated/meetings/$meetingId/present': {
       id: '/_authenticated/meetings/$meetingId/present'
       path: '/present'
@@ -288,15 +268,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedMeetingsMeetingIdRouteChildren {
-  AuthenticatedMeetingsMeetingIdEditRoute: typeof AuthenticatedMeetingsMeetingIdEditRoute
   AuthenticatedMeetingsMeetingIdPresentRoute: typeof AuthenticatedMeetingsMeetingIdPresentRoute
   AuthenticatedMeetingsMeetingIdIndexRoute: typeof AuthenticatedMeetingsMeetingIdIndexRoute
 }
 
 const AuthenticatedMeetingsMeetingIdRouteChildren: AuthenticatedMeetingsMeetingIdRouteChildren =
   {
-    AuthenticatedMeetingsMeetingIdEditRoute:
-      AuthenticatedMeetingsMeetingIdEditRoute,
     AuthenticatedMeetingsMeetingIdPresentRoute:
       AuthenticatedMeetingsMeetingIdPresentRoute,
     AuthenticatedMeetingsMeetingIdIndexRoute:
