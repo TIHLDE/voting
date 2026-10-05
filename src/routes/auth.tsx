@@ -144,13 +144,13 @@ function AuthPage() {
                     <TabsList className="w-full p-2 h-fit!">
                         <TabsTrigger
                             value="login"
-                            className="p-1 data-active:bg-primary! data-active:text-accent!"
+                            className="p-1 data-active:bg-primary! data-active:text-primary-foreground!"
                         >
                             Logg Inn
                         </TabsTrigger>
                         <TabsTrigger
                             value="signup"
-                            className="p-1 data-active:bg-primary! data-active:text-accent!"
+                            className="p-1 data-active:bg-primary! data-active:text-primary-foreground!"
                         >
                             Opprett Konto
                         </TabsTrigger>
