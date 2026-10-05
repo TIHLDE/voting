@@ -124,7 +124,7 @@ export function ParticipantsPanel({
             )}
 
             {pendingParticipants.length === 0 && (
-                <div className="rounded-xl border bg-card p-6 text-center shadow-sm">
+                <div className="rounded-xl border border-card-border bg-card p-6 text-center shadow-sm">
                     <p className="text-sm text-muted-foreground">
                         Ingen ventende forespørsler.
                     </p>

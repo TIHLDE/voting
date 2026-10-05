@@ -108,7 +108,7 @@ function MobileMenu() {
 
 export default function Header() {
     return (
-        <header className="sticky top-0 z-50 border-b bg-background/95 px-4 backdrop-blur-lg">
+        <header className="sticky top-0 z-50 border-b border-border-subtle bg-background/95 px-4 backdrop-blur-lg">
             <nav className="mx-auto flex max-w-5xl items-center gap-4 py-3">
                 <Link
                     to="/"

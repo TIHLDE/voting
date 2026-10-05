@@ -41,7 +41,7 @@ export function SelfRegistrationPanel({
     return (
         <div className="space-y-4">
             {isAdmin && (
-                <div className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm">
+                <div className="flex items-center gap-3 rounded-xl border border-card-border bg-card p-4 shadow-sm">
                     <Switch
                         id="allowSelfRegistration"
                         checked={allowSelfRegistration}
@@ -96,7 +96,7 @@ function SelfRegistrationLink({
 
     if (!allowSelfRegistration) {
         return (
-            <div className="rounded-xl border bg-card p-6 text-center shadow-sm">
+            <div className="rounded-xl border border-card-border bg-card p-6 text-center shadow-sm">
                 <p className="text-muted-foreground">
                     Selvregistrering er ikke aktivert for dette møtet.
                     {isAdmin
@@ -110,7 +110,7 @@ function SelfRegistrationLink({
     const regUrl = origin ? `${origin}/join/${meetingId}` : '';
 
     return (
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
+        <div className="rounded-xl border border-card-border bg-card p-6 shadow-sm">
             <h2 className="mb-4 text-xl font-semibold text-foreground">
                 Selvregistrering
             </h2>

@@ -21,7 +21,7 @@ export default function MeetingCard({
         <Link
             to="/meetings/$meetingId"
             params={{ meetingId: id }}
-            className="block rounded-xl border bg-card p-5 no-underline shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            className="block rounded-xl border border-card-border bg-card p-5 no-underline shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
         >
             <div className="mb-2 flex items-center gap-2">
                 <StatusBadge status={status} />

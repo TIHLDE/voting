@@ -147,7 +147,7 @@ export default function CheckResults({
             )}
 
             {winners.length === 0 && (
-                <div className="rounded-lg border bg-card p-4">
+                <div className="rounded-lg border border-card-border bg-card p-4">
                     <p className="text-sm font-semibold text-foreground">
                         Ingen vinner
                     </p>

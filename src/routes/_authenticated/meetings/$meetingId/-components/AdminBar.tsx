@@ -16,7 +16,7 @@ export default function AdminBar({
     startingVotation,
 }: AdminBarProps) {
     return (
-        <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border bg-card p-2">
+        <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-card-border bg-card p-2">
             {tabs.map((tab) => (
                 <button
                     key={tab.id}

@@ -61,7 +61,7 @@ export default function ActiveVotation({
 
     if (!activeVotationId) {
         return (
-            <div className="rounded-xl border bg-card p-6 text-center shadow-sm">
+            <div className="rounded-xl border border-card-border bg-card p-6 text-center shadow-sm">
                 <p className="text-muted-foreground">
                     Ingen aktiv votering.{' '}
                     {isAdmin && 'Klikk "Start neste votering" for å begynne.'}
@@ -73,7 +73,7 @@ export default function ActiveVotation({
     if (!votation) return null;
 
     return (
-        <div className="rounded-xl border bg-card p-6 shadow-sm">
+        <div className="rounded-xl border border-card-border bg-card p-6 shadow-sm">
             <h2 className="mb-2 text-2xl font-bold text-foreground">
                 {votation.title}
             </h2>
@@ -365,7 +365,7 @@ function StvVotingForm({
                                     },
                                 ])
                             }
-                            className="w-full rounded-lg border bg-card p-3 text-left text-sm transition hover:border-primary"
+                            className="w-full rounded-lg border border-card-border bg-card p-3 text-left text-sm transition hover:border-primary"
                         >
                             {alternative.text}
                         </button>
@@ -571,7 +571,7 @@ function VoteCountDisplay({
             : 0;
 
     return (
-        <div className="rounded-lg border bg-card p-3 text-center">
+        <div className="rounded-lg border border-card-border bg-card p-3 text-center">
             <p className="text-2xl font-bold text-foreground">
                 {voteCount.voteCount} / {voteCount.votingEligibleCount}
             </p>
