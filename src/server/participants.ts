@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { participant, invite, user, meeting } from '#/db/schema';
 import { db } from '#/db/index';
@@ -11,37 +11,7 @@ import {
 } from './permissions.server';
 import { publish } from './sse/emitter';
 import { liveEvents } from '#/lib/live-events';
-import { getVoteCountData } from './voting.server';
-
-/**
- * Tells admins and counters to refetch the participant list, tells each
- * affected user that their own participation changed, and refreshes the
- * eligible voter count of an open votation.
- */
-async function publishParticipantChanges(
-    meetingId: string,
-    affected: { userIds: string[]; status: 'updated' | 'removed' },
-) {
-    publish(liveEvents.meetingParticipantsUpdated(meetingId), {});
-    for (const userId of affected.userIds) {
-        publish(
-            liveEvents.participantStatus(userId, meetingId),
-            affected.status === 'removed'
-                ? { removed: true }
-                : { updated: true },
-        );
-    }
-
-    const open = await db.query.votation.findFirst({
-        where: { meetingId, status: 'OPEN' },
-    });
-    if (open) {
-        publish(
-            liveEvents.votationVotes(open.id),
-            await getVoteCountData(open.id, meetingId),
-        );
-    }
-}
+import { publishParticipantChanges } from './participant-changes.server';
 
 export const getParticipants = createServerFn({ method: 'GET' })
     .validator(z.object({ meetingId: z.string() }))
@@ -105,7 +75,7 @@ export const getMyRegistrationStatus = createServerFn({ method: 'GET' })
 
 const addParticipantSchema = z.object({
     meetingId: z.string(),
-    email: z.email(),
+    email: z.string().trim().toLowerCase().pipe(z.email()),
     role: z.enum(['ADMIN', 'COUNTER', 'PARTICIPANT']),
     isVotingEligible: z.boolean().default(true),
 });
@@ -118,7 +88,7 @@ export const addParticipant = createServerFn({ method: 'POST' })
         const [existingUser] = await db
             .select()
             .from(user)
-            .where(eq(user.email, data.email));
+            .where(eq(sql`lower(${user.email})`, data.email));
 
         // Users without an account are invited, and become participants
         // when they sign up.
@@ -129,7 +99,7 @@ export const addParticipant = createServerFn({ method: 'POST' })
                 .where(
                     and(
                         eq(invite.meetingId, data.meetingId),
-                        eq(invite.email, data.email),
+                        eq(sql`lower(${invite.email})`, data.email),
                     ),
                 );
             if (existingInvite) {
@@ -159,12 +129,22 @@ export const addParticipant = createServerFn({ method: 'POST' })
             throw new Error('Brukeren er allerede deltaker i møtet');
         }
 
-        await db.insert(participant).values({
-            role: data.role,
-            isVotingEligible: data.isVotingEligible,
-            isApproved: true,
-            userId: existingUser.id,
-            meetingId: data.meetingId,
+        await db.transaction(async (tx) => {
+            await tx.insert(participant).values({
+                role: data.role,
+                isVotingEligible: data.isVotingEligible,
+                isApproved: true,
+                userId: existingUser.id,
+                meetingId: data.meetingId,
+            });
+            await tx
+                .delete(invite)
+                .where(
+                    and(
+                        eq(invite.meetingId, data.meetingId),
+                        eq(sql`lower(${invite.email})`, data.email),
+                    ),
+                );
         });
 
         await publishParticipantChanges(data.meetingId, {
@@ -197,7 +177,12 @@ export const updateParticipant = createServerFn({ method: 'POST' })
             db
                 .select()
                 .from(participant)
-                .where(eq(participant.id, data.participantId)),
+                .where(
+                    and(
+                        eq(participant.id, data.participantId),
+                        eq(participant.meetingId, data.meetingId),
+                    ),
+                ),
             db.select().from(meeting).where(eq(meeting.id, data.meetingId)),
         ]);
 
@@ -215,7 +200,12 @@ export const updateParticipant = createServerFn({ method: 'POST' })
         const [updated] = await db
             .update(participant)
             .set(updates)
-            .where(eq(participant.id, data.participantId))
+            .where(
+                and(
+                    eq(participant.id, data.participantId),
+                    eq(participant.meetingId, data.meetingId),
+                ),
+            )
             .returning();
 
         await publishParticipantChanges(data.meetingId, {
@@ -237,20 +227,25 @@ export const bulkUpdateVotingEligibility = createServerFn({ method: 'POST' })
     .handler(async ({ data }) => {
         await requireAdminOrCounter(data.meetingId);
 
-        if (data.participantIds.length > 0) {
-            const updated = await db
-                .update(participant)
-                .set({ isVotingEligible: data.isVotingEligible })
-                .where(inArray(participant.id, data.participantIds))
-                .returning({ userId: participant.userId });
+        if (data.participantIds.length === 0) return { updatedCount: 0 };
 
-            await publishParticipantChanges(data.meetingId, {
-                userIds: updated.map((item) => item.userId),
-                status: 'updated',
-            });
-        }
+        const updated = await db
+            .update(participant)
+            .set({ isVotingEligible: data.isVotingEligible })
+            .where(
+                and(
+                    inArray(participant.id, data.participantIds),
+                    eq(participant.meetingId, data.meetingId),
+                ),
+            )
+            .returning({ userId: participant.userId });
 
-        return { updatedCount: data.participantIds.length };
+        await publishParticipantChanges(data.meetingId, {
+            userIds: updated.map((item) => item.userId),
+            status: 'updated',
+        });
+
+        return { updatedCount: updated.length };
     });
 
 export const deleteParticipants = createServerFn({ method: 'POST' })
@@ -274,7 +269,12 @@ export const deleteParticipants = createServerFn({ method: 'POST' })
                 ? await db
                       .select()
                       .from(participant)
-                      .where(inArray(participant.id, data.participantIds))
+                      .where(
+                          and(
+                              inArray(participant.id, data.participantIds),
+                              eq(participant.meetingId, data.meetingId),
+                          ),
+                      )
                 : [];
 
         if (
@@ -285,10 +285,13 @@ export const deleteParticipants = createServerFn({ method: 'POST' })
         }
 
         await Promise.all([
-            data.participantIds.length > 0
-                ? db
-                      .delete(participant)
-                      .where(inArray(participant.id, data.participantIds))
+            participantsToDelete.length > 0
+                ? db.delete(participant).where(
+                      inArray(
+                          participant.id,
+                          participantsToDelete.map((item) => item.id),
+                      ),
+                  )
                 : Promise.resolve(),
             data.inviteEmails?.length
                 ? db
@@ -364,7 +367,12 @@ export const approveParticipant = createServerFn({ method: 'POST' })
         const [updated] = await db
             .update(participant)
             .set({ isApproved: true })
-            .where(eq(participant.id, data.participantId))
+            .where(
+                and(
+                    eq(participant.id, data.participantId),
+                    eq(participant.meetingId, data.meetingId),
+                ),
+            )
             .returning();
 
         if (!updated) throw new Error('Deltakeren finnes ikke');
@@ -388,12 +396,15 @@ export const denyParticipant = createServerFn({ method: 'POST' })
         const [p] = await db
             .select()
             .from(participant)
-            .where(eq(participant.id, data.participantId));
+            .where(
+                and(
+                    eq(participant.id, data.participantId),
+                    eq(participant.meetingId, data.meetingId),
+                ),
+            );
         if (!p) throw new Error('Deltakeren finnes ikke');
 
-        await db
-            .delete(participant)
-            .where(eq(participant.id, data.participantId));
+        await db.delete(participant).where(eq(participant.id, p.id));
 
         publish(liveEvents.participantStatus(p.userId, data.meetingId), {
             denied: true,
