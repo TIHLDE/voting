@@ -9,7 +9,11 @@ export const Route = createFileRoute('/_authenticated/meetings/new')({
 });
 
 const meetingSchema = z.object({
-    title: z.string().nonempty().max(255),
+    title: z
+        .string()
+        .trim()
+        .min(1, 'Skriv inn en tittel.')
+        .max(255, 'Tittelen kan ha maks 255 tegn.'),
     allowSelfRegistration: z.boolean(),
 });
 

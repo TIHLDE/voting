@@ -189,7 +189,7 @@ export const updateParticipant = createServerFn({ method: 'POST' })
 
         // Counters can only change voting eligibility, not roles
         if (caller.role === 'COUNTER' && data.role !== undefined) {
-            throw new Error('Tellekorps kan ikke endre roller');
+            throw new Error('Tellere kan ikke endre roller');
         }
 
         // Check owner protection

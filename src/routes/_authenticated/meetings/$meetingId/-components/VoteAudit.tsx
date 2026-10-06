@@ -14,7 +14,7 @@ export default function VoteAudit({ votationId }: { votationId: string }) {
     return (
         <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
             <h4 className="text-sm font-semibold text-foreground">
-                Stemmedetaljer (kun synlig for admin)
+                Stemmedetaljer (kun synlig for admin og tellere)
             </h4>
 
             <CollapsibleSection title={`Hvem har stemt (${audit.totalVoters})`}>
