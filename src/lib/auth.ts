@@ -3,10 +3,12 @@ import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from '@better-auth/drizzle-adapter/relations-v2';
 import { tanstackStartCookies } from 'better-auth/tanstack-start';
 import { genericOAuth } from 'better-auth/plugins';
+import { eq } from 'drizzle-orm';
 
 import { db } from '#/db/index';
 import { env } from '#/env';
 import * as schema from '#/db/schema';
+import { acceptPendingInvites } from '#/server/participant-changes.server';
 
 // Photon's OIDC issuer, used to discover the login and token endpoints.
 const PHOTON_ISSUER = env.PHOTON_ISSUER ?? 'https://photon.tihlde.org/api/auth';
@@ -25,6 +27,29 @@ export const auth = betterAuth({
     user: {
         deleteUser: {
             enabled: true,
+        },
+    },
+    databaseHooks: {
+        session: {
+            create: {
+                // On every sign-in, not just sign-up, so invites left behind
+                // before this hook existed are also picked up.
+                after: async (session) => {
+                    const [signedIn] = await db
+                        .select({ email: schema.user.email })
+                        .from(schema.user)
+                        .where(eq(schema.user.id, session.userId));
+                    if (!signedIn) return;
+                    try {
+                        await acceptPendingInvites(
+                            session.userId,
+                            signedIn.email,
+                        );
+                    } catch (error) {
+                        console.error('Failed to accept invites', error);
+                    }
+                },
+            },
         },
     },
     plugins: [
