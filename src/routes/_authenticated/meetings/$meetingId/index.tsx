@@ -518,6 +518,7 @@ function MeetingContent({
                 <ParticipantsPanel
                     meetingId={meetingId}
                     isAdmin={isAdmin}
+                    isOwner={meeting.ownerId === userId}
                     pendingParticipants={pendingParticipants}
                 />
             ) : null;
