@@ -460,6 +460,7 @@ export const denyParticipant = createServerFn({ method: 'POST' })
                 and(
                     eq(participant.id, data.participantId),
                     eq(participant.meetingId, data.meetingId),
+                    eq(participant.isApproved, false),
                 ),
             );
         if (!p) throw new Error('Deltakeren finnes ikke');

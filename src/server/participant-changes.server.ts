@@ -43,10 +43,14 @@ export async function acceptPendingInvites(userId: string, email: string) {
             .returning();
         if (invites.length === 0) return [];
 
+        const invitesByMeeting = new Map(
+            invites.map((inv) => [inv.meetingId, inv]),
+        );
+
         await tx
             .insert(participant)
             .values(
-                invites.map((inv) => ({
+                [...invitesByMeeting.values()].map((inv) => ({
                     role: inv.role,
                     isVotingEligible: inv.isVotingEligible,
                     isApproved: true,
@@ -54,14 +58,20 @@ export async function acceptPendingInvites(userId: string, email: string) {
                     meetingId: inv.meetingId,
                 })),
             )
-            .onConflictDoNothing({
+            .onConflictDoUpdate({
                 target: [participant.userId, participant.meetingId],
+                set: {
+                    role: sql`excluded.role`,
+                    isVotingEligible: sql`excluded.is_voting_eligible`,
+                    isApproved: true,
+                },
+                setWhere: eq(participant.isApproved, false),
             });
 
-        return invites.map((inv) => inv.meetingId);
+        return [...invitesByMeeting.keys()];
     });
 
-    for (const meetingId of new Set(meetingIds)) {
+    for (const meetingId of meetingIds) {
         await publishParticipantChanges(meetingId, {
             userIds: [userId],
             status: 'updated',
