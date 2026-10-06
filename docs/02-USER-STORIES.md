@@ -194,11 +194,28 @@
 
 **Acceptance Criteria:**
 
-- Only the meeting owner (creator) sees the delete option
+- Only the meeting owner sees the delete option
 - Confirmation dialog with meeting title
 - On deletion: all related data is cascade-deleted
 - User is redirected to "Mine møter"
 - Toast notification confirms deletion
+
+---
+
+### US-2.6b: Transfer Meeting Ownership
+
+**As the** meeting owner,
+**I want to** make another admin the owner of the meeting,
+**So that** someone else can take over responsibility for it.
+
+**Acceptance Criteria:**
+
+- Only the meeting owner sees the "Gjør til eier" option
+- The option is only available for participants with the ADMIN role
+- Confirmation dialog names the new owner and explains that the change cannot be undone by the previous owner
+- The new owner gets the owner protections (cannot be removed or have their role changed)
+- The previous owner stays ADMIN and loses the delete and transfer options
+- All connected users see the new owner in real time
 
 ---
 

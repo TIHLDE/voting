@@ -6,10 +6,12 @@ import ManageParticipants from '../-components/ManageParticipants';
 export function ParticipantsPanel({
     meetingId,
     isAdmin,
+    isOwner,
     pendingParticipants,
 }: {
     meetingId: string;
     isAdmin: boolean;
+    isOwner: boolean;
     pendingParticipants: Array<{
         id: string;
         user: { name: string; email: string };
@@ -131,7 +133,11 @@ export function ParticipantsPanel({
                 </div>
             )}
 
-            <ManageParticipants meetingId={meetingId} isAdmin={isAdmin} />
+            <ManageParticipants
+                meetingId={meetingId}
+                isAdmin={isAdmin}
+                isOwner={isOwner}
+            />
         </div>
     );
 }

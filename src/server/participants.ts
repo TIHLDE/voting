@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, exists, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { participant, invite, user, meeting } from '#/db/schema';
 import { db } from '#/db/index';
@@ -7,6 +7,7 @@ import { requireAuth } from './auth-session.server';
 import {
     requireAdmin,
     requireAdminOrCounter,
+    requireOwner,
     requireParticipant,
 } from './permissions.server';
 import { publish } from './sse/emitter';
@@ -309,6 +310,65 @@ export const deleteParticipants = createServerFn({ method: 'POST' })
             userIds: participantsToDelete.map((item) => item.userId),
             status: 'removed',
         });
+
+        return { success: true };
+    });
+
+export const transferOwnership = createServerFn({ method: 'POST' })
+    .validator(z.object({ meetingId: z.string(), participantId: z.string() }))
+    .handler(async ({ data }) => {
+        const { session } = await requireOwner(data.meetingId);
+
+        const [target] = await db
+            .select()
+            .from(participant)
+            .where(
+                and(
+                    eq(participant.id, data.participantId),
+                    eq(participant.meetingId, data.meetingId),
+                ),
+            );
+
+        if (!target || !target.isApproved) {
+            throw new Error('Deltakeren finnes ikke');
+        }
+        if (target.userId === session.user.id) {
+            throw new Error('Du er allerede eier av møtet');
+        }
+        if (target.role !== 'ADMIN') {
+            throw new Error('Kun administratorer kan bli eier av møtet');
+        }
+
+        const [transferred] = await db
+            .update(meeting)
+            .set({ ownerId: target.userId })
+            .where(
+                and(
+                    eq(meeting.id, data.meetingId),
+                    eq(meeting.ownerId, session.user.id),
+                    exists(
+                        db
+                            .select()
+                            .from(participant)
+                            .where(
+                                and(
+                                    eq(participant.id, target.id),
+                                    eq(participant.role, 'ADMIN'),
+                                    eq(participant.isApproved, true),
+                                ),
+                            ),
+                    ),
+                ),
+            )
+            .returning({ id: meeting.id });
+        if (!transferred) {
+            throw new Error(
+                'Eierskapet kunne ikke overføres. Last inn siden og prøv igjen.',
+            );
+        }
+
+        publish(liveEvents.meetingUpdated(data.meetingId), {});
+        publish(liveEvents.meetingParticipantsUpdated(data.meetingId), {});
 
         return { success: true };
     });
