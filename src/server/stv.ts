@@ -83,23 +83,29 @@ export function runStvAlgorithm(
             }
         }
 
-        // Redistribute surplus for each winner.
+        // Redistribute surplus for each winner. Only the surplus moves on, so
+        // a winner's ballots are scaled by surplus / votes — down to zero when
+        // the winner reached the quota exactly. Each ballot is scaled once,
+        // by the winner it counted for this round, so winners are added only
+        // after every ballot has been reweighted.
+        const transferWeights = new Map<string, number>();
         for (const altId of roundWinners) {
             const votes = voteCounts.get(altId)!;
-            const surplus = votes - quota;
-            if (surplus > 0) {
-                const transferWeight = surplus / votes;
-                for (const ballot of ballots) {
-                    const ballotTop = ballot.rankings.find(
-                        (r) =>
-                            !eliminated.has(r.alternativeId) &&
-                            !winners.has(r.alternativeId),
-                    );
-                    if (ballotTop && ballotTop.alternativeId === altId) {
-                        ballot.weight *= transferWeight;
-                    }
-                }
+            transferWeights.set(altId, (votes - quota) / votes);
+        }
+        for (const ballot of ballots) {
+            const ballotTop = ballot.rankings.find(
+                (r) =>
+                    !eliminated.has(r.alternativeId) &&
+                    !winners.has(r.alternativeId),
+            );
+            const transferWeight =
+                ballotTop && transferWeights.get(ballotTop.alternativeId);
+            if (transferWeight !== undefined) {
+                ballot.weight *= transferWeight;
             }
+        }
+        for (const altId of roundWinners) {
             winners.add(altId);
         }
 

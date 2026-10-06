@@ -1562,3 +1562,88 @@ describe('Sanity: clear IRV winner', () => {
         expect(winners.size).toBe(1);
     });
 });
+
+// ---------------------------------------------------------------------------
+// Surplus transfer: a winner with exactly the quota passes nothing on
+// ---------------------------------------------------------------------------
+
+describe('Surplus: winner reaching the quota exactly', () => {
+    // 9 ballots, 2 seats, 0 blank. quota = floor(9/3)+1 = 4
+    //
+    //   4 voters: A > B > C > D
+    //   3 voters: C > D > B > A
+    //   2 voters: D > C > B > A
+    //
+    // Round 1: A=4 reaches the quota exactly → A WINS, surplus 0
+    //          A's ballots are used up and transfer at weight 0
+    // Round 2: B=0, C=3, D=2 → B eliminated
+    // Round 3: C=3, D=2 → D eliminated
+    // Round 4: C is the only one left for the last seat → C WINS
+
+    const ballots: StvBallot[] = [
+        ...Array.from({ length: 4 }, (_, i) =>
+            ballot(`voterA${i}`, 'optionA', 'optionB', 'optionC', 'optionD'),
+        ),
+        ...Array.from({ length: 3 }, (_, i) =>
+            ballot(`voterC${i}`, 'optionC', 'optionD', 'optionB', 'optionA'),
+        ),
+        ...Array.from({ length: 2 }, (_, i) =>
+            ballot(`voterD${i}`, 'optionD', 'optionC', 'optionB', 'optionA'),
+        ),
+    ];
+    const candidates = ['optionA', 'optionB', 'optionC', 'optionD'];
+
+    test("round 2: A's ballots do not reach B", () => {
+        const { rounds } = runStvAlgorithm(ballots, candidates, 2, 0);
+        const vc = rounds[1]?.voteCounts;
+        expect(vc?.get('optionB')).toBe(0);
+        expect(vc?.get('optionC')).toBe(3);
+        expect(vc?.get('optionD')).toBe(2);
+    });
+
+    test('optionA and optionC win', () => {
+        const { winners } = runStvAlgorithm(ballots, candidates, 2, 0);
+        expect([...winners].sort()).toEqual(['optionA', 'optionC']);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Surplus transfer: two winners in the same round
+// ---------------------------------------------------------------------------
+
+describe('Surplus: two winners in the same round', () => {
+    // 20 ballots, 3 seats, 0 blank. quota = floor(20/4)+1 = 6
+    //
+    //   8 voters: A > B > D > C
+    //   8 voters: B > C > D > A
+    //   2 voters: C > D > A > B
+    //   2 voters: D > C > A > B
+    //
+    // Round 1: A=8, B=8 → both WIN, each with surplus 2 (weight 2/8 = 0.25)
+    //          A's ballots skip B (already elected) and go to D at 0.25
+    //          B's ballots go to C at 0.25
+    // Round 2: C = 2 + 8×0.25 = 4, D = 2 + 8×0.25 = 4
+
+    const ballots: StvBallot[] = [
+        ...Array.from({ length: 8 }, (_, i) =>
+            ballot(`voterA${i}`, 'optionA', 'optionB', 'optionD', 'optionC'),
+        ),
+        ...Array.from({ length: 8 }, (_, i) =>
+            ballot(`voterB${i}`, 'optionB', 'optionC', 'optionD', 'optionA'),
+        ),
+        ...Array.from({ length: 2 }, (_, i) =>
+            ballot(`voterC${i}`, 'optionC', 'optionD', 'optionA', 'optionB'),
+        ),
+        ...Array.from({ length: 2 }, (_, i) =>
+            ballot(`voterD${i}`, 'optionD', 'optionC', 'optionA', 'optionB'),
+        ),
+    ];
+    const candidates = ['optionA', 'optionB', 'optionC', 'optionD'];
+
+    test("round 2: each ballot is reduced only by its own winner's surplus", () => {
+        const { rounds } = runStvAlgorithm(ballots, candidates, 3, 0);
+        const vc = rounds[1]?.voteCounts;
+        expect(vc?.get('optionC')).toBe(4);
+        expect(vc?.get('optionD')).toBe(4);
+    });
+});
