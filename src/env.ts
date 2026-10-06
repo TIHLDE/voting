@@ -19,6 +19,11 @@ export const env = createEnv({
         PHOTON_CLIENT_ID: z.string().optional(),
         PHOTON_CLIENT_SECRET: z.string().optional(),
         PHOTON_ISSUER: z.string().url().optional(),
+        PHOTON_API_URL: z
+            .string()
+            .url()
+            .default('https://photon.tihlde.org/api'),
+        PHOTON_EMAIL_API_KEY: z.string().optional(),
     },
 
     clientPrefix: 'VITE_',
