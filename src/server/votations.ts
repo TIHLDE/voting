@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start';
-import { eq, inArray } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { votation, alternative } from '#/db/schema';
 import { db } from '#/db/index';
@@ -132,9 +132,10 @@ export const updateVotations = createServerFn({ method: 'POST' })
             data.votations.map(async (item) => {
                 // Verify votation is UPCOMING
                 const existing = await db.query.votation.findFirst({
-                    where: { id: item.id },
+                    where: { id: item.id, meetingId: data.meetingId },
                 });
-                if (!existing || existing.status !== 'UPCOMING') {
+                if (!existing) throw new Error('Voteringen finnes ikke');
+                if (existing.status !== 'UPCOMING') {
                     throw new Error('Kan kun redigere kommende voteringer');
                 }
 
@@ -142,7 +143,12 @@ export const updateVotations = createServerFn({ method: 'POST' })
                 const [updatedVotation] = await db
                     .update(votation)
                     .set(updateData)
-                    .where(eq(votation.id, id))
+                    .where(
+                        and(
+                            eq(votation.id, id),
+                            eq(votation.meetingId, data.meetingId),
+                        ),
+                    )
                     .returning();
 
                 if (alts) {
@@ -180,12 +186,26 @@ export const updateVotationIndexes = createServerFn({ method: 'POST' })
     .handler(async ({ data }) => {
         await requireAdmin(data.meetingId);
 
+        const ids = data.votations.map((item) => item.id);
+        const existing = await db.query.votation.findMany({
+            where: { id: { in: ids }, meetingId: data.meetingId },
+            columns: { id: true },
+        });
+        if (existing.length !== new Set(ids).size) {
+            throw new Error('Voteringen finnes ikke');
+        }
+
         await Promise.all(
             data.votations.map((item) =>
                 db
                     .update(votation)
                     .set({ index: item.index })
-                    .where(eq(votation.id, item.id)),
+                    .where(
+                        and(
+                            eq(votation.id, item.id),
+                            eq(votation.meetingId, data.meetingId),
+                        ),
+                    ),
             ),
         );
 
