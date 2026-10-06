@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, exists, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { participant, invite, user, meeting } from '#/db/schema';
 import { db } from '#/db/index';
@@ -343,11 +343,25 @@ export const transferOwnership = createServerFn({ method: 'POST' })
                 and(
                     eq(meeting.id, data.meetingId),
                     eq(meeting.ownerId, session.user.id),
+                    exists(
+                        db
+                            .select()
+                            .from(participant)
+                            .where(
+                                and(
+                                    eq(participant.id, target.id),
+                                    eq(participant.role, 'ADMIN'),
+                                    eq(participant.isApproved, true),
+                                ),
+                            ),
+                    ),
                 ),
             )
             .returning({ id: meeting.id });
         if (!transferred) {
-            throw new Error('Kun eieren av møtet kan overføre eierskapet');
+            throw new Error(
+                'Eierskapet kunne ikke overføres. Last inn siden og prøv igjen.',
+            );
         }
 
         publish(liveEvents.meetingUpdated(data.meetingId), {});
