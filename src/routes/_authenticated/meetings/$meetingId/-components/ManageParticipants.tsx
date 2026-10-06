@@ -5,6 +5,7 @@ import {
     updateParticipant,
     deleteParticipants,
     bulkUpdateVotingEligibility,
+    transferOwnership,
 } from '#/server/participants';
 import { Button } from '#/components/ui/button';
 import { Input } from '#/components/ui/input';
@@ -18,7 +19,7 @@ import {
 import { Switch } from '#/components/ui/switch';
 import { Checkbox } from '#/components/ui/checkbox';
 import ConfirmDialog from '#/components/ConfirmDialog';
-import { participantsQuery } from '#/queries/live';
+import { meetingQuery, participantsQuery } from '#/queries/live';
 import { toast } from 'sonner';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -32,14 +33,19 @@ type Role = 'ADMIN' | 'COUNTER' | 'PARTICIPANT';
 interface ManageParticipantsProps {
     meetingId: string;
     isAdmin: boolean;
+    isOwner: boolean;
 }
 
 export default function ManageParticipants({
     meetingId,
     isAdmin,
+    isOwner,
 }: ManageParticipantsProps) {
     const [newEmail, setNewEmail] = useState('');
     const [newRole, setNewRole] = useState<Role>('PARTICIPANT');
+    const [transferTarget, setTransferTarget] =
+        useState<DisplayParticipant | null>(null);
+    const [confirmTransfer, setConfirmTransfer] = useState(false);
     const queryClient = useQueryClient();
 
     const { data } = useQuery(participantsQuery(meetingId));
@@ -74,6 +80,17 @@ export default function ManageParticipants({
         },
         onError: (error) =>
             toast.error(error.message || 'Kunne ikke oppdatere deltaker'),
+    });
+
+    const transferMutation = useMutation({
+        mutationFn: (participantId: string) =>
+            transferOwnership({ data: { meetingId, participantId } }),
+        onSuccess: () => {
+            void queryClient.invalidateQueries(participantsQuery(meetingId));
+            void queryClient.invalidateQueries(meetingQuery(meetingId));
+        },
+        onError: (error) =>
+            toast.error(error.message || 'Kunne ikke overføre eierskap'),
     });
 
     const displayParticipants: DisplayParticipant[] = [
@@ -117,6 +134,32 @@ export default function ManageParticipants({
                 meetingId={meetingId}
                 canEditRoles={isAdmin}
                 onUpdate={updateMutation.mutate}
+                onTransferOwnership={
+                    isOwner && !transferMutation.isPending
+                        ? (participant) => {
+                              setTransferTarget(participant);
+                              setConfirmTransfer(true);
+                          }
+                        : undefined
+                }
+            />
+            <ConfirmDialog
+                open={confirmTransfer}
+                onOpenChange={setConfirmTransfer}
+                title="Overføre eierskap?"
+                description={
+                    <>
+                        {transferTarget?.name ?? transferTarget?.email} blir
+                        eier av møtet. Du mister muligheten til å slette møtet
+                        og overføre eierskapet, og kan ikke angre dette selv.
+                    </>
+                }
+                confirmLabel="Overfør eierskap"
+                actionVariant="destructive"
+                onConfirm={() => {
+                    if (transferTarget)
+                        transferMutation.mutate(transferTarget.id);
+                }}
             />
         </div>
     );
@@ -190,6 +233,7 @@ function ParticipantDirectory({
     meetingId,
     canEditRoles,
     onUpdate,
+    onTransferOwnership,
 }: {
     participants: DisplayParticipant[];
     meetingId: string;
@@ -199,6 +243,7 @@ function ParticipantDirectory({
         role?: Role;
         isVotingEligible?: boolean;
     }) => void;
+    onTransferOwnership?: (participant: DisplayParticipant) => void;
 }) {
     const queryClient = useQueryClient();
     const [search, setSearch] = useState('');
@@ -284,6 +329,7 @@ function ParticipantDirectory({
                             participant={participant}
                             canEditRoles={canEditRoles}
                             onUpdate={onUpdate}
+                            onTransferOwnership={onTransferOwnership}
                         />
                     ))}
                     {staff.length === 0 && (
@@ -495,6 +541,7 @@ function ParticipantRow({
     selected = false,
     onSelectedChange,
     onUpdate,
+    onTransferOwnership,
 }: {
     participant: DisplayParticipant;
     canEditRoles: boolean;
@@ -506,6 +553,7 @@ function ParticipantRow({
         role?: Role;
         isVotingEligible?: boolean;
     }) => void;
+    onTransferOwnership?: (participant: DisplayParticipant) => void;
 }) {
     return (
         <div className="flex items-center gap-3 rounded-lg border border-card-border bg-card p-3">
@@ -530,6 +578,18 @@ function ParticipantRow({
                     </span>
                 )}
             </div>
+            {participant.isParticipant &&
+                !participant.isOwner &&
+                participant.role === 'ADMIN' &&
+                onTransferOwnership && (
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => onTransferOwnership(participant)}
+                    >
+                        Gjør til eier
+                    </Button>
+                )}
             {participant.isParticipant &&
             !participant.isOwner &&
             canEditRoles ? (
