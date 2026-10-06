@@ -189,10 +189,13 @@ export const updateVotationIndexes = createServerFn({ method: 'POST' })
         const ids = data.votations.map((item) => item.id);
         const existing = await db.query.votation.findMany({
             where: { id: { in: ids }, meetingId: data.meetingId },
-            columns: { id: true },
+            columns: { id: true, status: true },
         });
         if (existing.length !== new Set(ids).size) {
             throw new Error('Voteringen finnes ikke');
+        }
+        if (existing.some((v) => v.status !== 'UPCOMING')) {
+            throw new Error('Kan kun endre rekkefølge på kommende voteringer');
         }
 
         await Promise.all(
@@ -204,6 +207,7 @@ export const updateVotationIndexes = createServerFn({ method: 'POST' })
                         and(
                             eq(votation.id, item.id),
                             eq(votation.meetingId, data.meetingId),
+                            eq(votation.status, 'UPCOMING'),
                         ),
                     ),
             ),
@@ -222,7 +226,17 @@ export const deleteVotation = createServerFn({ method: 'POST' })
         if (!v) throw new Error('Voteringen finnes ikke');
 
         await requireAdmin(v.meetingId);
-        await db.delete(votation).where(eq(votation.id, data.votationId));
+        if (v.status !== 'UPCOMING') {
+            throw new Error('Kan kun slette kommende voteringer');
+        }
+        await db
+            .delete(votation)
+            .where(
+                and(
+                    eq(votation.id, data.votationId),
+                    eq(votation.status, 'UPCOMING'),
+                ),
+            );
 
         publish(liveEvents.meetingVotationsUpdated(v.meetingId), {});
         return { success: true };

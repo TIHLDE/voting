@@ -250,6 +250,8 @@ function ParticipantDirectory({
     const [filter, setFilter] = useState<ParticipantFilter>('all');
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [confirmDelete, setConfirmDelete] = useState(false);
+    const [inviteToRemove, setInviteToRemove] =
+        useState<DisplayParticipant | null>(null);
 
     const deleteMutation = useMutation({
         mutationFn: (selection: DisplayParticipant[]) =>
@@ -330,6 +332,7 @@ function ParticipantDirectory({
                             canEditRoles={canEditRoles}
                             onUpdate={onUpdate}
                             onTransferOwnership={onTransferOwnership}
+                            onRemoveInvite={setInviteToRemove}
                         />
                     ))}
                     {staff.length === 0 && (
@@ -379,6 +382,20 @@ function ParticipantDirectory({
                     confirmLabel="Fjern"
                     actionVariant="destructive"
                     onConfirm={() => deleteMutation.mutate(selection)}
+                />
+                <ConfirmDialog
+                    open={inviteToRemove !== null}
+                    onOpenChange={(open) => {
+                        if (!open) setInviteToRemove(null);
+                    }}
+                    title="Fjerne invitasjonen?"
+                    description={`${inviteToRemove?.email} blir ikke lagt til i møtet når de logger inn.`}
+                    confirmLabel="Fjern"
+                    actionVariant="destructive"
+                    onConfirm={() => {
+                        if (inviteToRemove)
+                            deleteMutation.mutate([inviteToRemove]);
+                    }}
                 />
                 <div className="space-y-2">
                     {filtered.map((participant) => (
@@ -542,6 +559,7 @@ function ParticipantRow({
     onSelectedChange,
     onUpdate,
     onTransferOwnership,
+    onRemoveInvite,
 }: {
     participant: DisplayParticipant;
     canEditRoles: boolean;
@@ -554,6 +572,7 @@ function ParticipantRow({
         isVotingEligible?: boolean;
     }) => void;
     onTransferOwnership?: (participant: DisplayParticipant) => void;
+    onRemoveInvite?: (participant: DisplayParticipant) => void;
 }) {
     return (
         <div className="flex items-center gap-3 rounded-lg border border-card-border bg-card p-3">
@@ -619,6 +638,15 @@ function ParticipantRow({
                         ? 'Eier'
                         : ROLE_LABELS[participant.role]}
                 </span>
+            )}
+            {!participant.isParticipant && onRemoveInvite && (
+                <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onRemoveInvite(participant)}
+                >
+                    Fjern
+                </Button>
             )}
             {participant.isParticipant && (
                 <div className="flex items-center gap-2">
