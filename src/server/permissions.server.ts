@@ -64,7 +64,7 @@ export async function requireAdminOrCounter(meetingId: string) {
         result.participant.role !== 'COUNTER'
     ) {
         throw new Error(
-            'Du må være administrator eller tellekorps for denne handlingen',
+            'Du må være administrator eller teller for denne handlingen',
         );
     }
     return result;

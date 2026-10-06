@@ -8,17 +8,14 @@ function LandingPage() {
     return (
         <main className="mx-auto max-w-5xl px-4 pb-8 pt-14">
             <section className="rounded-xl border border-card-border bg-card p-8 shadow-sm sm:p-12">
-                <p className="mb-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                    {APP_NAME}
-                </p>
                 <h1 className="mb-5 max-w-3xl text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
                     Demokratiske avstemninger, enkelt og trygt.
                 </h1>
                 <p className="mb-8 max-w-2xl text-base text-muted-foreground sm:text-lg">
-                    Gjennomfor effektive og gode demokratiske prosesser.{' '}
+                    Gjennomfør effektive og gode demokratiske prosesser.{' '}
                     {APP_NAME} tilbyr sanntidsavstemninger med flere
                     valgmetoder, inkludert preferansevalg (STV), for
-                    organisasjoner av alle storrelser.
+                    organisasjoner av alle størrelser.
                 </p>
                 <div className="flex flex-wrap gap-3">
                     <Link
@@ -37,7 +34,7 @@ function LandingPage() {
                 {[
                     [
                         'Sanntidsavstemning',
-                        'Se stemmene komme inn i sanntid mens voteringen pagar.',
+                        'Se stemmene komme inn i sanntid mens voteringen pågår.',
                     ],
                     [
                         'Flere valgmetoder',

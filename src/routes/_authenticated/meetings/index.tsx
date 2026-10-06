@@ -40,7 +40,7 @@ function MeetingsDashboard() {
             ) : (
                 <div className="space-y-8">
                     <MeetingSection
-                        title="Pagaende"
+                        title="Pågående"
                         meetings={data?.ongoing ?? []}
                     />
                     <MeetingSection
