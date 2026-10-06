@@ -252,6 +252,7 @@ function ParticipantDirectory({
     const [confirmDelete, setConfirmDelete] = useState(false);
     const [inviteToRemove, setInviteToRemove] =
         useState<DisplayParticipant | null>(null);
+    const [confirmRemoveInvite, setConfirmRemoveInvite] = useState(false);
 
     const deleteMutation = useMutation({
         mutationFn: (selection: DisplayParticipant[]) =>
@@ -332,7 +333,14 @@ function ParticipantDirectory({
                             canEditRoles={canEditRoles}
                             onUpdate={onUpdate}
                             onTransferOwnership={onTransferOwnership}
-                            onRemoveInvite={setInviteToRemove}
+                            onRemoveInvite={
+                                canEditRoles
+                                    ? (invite) => {
+                                          setInviteToRemove(invite);
+                                          setConfirmRemoveInvite(true);
+                                      }
+                                    : undefined
+                            }
                         />
                     ))}
                     {staff.length === 0 && (
@@ -384,10 +392,8 @@ function ParticipantDirectory({
                     onConfirm={() => deleteMutation.mutate(selection)}
                 />
                 <ConfirmDialog
-                    open={inviteToRemove !== null}
-                    onOpenChange={(open) => {
-                        if (!open) setInviteToRemove(null);
-                    }}
+                    open={confirmRemoveInvite}
+                    onOpenChange={setConfirmRemoveInvite}
                     title="Fjerne invitasjonen?"
                     description={`${inviteToRemove?.email} blir ikke lagt til i møtet når de logger inn.`}
                     confirmLabel="Fjern"
