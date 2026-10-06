@@ -105,16 +105,16 @@ User ──────── 1:N ──── Meeting (as owner)
 
 #### Meeting
 
-| Field                 | Type              | Description                            |
-| --------------------- | ----------------- | -------------------------------------- |
-| id                    | String (CUID)     | Primary key                            |
-| title                 | String (max 255)  | Meeting title                          |
-| organization          | String            | Name of the organizing body            |
-| description           | String (optional) | Meeting description                    |
-| startTime             | DateTime          | Scheduled start time                   |
-| status                | Enum              | `UPCOMING` \| `ONGOING` \| `ENDED`     |
-| ownerId               | FK → User         | The user who created the meeting       |
-| allowSelfRegistration | Boolean           | Whether participants can self-register |
+| Field                 | Type              | Description                                                    |
+| --------------------- | ----------------- | -------------------------------------------------------------- |
+| id                    | String (CUID)     | Primary key                                                    |
+| title                 | String (max 255)  | Meeting title                                                  |
+| organization          | String            | Name of the organizing body                                    |
+| description           | String (optional) | Meeting description                                            |
+| startTime             | DateTime          | Scheduled start time                                           |
+| status                | Enum              | `UPCOMING` \| `ONGOING` \| `ENDED`                             |
+| ownerId               | FK → User         | The meeting owner (the creator until ownership is transferred) |
+| allowSelfRegistration | Boolean           | Whether participants can self-register                         |
 
 #### Participant
 
@@ -249,6 +249,7 @@ UPCOMING → OPEN → CHECKING_RESULT → PUBLISHED_RESULT
 | Create meeting                 | ✅ (any user) | ✅ (any user) | ✅ (any user) | Auto-assigned   |
 | Update meeting                 | ✅            | ❌            | ❌            | ✅              |
 | Delete meeting                 | ❌            | ❌            | ❌            | ✅ (only)       |
+| Transfer ownership to an admin | ❌            | ❌            | ❌            | ✅ (only)       |
 | Create/Update/Delete votations | ✅            | ❌            | ❌            | ✅              |
 | Manage participants            | ✅            | ❌            | ❌            | ✅              |
 | Start next votation            | ✅            | ❌            | ❌            | ✅              |
@@ -271,6 +272,7 @@ _\*\* Only after results are published AND votes are not hidden_
 - **Voting eligibility:** Requires `isVotingEligible = true`, votation status `OPEN`, and no prior vote on that votation
 - **Self-registration:** Only available if the meeting has `allowSelfRegistration = true`
 - **Owner protection:** The meeting owner cannot be removed as a participant
+- **Ownership transfer:** Only the owner can transfer ownership, and only to an approved ADMIN of the same meeting
 - **Subscriptions:** All subscriptions are publicly allowed (no auth check on subscribe)
 
 ---
@@ -305,7 +307,7 @@ _\*\* Only after results are published AND votes are not hidden_
 
 - **Fields:** title, organization, start time, description (optional), allow self-registration
 - The creator is automatically added as an ADMIN participant with voting eligibility
-- The creator becomes the **owner** (special role — only person who can delete the meeting)
+- The creator becomes the **owner** (special role — only person who can delete the meeting or transfer ownership)
 
 #### F-MEET-02: Edit Meeting
 
@@ -316,6 +318,14 @@ _\*\* Only after results are published AND votes are not hidden_
 
 - Only the meeting **owner** can delete the meeting
 - Cascading deletion removes all related data (votations, participants, votes, results, etc.)
+
+#### F-MEET-03b: Transfer Ownership
+
+- The owner can make another ADMIN of the meeting the new owner from the participant list
+- Only ADMINs can receive ownership; the owner's role is locked, so the owner must always be able to run the meeting
+- The action requires confirmation, and the previous owner cannot undo it on their own
+- The previous owner stays ADMIN and can afterwards be changed or removed like any other admin
+- All connected clients see the new owner in real time
 
 #### F-MEET-04: View My Meetings
 
