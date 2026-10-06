@@ -13,6 +13,7 @@ import {
 import { publish } from './sse/emitter';
 import { liveEvents } from '#/lib/live-events';
 import { publishParticipantChanges } from './participant-changes.server';
+import { sendMeetingInviteEmail } from './email.server';
 
 export const getParticipants = createServerFn({ method: 'GET' })
     .validator(z.object({ meetingId: z.string() }))
@@ -85,6 +86,10 @@ export const addParticipant = createServerFn({ method: 'POST' })
     .validator(addParticipantSchema)
     .handler(async ({ data }) => {
         await requireAdmin(data.meetingId);
+        const [m] = await db
+            .select({ title: meeting.title })
+            .from(meeting)
+            .where(eq(meeting.id, data.meetingId));
 
         const [existingUser] = await db
             .select()
@@ -114,6 +119,12 @@ export const addParticipant = createServerFn({ method: 'POST' })
                 meetingId: data.meetingId,
             });
             publish(liveEvents.meetingParticipantsUpdated(data.meetingId), {});
+            await sendMeetingInviteEmail({
+                to: data.email,
+                meetingId: data.meetingId,
+                meetingTitle: m.title,
+                hasAccount: false,
+            });
             return;
         }
 
@@ -151,6 +162,12 @@ export const addParticipant = createServerFn({ method: 'POST' })
         await publishParticipantChanges(data.meetingId, {
             userIds: [existingUser.id],
             status: 'updated',
+        });
+        await sendMeetingInviteEmail({
+            to: existingUser.email,
+            meetingId: data.meetingId,
+            meetingTitle: m.title,
+            hasAccount: true,
         });
     });
 
