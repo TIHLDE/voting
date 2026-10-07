@@ -19,7 +19,7 @@ export function ResultTable({
     result: ResultSummary | null;
     isStv: boolean;
 }) {
-    const totalVotes = alternatives.reduce(
+    const validVotes = alternatives.reduce(
         (sum, alternative) => sum + alternative.voteCount,
         0,
     );
@@ -36,7 +36,7 @@ export function ResultTable({
                             {isStv ? 'Førstevalg' : 'Stemmer'}
                         </th>
                         <th className="p-2 text-right font-semibold">
-                            % av totalt
+                            {isStv ? '% av førstevalg' : '% av gyldige stemmer'}
                         </th>
                         <th className="p-2 text-right font-semibold">
                             % av stemmeberettigede
@@ -48,7 +48,7 @@ export function ResultTable({
                         <ResultRow
                             key={alternative.id}
                             alternative={alternative}
-                            totalVotes={totalVotes}
+                            validVotes={validVotes}
                             votingEligibleCount={
                                 result?.votingEligibleCount ?? 0
                             }
@@ -72,15 +72,15 @@ export function ResultTable({
 
 function ResultRow({
     alternative,
-    totalVotes,
+    validVotes,
     votingEligibleCount,
 }: {
     alternative: ResultAlternative;
-    totalVotes: number;
+    validVotes: number;
     votingEligibleCount: number;
 }) {
-    const totalPercent =
-        totalVotes > 0 ? (alternative.voteCount / totalVotes) * 100 : 0;
+    const validPercent =
+        validVotes > 0 ? (alternative.voteCount / validVotes) * 100 : 0;
     const eligiblePercent =
         votingEligibleCount > 0
             ? (alternative.voteCount / votingEligibleCount) * 100
@@ -95,7 +95,7 @@ function ResultRow({
                 {alternative.isWinner && ' *'}
             </td>
             <td className="p-2 text-right">{alternative.voteCount}</td>
-            <td className="p-2 text-right">{totalPercent.toFixed(1)}%</td>
+            <td className="p-2 text-right">{validPercent.toFixed(1)}%</td>
             <td className="p-2 text-right">{eligiblePercent.toFixed(1)}%</td>
         </tr>
     );
