@@ -495,6 +495,7 @@ function MeetingContent({
                     votations={votations}
                     meetingId={meetingId}
                     isAdmin={isAdmin}
+                    isAdminOrCounter={isAdminOrCounter}
                     openVotationId={activeVotationId}
                     onViewActive={() => onTabChange('active')}
                 />

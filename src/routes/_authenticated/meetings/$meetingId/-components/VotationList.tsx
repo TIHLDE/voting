@@ -15,13 +15,19 @@ import {
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ChevronDown, Copy, GripVertical, Plus } from 'lucide-react';
+import { BarChart3, ChevronDown, Copy, GripVertical, Plus } from 'lucide-react';
 import ConfirmDialog from '#/components/ConfirmDialog';
 import { Badge } from '#/components/ui/badge';
 import { Button } from '#/components/ui/button';
-import { votationsQuery } from '#/queries/live';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '#/components/ui/dialog';
+import { resultsQuery, votationsQuery } from '#/queries/live';
 import {
     createVotations,
     deleteVotation,
@@ -29,6 +35,7 @@ import {
     updateVotations,
 } from '#/server/votations';
 import { VotationActions, VotationFormFields } from './VotationFormFields';
+import { ResultDetails, WinnerSummary } from './VotationResult';
 import {
     createEmptyVotation,
     toFormData,
@@ -40,6 +47,7 @@ interface VotationListProps {
     votations: ServerVotation[];
     meetingId: string;
     isAdmin: boolean;
+    isAdminOrCounter: boolean;
     openVotationId: string | null;
     onViewActive: () => void;
 }
@@ -64,6 +72,7 @@ export default function VotationList({
     votations,
     meetingId,
     isAdmin,
+    isAdminOrCounter,
     onViewActive,
 }: VotationListProps) {
     const queryClient = useQueryClient();
@@ -204,6 +213,7 @@ export default function VotationList({
                                         votation={v}
                                         meetingId={meetingId}
                                         isAdmin={isAdmin}
+                                        isAdminOrCounter={isAdminOrCounter}
                                         appendIndex={appendIndex}
                                     />
                                 );
@@ -412,15 +422,21 @@ function FinishedVotationCard({
     votation,
     meetingId,
     isAdmin,
+    isAdminOrCounter,
     appendIndex,
 }: {
     votation: ServerVotation;
     meetingId: string;
     isAdmin: boolean;
+    isAdminOrCounter: boolean;
     appendIndex: number;
 }) {
     const duplicateMutation = useDuplicateVotation(meetingId, appendIndex);
     const [confirmDuplicate, setConfirmDuplicate] = useState(false);
+    const [showResults, setShowResults] = useState(false);
+    const hasResults =
+        votation.status === 'CHECKING_RESULT' ||
+        votation.status === 'PUBLISHED_RESULT';
     const winners = votation.alternatives.filter((a) => a.isWinner);
 
     return (
@@ -458,6 +474,24 @@ function FinishedVotationCard({
                     <Copy className="h-4 w-4" />
                 </button>
             )}
+            {isAdminOrCounter && hasResults && (
+                <button
+                    type="button"
+                    aria-label="Vis resultater"
+                    title="Vis resultater"
+                    onClick={() => setShowResults(true)}
+                    className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                    <BarChart3 className="h-4 w-4" />
+                </button>
+            )}
+            {showResults && isAdminOrCounter && hasResults && (
+                <ResultsDialog
+                    votationId={votation.id}
+                    title={votation.title}
+                    onClose={() => setShowResults(false)}
+                />
+            )}
             <ConfirmDialog
                 open={confirmDuplicate}
                 onOpenChange={setConfirmDuplicate}
@@ -472,6 +506,44 @@ function FinishedVotationCard({
                 onConfirm={() => duplicateMutation.mutate(toFormData(votation))}
             />
         </div>
+    );
+}
+
+function ResultsDialog({
+    votationId,
+    title,
+    onClose,
+}: {
+    votationId: string;
+    title: string;
+    onClose: () => void;
+}) {
+    const { data: results, error } = useQuery(resultsQuery(votationId));
+
+    return (
+        <Dialog open onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
+                <DialogHeader>
+                    <DialogTitle>Resultater: {title}</DialogTitle>
+                </DialogHeader>
+                {error ? (
+                    <p className="text-sm text-destructive">{error.message}</p>
+                ) : results ? (
+                    <div className="space-y-6">
+                        <WinnerSummary
+                            winners={results.alternatives.filter(
+                                (a) => a.isWinner,
+                            )}
+                        />
+                        <ResultDetails results={results} canDownload />
+                    </div>
+                ) : (
+                    <p className="text-sm text-muted-foreground">
+                        Laster resultater...
+                    </p>
+                )}
+            </DialogContent>
+        </Dialog>
     );
 }
 

@@ -62,7 +62,7 @@ export default function VotationResultView({
     );
 }
 
-type VotationResults = Awaited<ReturnType<typeof getVotationResults>>;
+export type VotationResults = Awaited<ReturnType<typeof getVotationResults>>;
 
 function VotationResultContent({
     results,
@@ -81,7 +81,7 @@ function VotationResultContent({
 }) {
     const { alternatives, votation } = results;
     const winners = alternatives.filter((alternative) => alternative.isWinner);
-    const hideDetails = votation.hiddenVotes && !isAdmin;
+    const hideDetails = votation.hiddenVotes && !isAdminOrCounter;
 
     return (
         <div className="space-y-6">
@@ -93,7 +93,10 @@ function VotationResultContent({
                     </p>
                 </div>
             ) : (
-                <ResultDetails results={results} isAdmin={isAdmin} />
+                <ResultDetails
+                    results={results}
+                    canDownload={isAdminOrCounter}
+                />
             )}
             {isAdminOrCounter && <VoteAudit votationId={votationId} />}
             {isAdmin && (
@@ -107,7 +110,7 @@ function VotationResultContent({
     );
 }
 
-function WinnerSummary({
+export function WinnerSummary({
     winners,
 }: {
     winners: VotationResults['alternatives'];
@@ -134,12 +137,12 @@ function WinnerSummary({
     );
 }
 
-function ResultDetails({
+export function ResultDetails({
     results,
-    isAdmin,
+    canDownload,
 }: {
     results: VotationResults;
-    isAdmin: boolean;
+    canDownload: boolean;
 }) {
     const { result, alternatives, votation } = results;
 
@@ -170,7 +173,7 @@ function ResultDetails({
                         quota={result.quota ?? 0}
                     />
                 )}
-            {isAdmin && (
+            {canDownload && (
                 <div className="flex gap-2">
                     <DownloadResultButton
                         alternatives={alternatives}
@@ -265,7 +268,11 @@ function DownloadResultButton({
         voteCount: number;
         isWinner: boolean;
     }>;
-    result: { votingEligibleCount: number; voteCount: number } | null;
+    result: {
+        votingEligibleCount: number;
+        voteCount: number;
+        blankVoteCount: number | null;
+    } | null;
 }) {
     function handleDownload() {
         const rows = [
@@ -284,10 +291,16 @@ function DownloadResultButton({
                 String(result.votingEligibleCount),
             ]);
             rows.push(['Totalt avgitte stemmer', String(result.voteCount)]);
+            if (result.blankVoteCount != null) {
+                rows.push(['Blanke stemmer', String(result.blankVoteCount)]);
+            }
         }
 
-        const csv = rows.map((r) => r.join(',')).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv' });
+        const csv = rows.map((r) => r.map(escapeCsvCell).join(',')).join('\n');
+        // BOM so Excel reads æøå correctly
+        const blob = new Blob(['\uFEFF' + csv], {
+            type: 'text/csv;charset=utf-8',
+        });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
@@ -301,4 +314,12 @@ function DownloadResultButton({
             Last ned CSV
         </Button>
     );
+}
+
+function escapeCsvCell(value: string) {
+    // Stop spreadsheets from evaluating alternative text as a formula
+    if (/^[\s]*[=+\-@]/.test(value) && Number.isNaN(Number(value))) {
+        value = `'${value}`;
+    }
+    return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
