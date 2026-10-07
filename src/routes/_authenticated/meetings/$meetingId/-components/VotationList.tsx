@@ -17,16 +17,10 @@ import {
 import { CSS } from '@dnd-kit/utilities';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { BarChart3, ChevronDown, Copy, GripVertical, Plus } from 'lucide-react';
+import { ChevronDown, Copy, GripVertical, Plus } from 'lucide-react';
 import ConfirmDialog from '#/components/ConfirmDialog';
 import { Badge } from '#/components/ui/badge';
 import { Button } from '#/components/ui/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-} from '#/components/ui/dialog';
 import { resultsQuery, votationsQuery } from '#/queries/live';
 import {
     createVotations,
@@ -440,57 +434,62 @@ function FinishedVotationCard({
     const winners = votation.alternatives.filter((a) => a.isWinner);
 
     return (
-        <div className="flex items-center gap-2 rounded-xl border border-card-border bg-card/50 p-4">
-            <div className="flex flex-1 items-center gap-2 opacity-60">
-                <Badge
-                    variant={
-                        statusColors[votation.status] as
-                            | 'default'
-                            | 'secondary'
-                            | 'outline'
-                            | 'destructive'
-                    }
-                >
-                    {statusLabels[votation.status]}
-                </Badge>
-                <span className="font-medium text-muted-foreground">
-                    {votation.title}
-                </span>
-                {winners.length > 0 && (
-                    <span className="ml-auto text-xs font-medium text-green-700 dark:text-green-400">
-                        Vinner: {winners.map((w) => w.text).join(', ')}
+        <div className="space-y-3 rounded-xl border border-card-border bg-card/50 p-4">
+            <div className="flex items-center gap-2">
+                <div className="flex flex-1 items-center gap-2 opacity-60">
+                    <Badge
+                        variant={
+                            statusColors[votation.status] as
+                                | 'default'
+                                | 'secondary'
+                                | 'outline'
+                                | 'destructive'
+                        }
+                    >
+                        {statusLabels[votation.status]}
+                    </Badge>
+                    <span className="font-medium text-muted-foreground">
+                        {votation.title}
                     </span>
+                    {winners.length > 0 && (
+                        <span className="ml-auto text-xs font-medium text-green-700 dark:text-green-400">
+                            Vinner: {winners.map((w) => w.text).join(', ')}
+                        </span>
+                    )}
+                </div>
+                {isAdmin && (
+                    <button
+                        type="button"
+                        aria-label="Dupliser votering"
+                        title="Dupliser votering"
+                        onClick={() => setConfirmDuplicate(true)}
+                        disabled={duplicateMutation.isPending}
+                        className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+                    >
+                        <Copy className="h-4 w-4" />
+                    </button>
+                )}
+                {isAdminOrCounter && hasResults && (
+                    <button
+                        type="button"
+                        aria-label={
+                            showResults ? 'Skjul resultater' : 'Vis resultater'
+                        }
+                        aria-expanded={showResults}
+                        title={
+                            showResults ? 'Skjul resultater' : 'Vis resultater'
+                        }
+                        onClick={() => setShowResults((current) => !current)}
+                        className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    >
+                        <ChevronDown
+                            className={`h-4 w-4 transition-transform ${showResults ? 'rotate-180' : ''}`}
+                        />
+                    </button>
                 )}
             </div>
-            {isAdmin && (
-                <button
-                    type="button"
-                    aria-label="Dupliser votering"
-                    title="Dupliser votering"
-                    onClick={() => setConfirmDuplicate(true)}
-                    disabled={duplicateMutation.isPending}
-                    className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
-                >
-                    <Copy className="h-4 w-4" />
-                </button>
-            )}
-            {isAdminOrCounter && hasResults && (
-                <button
-                    type="button"
-                    aria-label="Vis resultater"
-                    title="Vis resultater"
-                    onClick={() => setShowResults(true)}
-                    className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                >
-                    <BarChart3 className="h-4 w-4" />
-                </button>
-            )}
             {showResults && isAdminOrCounter && hasResults && (
-                <ResultsDialog
-                    votationId={votation.id}
-                    title={votation.title}
-                    onClose={() => setShowResults(false)}
-                />
+                <ResultsPanel votationId={votation.id} />
             )}
             <ConfirmDialog
                 open={confirmDuplicate}
@@ -509,41 +508,26 @@ function FinishedVotationCard({
     );
 }
 
-function ResultsDialog({
-    votationId,
-    title,
-    onClose,
-}: {
-    votationId: string;
-    title: string;
-    onClose: () => void;
-}) {
+function ResultsPanel({ votationId }: { votationId: string }) {
     const { data: results, error } = useQuery(resultsQuery(votationId));
 
+    if (error) {
+        return <p className="text-sm text-destructive">{error.message}</p>;
+    }
+    if (!results) {
+        return (
+            <p className="text-sm text-muted-foreground">
+                Laster resultater...
+            </p>
+        );
+    }
     return (
-        <Dialog open onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
-                <DialogHeader>
-                    <DialogTitle>Resultater: {title}</DialogTitle>
-                </DialogHeader>
-                {error ? (
-                    <p className="text-sm text-destructive">{error.message}</p>
-                ) : results ? (
-                    <div className="space-y-6">
-                        <WinnerSummary
-                            winners={results.alternatives.filter(
-                                (a) => a.isWinner,
-                            )}
-                        />
-                        <ResultDetails results={results} canDownload />
-                    </div>
-                ) : (
-                    <p className="text-sm text-muted-foreground">
-                        Laster resultater...
-                    </p>
-                )}
-            </DialogContent>
-        </Dialog>
+        <div className="space-y-6">
+            <WinnerSummary
+                winners={results.alternatives.filter((a) => a.isWinner)}
+            />
+            <ResultDetails results={results} canDownload />
+        </div>
     );
 }
 
