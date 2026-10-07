@@ -176,7 +176,6 @@ export function ResultDetails({
             {canDownload && (
                 <div className="flex gap-2">
                     <DownloadResultButton
-                        title={votation.title}
                         alternatives={alternatives}
                         result={result}
                     />
@@ -261,11 +260,9 @@ function StvRoundTable({
 }
 
 function DownloadResultButton({
-    title,
     alternatives,
     result,
 }: {
-    title: string;
     alternatives: Array<{
         text: string;
         voteCount: number;
@@ -307,7 +304,7 @@ function DownloadResultButton({
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${title.trim() || 'resultater'}.csv`;
+        a.download = 'resultater.csv';
         a.click();
         URL.revokeObjectURL(url);
     }
